@@ -32,7 +32,7 @@ AMD64 또는 ARM64 Linux 서버에서 Docker Compose로 웹, 데이터베이스,
 
 ```bash
 cp .env.docker.example .env.docker
-mkdir -p data/mariadb logs problems
+mkdir -p data/mariadb data/static logs problems
 docker compose --env-file .env.docker up -d --build
 ```
 

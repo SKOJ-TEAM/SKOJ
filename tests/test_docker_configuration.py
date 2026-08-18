@@ -135,10 +135,26 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertIn("call_command('collectstatic', interactive=False", command)
         self.assertLess(command.index("call_command('compilemessages'"), command.index("call_command('compilejsi18n'"))
         self.assertLess(command.index("call_command('compilejsi18n'"), command.index("call_command('collectstatic'"))
+        for key in ('C', 'CPP14', 'JAVA8', 'PY3'):
+            with self.subTest(language=key):
+                self.assertIn(f"'{key}':", command)
+        self.assertIn('Language.objects.update_or_create(key=key, defaults=defaults)', command)
+        self.assertIn('User.objects.filter(is_superuser=True).exists()', command)
+        self.assertIn("DJANGO_SUPERUSER_USERNAME", command)
+        self.assertIn("DJANGO_SUPERUSER_PASSWORD", command)
+        self.assertIn('User.objects.create_superuser(', command)
+        self.assertLess(
+            command.index('User.objects.filter(is_superuser=True).exists()'),
+            command.index("os.environ.get('DJANGO_SUPERUSER_PASSWORD'"),
+        )
         self.assertIn('Judge.objects.update_or_create(', command)
         self.assertNotIn("f'{judge_key}'", command)
 
-    def test_database_and_application_logs_use_host_bind_mounts(self):
+    def test_language_admin_preserves_executor_identifier(self):
+        admin = (ROOT / 'site/judge/admin/runtime.py').read_text()
+        self.assertNotIn('obj.key = obj.name', admin)
+
+    def test_persistent_application_data_uses_host_bind_mounts(self):
         services = self.compose_config()['services']
 
         db_data = next(volume for volume in services['db']['volumes'] if volume['target'] == '/var/lib/mysql')
@@ -147,6 +163,13 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
 
         for service in ('init', 'web', 'celery', 'bridge'):
             with self.subTest(service=service):
+                static = next(
+                    volume for volume in services[service]['volumes']
+                    if volume['target'] == '/app/site/tmp/static'
+                )
+                self.assertEqual('bind', static['type'])
+                self.assertTrue(static['source'].endswith('/data/static'))
+
                 logs = next(
                     volume for volume in services[service]['volumes']
                     if volume['target'] == '/app/site/tmp/logs'
@@ -169,6 +192,12 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIn(f"env.bool('{name}'", settings)
                 self.assertIn(f'{name}=False', example)
+
+    def test_example_environment_contains_superuser_bootstrap_values(self):
+        example = (ROOT / '.env.docker.example').read_text()
+        self.assertIn('DJANGO_SUPERUSER_USERNAME=admin', example)
+        self.assertIn('DJANGO_SUPERUSER_PASSWORD=change-me', example)
+        self.assertIn('DJANGO_SUPERUSER_EMAIL=admin@example.com', example)
 
     def test_judge_uses_configurable_multi_arch_runtime_without_embedded_secret(self):
         dockerfile = (ROOT / 'docker/judge/Dockerfile').read_text()
@@ -204,6 +233,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertEqual(['SYS_PTRACE'], judge['cap_add'])
         self.assertNotIn('ports', judge)
         self.assertEqual('run', judge['command'][0])
+        self.assertNotIn('--no-watchdog', judge['command'])
         self.assertNotIn('-p15001', judge['command'])
         self.assertNotIn('-s', judge['command'])
 
@@ -211,10 +241,11 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         guide = (ROOT / 'DOCKER.md').read_text()
         for command in (
             'cp .env.docker.example .env.docker',
-            'mkdir -p data/mariadb logs problems',
+            'mkdir -p data/mariadb data/static logs problems',
             'docker compose --env-file .env.docker up -d --build',
             'initialize_docker',
             'python manage.py createsuperuser',
+            'python manage.py changepassword admin',
         ):
             with self.subTest(command=command):
                 self.assertIn(command, guide)
