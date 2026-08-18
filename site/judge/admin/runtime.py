@@ -52,14 +52,6 @@ class LanguageAdmin(VersionAdmin):
             form.base_fields['template'].widget = AceWidget(obj.ace)
         return form
 
-    def save_model(self, request, obj, form, change):
-        # key, name, short_name을 common_name과 동일하게 설정
-        obj.key = obj.name
-        obj.common_name = obj.name
-        obj.short_name = obj.name
-        super().save_model(request, obj, form, change)
-
-
 class GenerateKeyTextInput(TextInput):
     def render(self, name, value, attrs=None, renderer=None):
         text = super(TextInput, self).render(name, value, attrs)
