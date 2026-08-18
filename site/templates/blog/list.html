@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title_row %}{% endblock %}
+{% block title_ruler %}{% endblock %}
+
+{% block media %}
+<link rel="alternate" type="application/atom+xml" href="{{ url('blog_atom') }}" title="Atom Blog Feed">
+<link rel="alternate" type="application/rss+xml" href="{{ url('blog_rss') }}" title="RSS Blog Feed">
+<link rel="alternate" type="application/atom+xml" href="{{ url('comment_atom') }}" title="Atom Comment Feed">
+<link rel="alternate" type="application/rss+xml" href="{{ url('comment_rss') }}" title="RSS Comment Feed">
+<link rel="alternate" type="application/atom+xml" href="{{ url('problem_atom') }}" title="Atom Problem Feed">
+<link rel="alternate" type="application/rss+xml" href="{{ url('problem_rss') }}" title="RSS Problem Feed">
+{% endblock %}
+
+{% block js_media %}
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.time-remaining').each(function () {
+            count_down($(this));
+        });
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+<style>
+    #page-container {
+        background: var(--page-bg);
+    }
+    /* 통계 바를 화면 폭 전체로 펼치기 위해 본문 폭 제한을 푼다. */
+    #content-body {
+        width: 100%;
+    }
+    /* 120px = 고정 네비 높이 + #content 상단 여백의 근사치.
+       스크롤이 생기거나 여백이 남으면 이 값을 조정한다. */
+    #home-main {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 120px);
+    }
+    #home-hero {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    .home-title {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", "Nanum Myeongjo", serif;
+        font-size: 52px;
+        font-weight: 400;
+        color: var(--font-black);
+    }
+    .home-rule {
+        display: block;
+        width: 90px;
+        height: 3px;
+        margin: 32px 0;
+        background: var(--brand-orange);
+    }
+    .home-subtitle {
+        margin: 0;
+        font-size: 16px;
+        color: var(--font-grey);
+    }
+
+    @media (max-width: 830px) {
+        .home-title {
+            font-size: 34px;
+        }
+        .home-rule {
+            margin: 24px 0;
+        }
+    }
+</style>
+{% block before_posts %}{% endblock %}
+<div id="home-main">
+    <div id="home-hero">
+        <h1 class="home-title">SKALA Online Judge</h1>
+        <span class="home-rule"></span>
+        <p class="home-subtitle">프로그래밍 문제를 풀고 온라인으로 채점받을 수 있는 곳입니다.</p>
+    </div>
+</div>
+{% block after_posts %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,120 @@
+name: skoj
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: dockerfile
+  restart: unless-stopped
+  init: true
+  env_file:
+    - path: ${SKOJ_ENV_FILE:-.env.docker}
+      required: false
+  environment:
+    DJANGO_SETTINGS_MODULE: dmoj.settings
+    DB_NAME: ${DB_NAME:-dmoj}
+    DB_USER: ${DB_USER:-dmoj}
+    DB_PASSWORD: ${DB_PASSWORD:-change-me}
+    DMOJ_PROBLEM_DATA_ROOT: /problems
+    LOGGING_ROOT: /app/site/tmp/logs
+  volumes:
+    - ./site:/app/site
+    - ./site/dmoj/settings.example.py:/app/site/dmoj/settings.py:ro
+    - ./docker/django/local_settings.py:/app/site/dmoj/local_settings.py:ro
+    - static_data:/app/site/tmp/static
+    - ${LOGS_DIR:-./logs}:/app/site/tmp/logs
+    - ${PROBLEMS_DIR:-./problems}:/problems
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: mariadb:10.11.16-jammy
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-dmoj}
+      MARIADB_USER: ${DB_USER:-dmoj}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-change-me}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change-me}
+    volumes:
+      - ${DB_DATA_DIR:-./data/mariadb}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis:
+    image: redis:7.2.15-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  init:
+    <<: *app
+    restart: "no"
+    command: ["python", "manage.py", "initialize_docker"]
+
+  web:
+    <<: *app
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  celery:
+    <<: *app
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    command: ["celery", "-A", "dmoj", "worker", "--loglevel=INFO"]
+
+  bridge:
+    <<: *app
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    command: ["python", "manage.py", "runbridged"]
+    expose:
+      - "9998"
+      - "9999"
+
+  judge:
+    build:
+      context: .
+      dockerfile: docker/judge/Dockerfile
+      args:
+        DMOJ_RUNTIMES_IMAGE: ${DMOJ_RUNTIMES_IMAGE:-dmoj/runtimes-tier1:latest}
+        DMOJ_JUDGE_COMMIT: ${DMOJ_JUDGE_COMMIT:-5ef74c5d6cad9efb2e86a5bb8ff2c90aaa6e435c}
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    volumes:
+      - ${PROBLEMS_DIR:-./problems}:/problems:ro
+      - ./docker/judge/judge.yml:/judge.yml:ro
+    depends_on:
+      bridge:
+        condition: service_started
+    command:
+      - run
+      - --no-watchdog
+      - -c
+      - /judge.yml
+      - bridge
+      - ${JUDGE_NAME:-skoj-judge}
+      - ${JUDGE_KEY:-change-me}
+
+volumes:
+  redis_data:
+  static_data:

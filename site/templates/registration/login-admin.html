@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block media %}
+<style>
+    footer {
+        background: var(--page-bg) !important;
+    }
+    .title-div {
+        visibility: hidden;
+    }
+    #page-container {
+        display: flex;
+        background: var(--page-bg) !important;
+    }
+    #content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 90vh !important;
+        margin-top: 0px !important;
+        margin: auto;
+        width: 1040px;
+    }
+    .content-body-box {
+        min-height: 100% !important;
+        margin-bottom: 50px;
+    }
+    #content-body {
+        padding-bottom: 0px;
+    }
+    .title-box {
+        display: none;
+    }
+    .auth-flow-form {
+        max-width: 100%;
+        margin: 50px auto;
+        padding: 20px;
+        background: none;
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .auth-flow-form h2 {
+        margin-bottom: 0;
+        font-size: 24px;
+        font-weight: 400;
+    }
+
+    .form-area {
+        width: 354px;
+        display: flex;
+        flex-direction: column;
+        background: none;
+        border: none;
+        gap: 10px;
+        margin: 0 auto;
+    }
+
+    .form-area .button {
+        height: 40px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        font-family: "Pretendard";
+        cursor: pointer;
+        background: none;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .form-area button[type="submit"] {
+        color: #FFF;
+        background-color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .form-area a.button {
+        color: var(--primary-color) !important;
+        background-color: var(--page-bg);
+        border: 1px solid var(--input-border);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .form-area button:hover {
+        background-color: var(--primary-hover-color);
+        color: #FAFAFA;
+    }
+
+    .form-area a.button:hover {
+        background-color: var(--light-bg);
+        color: var(--primary-hover-color);
+    }
+
+
+    .form-links {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-bottom: 10px;
+        color: var(--font-grey);
+    }
+
+    .form-links a {
+        text-decoration: none;
+        color: var(--font-grey);
+    }
+
+    .form-links a:hover {
+        text-decoration: underline;
+    }
+
+    footer {
+        margin-top: 30px;
+    }
+
+    .footer-content {
+        text-align: center;
+        color: var(--font-grey);
+    }
+
+    .form-area input[type="text"],
+    .form-area input[type="password"] {
+        height: 46px;
+        padding: 10px 10px 10px 16px;
+        border: 1px solid var(--input-border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: "Pretendard";
+        transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;
+        box-sizing: border-box;
+    }
+
+    input[type=text]:hover, input[type=password]:hover, input[type=email]:hover, input[type=number]:hover {
+        box-shadow: none;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    }
+    input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, input[type=number]:focus {
+        box-shadow: none;
+        border-color: #9FCDF2;
+        outline: 0;
+    }
+    input[type=number] {
+        padding: 2px 0 2px 5px;
+    }
+    input[type=checkbox] {
+        vertical-align: middle;
+    }
+
+    .login-lock-notice {
+        margin: 4px 0 0;
+        font-size: 14px;
+        font-weight: 400;
+        color: inherit;
+        white-space: pre-line;
+    }
+
+    .login-failure-status {
+        align-self: flex-start;
+        margin-bottom: 4px;
+        font-size: 14px;
+        font-weight: 400;
+        color: #D64545;
+    }
+
+    #form-errors.invalid_login,
+    #form-errors.invalid_login .error {
+        color: #D64545;
+    }
+
+    #form-errors.invalid_login {
+        padding-bottom: 0.75em;
+    }
+
+    #form-errors.invalid_login .error {
+        white-space: pre-line;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="auth-flow-form">
+    <h2>관리자 로그인</h2>
+    <form action="" method="post" class="form-area">
+        {% csrf_token %}
+        {% if form.errors %}
+            {% for field, errors in form.errors.items() %}
+                {% for error in errors %}
+                    <div id="form-errors" class="invalid_login">
+                        <p class="error">{{ error }}</p>
+                        {% if error == form.error_messages.invalid_login %}
+                        <p class="login-lock-notice">{{ form.login_lock_notice_message }}</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        {% endif %}
+        {% if form.login_failure_status_message %}
+        <div class="form-links login-failure-status">
+            {{ form.login_failure_status_message }}
+        </div>
+        {% endif %}
+        {{ form.username }}
+        {{ form.password }}
+        <div class="form-links">
+            <a href="{{ url('id_find') }}">{{ _('아이디 찾기') }}</a> |
+            <a href="{{ url('password_reset') }}">{{ _('비밀번호 초기화') }}</a>
+        </div>
+        <button type="submit" class="button">{{ _('로그인') }}</button>
+        
+    </form>
+</div>
+
+
+{% endblock %}

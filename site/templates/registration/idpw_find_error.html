@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID/PW 찾기 불가</title>
+  <style>
+    body {
+  margin: 0;
+  height: 100vh;                /* 화면 전체 높이 */
+  display: flex;
+  justify-content: center;      /* 가로 중앙 */
+  align-items: center;          /* 세로 중앙 */
+}
+
+    .alram {
+  background-color: #EBF0F8;
+  border: 1px solid #5F9CFF;
+  border-radius: 10px;
+  text-align: center;
+  padding: 17px 23px;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  transform: translateY(-15%);  /* 세로 기준점에서 위로 15% 올리기 */
+}
+
+.alram .line1 {
+    font-size: 16px; 
+    font-weight: 700;
+}
+
+.alram .line2 {
+    font-size: 14px; 
+    font-weight: 500;
+    display: block;
+    max-width: 90%;         /* 줄이 너무 길어지지 않게 */
+}
+
+.alram .line2 p {
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+  </style>
+</head>
+<body>
+  <div class="alram">
+    <h1>아이디 / 비밀번호 찾기 불가</h1>
+    <div class="line1" style ="color: var(--primary-hover-color); font-weight: 500;">
+      현재 아이디 및 비밀번호 찾기 기능은 오류가 있어 수정하고 있습니다.<br>불편을 드려서 죄송합니다.<br><br>
+      아이디/비밀번호 확인이 필요하신 경우<br>litmus@jbnu.ac.kr<br> 위 메일에 문의해 주세요.
+    </div>
+    <a href="/" style ="color: var(--primary-hover-color); font-weight: 500;"><br>홈으로 돌아가기</a>
+  </div>
+</body>
+</html>

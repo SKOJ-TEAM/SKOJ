@@ -1,0 +1,615 @@
+{% extends "base.html" %}
+
+{% block media %}
+    {% include "timezone/media-css.html" %}
+    {{ form.media.css }}
+    <style>
+        #page-container {
+            background: var(--page-bg) !important;
+        }
+        footer {
+            background: var(--page-bg) !important;
+        }
+        .title-box {
+            display: none;
+        }
+        #content {
+            margin: 50px auto 0;
+            width: 1040px;
+        }
+        .auth-flow-form {
+            max-width: 100%;
+            background-color: var(--page-bg);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .auth-flow-form h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+            font-weight: 400;
+        }
+
+        /* #edit-form {
+            border: unset;
+            background: unset;
+            width: 30%;
+        } */
+
+        .form-area {
+            width: 354px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--page-bg);
+            border: none;
+            gap: 10px;
+            margin: 0 auto;
+        }
+        /* @media (max-width: 1200px) {
+            .form-area {
+                width: 350px;
+            }
+        } */
+        .fullwidth {
+            border-radius: 8px;
+            overflow: visible !important;
+        }
+
+        .form-area input,
+        .form-area input[type="text"],
+        .form-area input[type="password"],
+        .form-area input[type=email]
+        { 
+            padding: 10px 10px 10px 16px;
+            font-size: 14px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            width: 100%;
+            height: 46px;
+            box-sizing: border-box;
+            font-family: "Pretendard";
+            background-color: var(--page-bg);
+            color: var(--font-basic-black);
+        }
+
+
+        /* 이메일 입력 전체 영역 스타일 */
+        .email-input-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .email-input-wrapper-error {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        /* 로컬 이메일 입력 필드 스타일 정의 */
+        input[type=text].email_local {
+            color: var(--font-black);
+            background: var(--page-bg);
+            border: 1px solid var(--border-color);
+            border-right: none;  /* 오른쪽 테두리 제거 */
+            border-radius: 8px 0 0 8px;  /* 왼쪽만 둥글게 */
+            padding: 10px 10px 10px 16px;
+            font-size: 14px;
+            box-sizing: border-box;
+            height: 46px;
+            width: 72%;  /* 이메일 로컬 부분의 너비 조정 */
+            font-family: "Pretendard";
+        }
+        /* 도메인 부분 스타일 정의 */
+        span.email_domain {
+        background: var(--light-bg);
+        border: 1px solid var(--border-color);
+        border-left: none;  /* 왼쪽 테두리 제거 */
+        border-radius: 0 8px 8px 0;  /* 오른쪽만 둥글게 */
+        padding: 10px;
+        height: 46px;  /* input 높이와 맞춤 */
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+        width: 28%;  /* 도메인 부분의 너비 조정 */
+        }
+
+        .select2-hidden-accessible {
+            border: 1px solid var(--border-color)!important;
+            clip: rect(0 0 0 0) !important;
+            -webkit-clip-path: inset(50%) !important;
+            clip-path: inset(50%) !important;
+            height: 1px !important;
+            overflow: hidden !important;
+            padding: 10px !important;
+            position: absolute !important;
+            width: 1px !important;
+            white-space: nowrap !important; 
+        }
+
+        .form-area button,
+        .form-area .button {
+            color: #FFF;
+            background: none;
+            background-color: var(--primary-color);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1.5;
+            height: 40px;
+            font-family: "Pretendard";
+            transition: background-color 0.3s ease, color 0.3s ease;        
+        }
+
+        .form-area button:hover,
+        .form-area a.button:hover {
+            background-color: var(--primary-hover-color);
+            color: #FAFAFA;
+        }
+
+        .fullwidth {
+            display: block;
+            overflow: hidden;
+        }
+
+        .fullwidth input {
+            width: 100%;
+        }
+
+        .fullwidth-error input {
+            width: 100%;
+            border-color: red;
+        }
+
+        .form-field-error {
+            color: red;
+            display: block;
+            text-align: left;
+            position: relative;
+            border-radius: 6px;
+        }
+
+        .validation-flash-overlay {
+            position: absolute;
+            inset: -4px -6px;
+            border-radius: 8px;
+            pointer-events: none;
+            animation: validation-flash-overlay 1.4s ease-out forwards;
+        }
+
+        @keyframes validation-flash-overlay {
+            0% {
+                background-color: rgba(255, 73, 73, 0.14);
+                box-shadow: 0 0 0 3px rgba(255, 73, 73, 0.2);
+            }
+            18% {
+                background-color: rgba(255, 73, 73, 0.14);
+                box-shadow: 0 0 0 3px rgba(255, 73, 73, 0.2);
+            }
+            100% {
+                background-color: rgba(255, 73, 73, 0);
+                box-shadow: 0 0 0 0 rgba(255, 73, 73, 0);
+            }
+        }
+
+        small {
+            font-size: 0.7em;
+            padding-left: 0.6em;
+        }
+
+        #content-body {
+            text-align: center;
+            padding-bottom: 0;
+            height: 85vh;
+            display: flex;
+        }
+
+        #center-float {
+            display: inline-block;
+            text-align: initial;
+            width: 100%;
+            padding-top: 0;
+        }
+
+        ul.errorlist {
+            margin: 0;
+            padding-left: 22px;
+            text-align: left;
+            list-style: disc;
+        }
+
+        ul.errorlist li {
+            margin: 0;
+        }
+
+        .full-textfield {
+            padding-top: 0.5em;
+        }
+
+        .tos-section {
+            display: inline-block;
+            padding-right: 1em;
+        }
+
+        .pass-req {
+            padding: 0;
+        }
+        .form-area .password-rule {
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            text-align: left;
+            cursor: pointer;
+        }
+        .form-area .password-rule p {
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+            padding-left: 10px;
+            color: var(--primary-color);
+            margin: 0;
+            height: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .form-area .password-rule p:hover {
+            color: var(--primary-color);
+        }
+        .form-area .password-rule ul {
+            margin-block-start: 5px;
+            margin-block-end: 5px;
+            padding-inline-start: 20px;
+            display: none;
+            list-style: circle;
+            margin-bottom: 10px;
+        }
+        .form-area .password-rule:hover ul {
+            display: block;
+        }
+        .form-area .password-rule ul li {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .form-field-error ul.errorlist {
+            padding-left: 22px;
+        }
+
+        input[type=text], input[type=password], input[type=email], input[type=number] {
+            padding: 4px 8px;
+            color: var(--font-basic-black);
+            background: var(--page-bg) none;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+            transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input[type=text]:hover, input[type=password]:hover, input[type=email]:hover, input[type=number]:hover {
+            box-shadow: none;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+        }
+        input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, input[type=number]:focus {
+            box-shadow: none;
+            border-color: #9FCDF2;
+            outline: 0;
+        }
+        input[type=number] {
+            padding: 2px 0 2px 5px;
+        }
+        input[type=checkbox] {
+            vertical-align: middle;
+        }
+    </style>
+{% endblock %}
+
+{% block js_media %}
+    {% include "timezone/media-js.html" %}
+    {{ form.media.js }}
+    <script type="text/javascript">
+        $(function () {
+            $('.pass-req-link').click(function () {
+                $('.pass-req').toggle('fast');
+                return false;
+            });
+            try {
+                var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (typeof tz === 'string' && $('#id_timezone option[value="' + tz + '"]').length) {
+                    $('#id_timezone').val(tz).change();
+                }
+            } catch (e) {}
+        });
+    </script>
+    {% if form.captcha %}
+        {{ recaptcha_init(LANGUAGE_CODE) }}
+    {% endif %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var form = document.querySelector('#edit-form');
+            var usernameField = document.querySelector('#id_username');
+            var password1Field = document.querySelector('#id_password1');
+            var password2Field = document.querySelector('#id_password2');
+            var firstNameField = document.querySelector('#id_first_name');
+            var emailLocalField = document.querySelector('#id_email_local');
+            var emailDomainField = document.querySelector('input[name=email_domain]');
+            var schoolField = document.querySelector('#id_school');
+            var submitButton = form.querySelector('button[type="submit"]');
+            var validateRegistrationUrl = '{{ validate_registration_url }}';
+            var requestTimer = null;
+            var errorContainerSelectors = [
+                '#username-error-container',
+                '#email-error-container',
+                '#password1-error-container',
+                '#password2-error-container'
+            ];
+
+            function renderErrors(containerId, errors) {
+                var container = document.querySelector(containerId);
+                if (!container) {
+                    return;
+                }
+
+                container.innerHTML = '';
+                if (!errors || !errors.length) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                var list = document.createElement('ul');
+                list.className = 'errorlist';
+                errors.forEach(function(error) {
+                    var item = document.createElement('li');
+                    item.textContent = error;
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+                container.style.display = 'flex';
+            }
+
+            function syncPasswordSummary(passwordErrors) {
+                var passwordErrorList = document.querySelector('#password-error-list');
+                var passwordErrorContainer = document.querySelector('#password1-error-container');
+                if (!passwordErrorList) {
+                    return;
+                }
+
+                passwordErrorList.innerHTML = '';
+                if (!password1Field.value || !passwordErrors.length) {
+                    passwordErrorList.style.display = 'none';
+                    if (passwordErrorContainer) {
+                        passwordErrorContainer.style.display = 'none';
+                    }
+                    return;
+                }
+
+                passwordErrors.forEach(function(error) {
+                    var li = document.createElement('li');
+                    li.textContent = error;
+                    passwordErrorList.appendChild(li);
+                });
+                passwordErrorList.style.display = 'block';
+                if (passwordErrorContainer) {
+                    passwordErrorContainer.style.display = 'block';
+                }
+            }
+
+            function hasErrors(errors) {
+                return ['username', 'email_local', 'password1', 'password2'].some(function(field) {
+                    return errors[field] && errors[field].length;
+                });
+            }
+
+            function flashErrorContainer(element) {
+                if (!element) {
+                    return;
+                }
+
+                var overlay = document.createElement('span');
+                overlay.className = 'validation-flash-overlay';
+                element.appendChild(overlay);
+                window.setTimeout(function() {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 1400);
+            }
+
+            function flashVisibleErrors() {
+                errorContainerSelectors.forEach(function(selector) {
+                    var container = document.querySelector(selector);
+                    if (!container || container.style.display === 'none' || !container.textContent.trim()) {
+                        return;
+                    }
+
+                    flashErrorContainer(container);
+                });
+            }
+
+            function validateRegistrationFields(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', validateRegistrationUrl, true);
+                xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+                xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== 4) {
+                        return;
+                    }
+
+                    if (xhr.status !== 200) {
+                        if (callback) {
+                            callback(false);
+                        }
+                        return;
+                    }
+
+                    var response;
+                    try {
+                        response = JSON.parse(xhr.responseText);
+                    } catch (e) {
+                        if (callback) {
+                            callback(false);
+                        }
+                        return;
+                    }
+
+                    var errors = response.errors || {};
+                    renderErrors('#username-error-container', errors.username || []);
+                    renderErrors('#email-error-container', errors.email_local || []);
+                    renderErrors('#password2-error-container', errors.password2 || []);
+                    syncPasswordSummary(errors.password1 || []);
+                    if (callback) {
+                        callback(!hasErrors(errors));
+                    }
+                };
+                xhr.send(JSON.stringify({
+                    username: usernameField.value,
+                    first_name: firstNameField.value,
+                    password1: password1Field.value,
+                    password2: password2Field.value,
+                    email_local: emailLocalField.value,
+                    email_domain: emailDomainField.value,
+                    school: schoolField.value
+                }));
+            }
+
+            function scheduleValidation() {
+                window.clearTimeout(requestTimer);
+                requestTimer = window.setTimeout(validateRegistrationFields, 150);
+            }
+
+            function handleRegistrationSubmit(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                window.clearTimeout(requestTimer);
+                validateRegistrationFields(function(isValid) {
+                    if (isValid) {
+                        form.submit();
+                    } else {
+                        flashVisibleErrors();
+                    }
+                });
+            }
+
+            [usernameField, password1Field, password2Field, firstNameField, emailLocalField].forEach(function(field) {
+                field.addEventListener('input', scheduleValidation);
+            });
+
+            schoolField.addEventListener('change', scheduleValidation);
+            form.addEventListener('submit', handleRegistrationSubmit);
+            if (submitButton) {
+                submitButton.addEventListener('click', handleRegistrationSubmit);
+            }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            $(document).on('select2:open', function() {
+                setTimeout(function() {
+                    $('.select2-search__field').attr('maxlength', '50');
+                }, 10);
+            });
+
+            var jbnuSchoolId = '{{ jbnu_school_id }}';
+            $('#id_school').on('change', function() {
+                var isJbnu = (String(this.value) === String(jbnuSchoolId));
+                var domain = isJbnu ? '{{ jbnu_email_domain }}' : '{{ external_school_email_domain }}';
+                $('span.email_domain').text(domain);
+                $('input[name=email_domain]').val(domain);
+                document.querySelector('#id_email_local').dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            $('#id_school').trigger('change');
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+    <div id="center-float" class="auth-flow-form">
+        <h2>회원가입</h2>
+        <form id="edit-form" action="" method="post" class="form-area">
+            {% csrf_token %}
+            <!-- 아이디 -->
+            <span class="fullwidth">{{ form.username }}</span>
+            <div class="form-field-error" id="username-error-container" style="display:none;"></div>
+            <!-- 비밀번호 -->
+            {#
+            <!-- <div style="display: none" class="pass-req alert alert-info">
+                <ul>
+                    {% for validator in password_validators %}
+                        <li>{{ validator.get_help_text() }}</li>
+                    {% endfor %}
+                </ul>
+            </div> -->
+            #}
+            <span class="fullwidth">
+                {{ form.password1 }}
+            </span>
+            <div class="form-field-error" id="password1-error-container" style="display:none;">
+                <ul id="password-error-list" class="errorlist" style="color: red; display: none;"></ul>
+            </div>
+            <span class="fullwidth">{{ form.password2 }}</span>
+            <div class="form-field-error" id="password2-error-container" style="display:none;"></div>
+            <!-- 이름 -->
+            <span class="fullwidth">{{ form.first_name }}</span>
+            <!-- 학교 선택 -->
+            <span class="fullwidth">{{ form.school }}</span>
+            <!-- 이메일 -->
+            <span class="email-input-wrapper">
+                {{ form.email_local }}
+                {{ form.email_domain }}
+                <span class="email_domain">@jbnu.ac.kr</span>
+            </span>
+            <div class="form-field-error" id="email-error-container" style="display:none;"></div>
+            <!-- 국가선택 -->
+            <!-- 언어선택 -->
+            <span class="fullwidth">{{ form.language }}</span>
+            <!-- 학과선택 -->
+            <span class="fullwidth">{{ form.department }}</span>
+            <!-- 조직선택 -->
+            {#
+            <!-- {% if form.organizations %}
+                {{ form.organizations }}
+                {% if form.organizations.errors %}
+                    <div class="form-field-error">{{ form.organizations.errors }}</div>
+                {% endif %}
+            {% endif %}
+            {% if form.newsletter %}
+                <div style="padding-top: 0.5em;">{{ form.newsletter }}
+                    <label for="id_newsletter" style="float: unset;"
+                           class="inline-header grayed">{{ _('Notify me about upcoming contests') }}</label>
+                </div>
+            {% endif %}
+            {% if form.captcha %}
+                <div style="margin-top: 0.5em">{{ form.captcha }}</div>
+                {% if form.captcha.errors %}
+                    <div class="form-field-error">{{ form.captcha.errors }}</div>
+                {% endif %}
+            {% endif %} -->
+            #}
+            <hr>
+            <!-- 비밀번호 규칙 -->
+            {#
+            <!-- <div class="password-rule">
+                <p>비밀번호 생성 규칙</p>
+                <ul>
+                    <li>비밀번호는 최소 8자 이상이어야 합니다.</li>
+                    <li>다른 개인 정보와 유사한 비밀번호는 사용할 수 없습니다.</li>
+                    <li>너무 흔한 비밀번호는 비밀번호로 사용할 수 없습니다.</li>
+                    <li>숫자로만 이루어진 비밀번호는 사용할 수 없습니다.</li>
+                </ul>
+            </div> -->
+            #}
+            <button style="float:right;" type="submit">{{ _('회원가입') }}</button>
+        </form>
+    </div>
+
+    <div class="map-wrap">
+        <div class="map-inset">
+            <div class="map-axis-x"></div>
+            <div class="map-axis-y"></div>
+        </div>
+    </div>
+{% endblock %}

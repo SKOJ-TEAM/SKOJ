@@ -1,0 +1,107 @@
+# hidden file
+.gitconfig
+.DS_Store
+.bashrc
+.wget-hsts
+.bash_history
+.bash_logout
+.lesshst
+.profile
+.sudo_as_admin_successful
+.viminfo
+.Xauthority
+.zshrc
+.mysql_history
+site/.env
+.env
+.env.docker
+
+# file
+logo.png
+
+# hidden directory
+.cache/
+.config/
+.dotnet/
+.git/
+.local/
+.npm/
+.sdkman/
+.ssh/
+.vscode/
+.vscode-server/
+.cursor/
+.cursor-server/
+.pm2/
+.vim/
+site/.github/
+litmus-backup/
+site/.git/
+docs/*
+
+# Personal history files
+.dmoj_history
+.python_history
+.vimrc
+.bash_history
+.mysql_history
+
+# directory
+data/
+env/
+problems/
+problems_backup/
+judge-server/
+pdfoid/
+texoid/
+snap/
+logs/
+dmojsite/
+test/
+tmp/
+ex_files/
+
+# Temporary and log files
+__pycache__/
+*.py[cod]
+nohup.out
+*.log
+log.*
+ksl.py
+
+.idea
+.java
+
+# Judge configuration files
+.dmojrc
+judge-configs/
+judges.conf
+judges.conf.new
+
+# Development environment
+.codeium/
+.copilot/
+.windsurf-server/
+hcpark_log_temp/
+.codex/
+.claude/
+.claude.json
+.claude.json.backup
+
+# Local report files
+/ex_files/
+
+site/resources/icons/problems_images/
+
+site/resources/jplag/*
+!site/resources/jplag/.gitkeep
+site/resources/static/jplag_reports/*
+!site/resources/static/jplag_reports/.gitkeep
+
+#settings.py (dev/service)
+site/dmoj/settings.py
+site/dmoj/local_settings.py
+
+#developemnt-setting
+.agent/
+DEVELOPER_GUIDELINES.md

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block media %}
+    {% block content_media %}{% endblock %}
+{% endblock %}
+
+{% block js_media %}
+    {% compress js %}
+        <script type="text/javascript">
+            $(function () {
+                var info_float = $('.info-float');
+                if (info_float.length) {
+                    var container = $('#content-right');
+                    if (!featureTest('position', 'sticky')) {
+                        fix_div(info_float, 55);
+                        $(window).resize(function () {
+                            info_float.width(container.width());
+                        });
+                        info_float.width(container.width());
+                    }
+                }
+
+                window.add_code_copy_buttons = function ($container) {
+                    $container.find('pre code').each(function () {
+                        var $pre = $(this).parent();
+                        
+                        // 오버레이 복사 버튼 생성
+                        var copyButton = $('<button>', {
+                            'type': 'button',
+                            'class': 'copy-btn-overlay',
+                            'title': '{{ _('Click to copy') }}',
+                            'html': '<i class="fa fa-copy"></i>'
+                        });
+                        
+                        // pre 태그에 relative 포지션 추가
+                        $pre.css('position', 'relative');
+                        
+                        // 복사 버튼을 pre 태그 내부에 추가
+                        $pre.append(copyButton);
+                        
+                        // 복사 기능 구현
+                        copyButton.on('click', function() {
+                            var codeText = $(this).closest('pre').find('code').text();
+                            var $button = $(this);
+                            
+                            if (navigator.clipboard && window.isSecureContext) {
+                                // 최신 브라우저용 Clipboard API
+                                navigator.clipboard.writeText(codeText).then(function() {
+                                    showCopySuccess($button);
+                                }).catch(function(err) {
+                                    console.error('복사 실패:', err);
+                                    fallbackCopyTextToClipboard(codeText, $button);
+                                });
+                            } else {
+                                // 구형 브라우저용 fallback
+                                fallbackCopyTextToClipboard(codeText, $button);
+                            }
+                        });
+                    });
+                };
+                
+                function fallbackCopyTextToClipboard(text, button) {
+                    var textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    textArea.style.top = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                        var successful = document.execCommand('copy');
+                        if (successful) {
+                            showCopySuccess(button);
+                        } else {
+                            alert('복사에 실패했습니다.');
+                        }
+                    } catch (err) {
+                        console.error('복사 실패:', err);
+                        alert('복사에 실패했습니다.');
+                    }
+                    
+                    document.body.removeChild(textArea);
+                }
+                
+                function showCopySuccess(button) {
+                    var originalIcon = button.html();
+                    button.html('<i class="fa fa-check"></i>');
+                    button.css('color', '#4CAF50');
+                    
+                    // 2초 후 원래 아이콘으로 복원
+                    setTimeout(function () {
+                        button.html(originalIcon);
+                        button.css('color', 'var(--font-grey)');
+                    }, 2000);
+                }
+                
+                window.add_code_copy_buttons($(document));
+            });
+        </script>
+    {% endcompress %}
+    {% block content_js_media %}{% endblock %}
+{% endblock %}
+
+{% block body %}   
+    <style>
+        .content-description {
+            line-height: 1.5em;
+            font-size: 1.2em;
+            font-family: "Pretendard","Segoe UI", "Lucida Grande", Arial, sans-serif;
+            color: var(--content-text);
+        }
+
+        .content-description p {
+            margin: 1em 0 !important;
+            padding: 0 !important;
+            color: var(--content-text);
+        }
+        .content-description img {
+        max-width: 100%;
+        height: auto;
+        }
+        .content-description h1, .content-description h2, .content-description h3, .content-description h4, .content-description h5, .content-description h6 {
+        font-weight: normal;
+        color: var(--content-text);
+        margin-bottom: 0.75em;
+        padding: 0;
+        background: 0;
+        }
+        .content-description h4 {
+        margin-top: 24px;
+        }
+        .content-description h3, .content-description h4, .content-description h5, .content-description h6 {
+        font-weight: bold;
+        }
+        .content-description h1 {
+        font-size: 2.5em;
+        }
+        .content-description h2 {
+        font-size: 2em;
+        }
+        .content-description h3 {
+        font-size: 1.6em;
+        margin: 0;
+        padding: 0;
+        }
+        .content-description h4 {
+        font-size: 18px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        line-height: 1.225;
+        padding-bottom: 0.3em;
+        padding-top: 0.5em;
+        color: var(--content-text);
+        }
+        .content-description h5 {
+        font-size: 1.15em;
+        margin-top: 0;
+        }
+        .content-description h6 {
+        font-size: 0.9em;
+        }
+        .content-description blockquote {
+        color: var(--font-grey);
+        margin: 0;
+        padding-left: 1.5em;
+        border-left: 0.5em #eee solid;
+        }
+        .content-description hr {
+        display: block;
+        height: 0;
+        border: 0;
+        font-style: italic;
+        border-bottom: 1px solid var(--code-border);
+        margin: 25px 0 20px 0;
+        padding: 0;
+        }
+        .content-description pre, .content-description code, .content-description kbd, .content-description samp, .content-description span.code {
+        color: var(--font-black);
+        page-break-inside: avoid;
+        font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+        font-size: 0.98em;
+        }
+        .content-description code, .content-description span.code {
+        font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace !important;
+        margin: 0 2px;
+        padding: 0 5px;
+        border: 1px solid var(--code-border);
+        background-color: var(--code-bg);
+        border-radius: 4px;
+        font-size: 0.95em;
+        color: var(--font-dark-grey);
+        }
+        .content-description pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 1.5em 0 1.5em 0;
+        padding: 1em;
+        border: 1px solid var(--code-border);
+        background-color: var(--code-bg);
+        color: var(--font-black);
+        border-radius: 4px;
+        }
+        .content-description pre code, .content-description pre div.code {
+        border: 0;
+        line-height: 1em;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        font-size: 1em;
+        color: var(--font-black);
+        }
+        .content-description b, .content-description strong {
+        font-weight: bold;
+        }
+        .content-description dfn {
+        font-style: italic;
+        }
+        .content-description ins {
+        background: #ff9;
+        color: var(--font-black);
+        text-decoration: none;
+        }
+        .content-description mark {
+        background: #ff0;
+        color: var(--font-black);
+        font-style: italic;
+        font-weight: bold;
+        }
+        .content-description sub {
+        font-size: 75%;
+        line-height: 0;
+        position: relative;
+        vertical-align: baseline;
+        }
+        .content-description sup {
+        font-size: 75%;
+        line-height: 0;
+        position: relative;
+        vertical-align: baseline;
+        top: -0.5em;
+        }
+        .content-description sub {
+        bottom: -0.25em;
+        }
+        .content-description ul, .content-description ol {
+        padding: 0 0 0 2em;
+        }
+        .content-description li p:last-child {
+        margin: 0;
+        }
+        .content-description dd {
+        margin: 0 0 0 2em;
+        }
+        .content-description img {
+        border: 0;
+        -ms-interpolation-mode: bicubic;
+        vertical-align: middle;
+        }
+        .content-description td {
+        vertical-align: top;
+        }
+
+        .display-math {
+        display: block;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        }
+
+        .copy-btn-overlay {
+            position: absolute;
+            top: 35px;
+            right: 2px;
+            border: none;
+            background: none;
+            color: var(--font-grey);
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+
+        .copy-btn-overlay:hover {
+            background: none;
+            color: var(--font-black);
+        }
+
+        /* pre 태그에 relative 포지션 추가 */
+        .content-description pre {
+            position: relative;
+        }
+    </style>     
+    <div id="content-bg"
+    style="
+        width: 100vw; 
+        height: 300px;
+        background: linear-gradient(180deg, #5C95D9 0%, #9FCDF2 300%);
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+    ">
+    </div>
+    <div id="common-content">
+
+        <div id="content-right">
+            <div class="info-float">{% block info_float %}{% endblock %}</div>
+        </div>
+        <div id="content-left" class="split-common-content">
+            <div class="content-description screen">
+                {% block description %}{% endblock %}
+                {% block description_end %}
+                {% endblock %}
+                {% block post_description_end %}{% endblock %}
+            </div>
+            {% block comments %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block bodyend %}
+    {% if REQUIRE_JAX %}
+        {% include "mathjax-load.html" %}
+    {% endif %}
+{% endblock %}
