@@ -56,4 +56,4 @@ RUN chmod +x /usr/local/bin/skoj-entrypoint \
 EXPOSE 8000
 
 ENTRYPOINT ["/usr/local/bin/skoj-entrypoint"]
-CMD ["gunicorn", "dmoj.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "dmoj.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "5"]

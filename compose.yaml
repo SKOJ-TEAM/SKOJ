@@ -69,7 +69,7 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    command: ["gunicorn", "dmoj.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "5"]
     ports:
       - "127.0.0.1:8000:8000"
 

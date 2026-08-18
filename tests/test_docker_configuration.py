@@ -108,8 +108,19 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
                 )
 
         self.assertEqual(
-            ['python', 'manage.py', 'runserver', '0.0.0.0:8000'],
+            [
+                'gunicorn', 'dmoj.wsgi:application',
+                '--bind', '0.0.0.0:8000',
+                '--workers', '5',
+            ],
             config['services']['web']['command'],
+        )
+
+        dockerfile = (ROOT / 'dockerfile').read_text()
+        self.assertIn(
+            'CMD ["gunicorn", "dmoj.wsgi:application", "--bind", '
+            '"0.0.0.0:8000", "--workers", "5"]',
+            dockerfile,
         )
 
     def test_application_services_wait_for_idempotent_initialization(self):

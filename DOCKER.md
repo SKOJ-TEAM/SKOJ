@@ -110,7 +110,7 @@ docker compose --env-file .env.docker down
 
 ## 구성 개요
 
-- `web`: Django 개발 서버, 호스트의 `127.0.0.1:8000`에만 공개
+- `web`: Gunicorn worker 5개로 실행하는 Django 애플리케이션, 호스트의 `127.0.0.1:8000`에만 공개
 - `db`: MariaDB 10.11, Docker 내부 네트워크 전용, 데이터는 `./data/mariadb`에 저장
 - 정적 파일: `init`에서 수집하여 호스트의 `./data/static`에 저장
 - `redis`: 캐시 및 Celery 브로커, Docker 내부 네트워크 전용
@@ -121,4 +121,4 @@ docker compose --env-file .env.docker down
 
 Judge는 `problems` 디렉터리를 감시하므로 문제 파일을 추가·수정하면 재시작 없이 지원 문제 목록을 갱신합니다.
 
-웹 소스는 `./site`가 컨테이너에 마운트되므로 Python과 프론트엔드 파일 변경이 개발 서버에 반영됩니다. Django 계열 서비스의 파일 로그는 `./logs`에 저장됩니다. Docker 전용 설정은 추적 중인 `settings.example.py`를 기본값으로 사용하고 `docker/django/local_settings.py`에서 Linux 경로와 서비스 주소를 적용합니다.
+웹 소스는 `./site`가 컨테이너에 마운트됩니다. 운영용 Gunicorn은 소스 변경을 자동으로 다시 읽지 않으므로 Python 코드를 배포한 뒤 `docker compose --env-file .env.docker restart web`로 Web 서비스를 재시작합니다. Django 계열 서비스의 파일 로그는 `./logs`에 저장됩니다. Docker 전용 설정은 추적 중인 `settings.example.py`를 기본값으로 사용하고 `docker/django/local_settings.py`에서 Linux 경로와 서비스 주소를 적용합니다.
