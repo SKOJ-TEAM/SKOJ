@@ -105,3 +105,4 @@ site/dmoj/local_settings.py
 #developemnt-setting
 .agent/
 DEVELOPER_GUIDELINES.md
+status_report/
