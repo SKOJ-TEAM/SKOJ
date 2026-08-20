@@ -33,6 +33,8 @@ services:
   db:
     image: mariadb:10.11.16-jammy
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3306:3306"
     environment:
       MARIADB_DATABASE: ${DB_NAME:-dmoj}
       MARIADB_USER: ${DB_USER:-dmoj}

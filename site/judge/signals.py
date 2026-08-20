@@ -261,6 +261,7 @@ def update_latest_submission(sender, instance, created, **kwargs):
         defaults={
             'source': source,
             'score': instance.points or 0.0,
+            'language': instance.language,
         }
     )
 
@@ -271,5 +272,5 @@ def update_latest_submission(sender, instance, created, **kwargs):
         if new_score >= prev_score:
             latest.score = new_score
             latest.source = source
-            latest.language=instance.language
+            latest.language = instance.language
             latest.save()

@@ -1,10 +1,12 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from judge.forms import ProfileForm
 from judge.models import Language
 from judge.models.tests.util import CommonDataMixin
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class ProfileAboutFormTestCase(CommonDataMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -40,3 +42,19 @@ class ProfileAboutFormTestCase(CommonDataMixin, TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data['about'], 'body{color:red}hello')
+
+    def test_profile_without_school_does_not_require_department(self):
+        self.profile.school = None
+        form = self.make_form('hello')
+
+        self.assertNotIn('department', form.fields)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_theme_endpoint_persists_dark_theme(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse('set_theme'), {'theme': 'dark'})
+
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.site_theme, 'dark')
