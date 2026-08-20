@@ -575,14 +575,39 @@
         </form>
         <script>
             $(function() {
+                function applyTheme(theme) {
+                    var resolvedTheme = theme;
+                    if (theme === 'auto') {
+                        resolvedTheme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                            ? 'dark' : 'light';
+                    }
+                    document.cookie = 'site_theme=' + resolvedTheme + ';path=/;max-age=31536000;SameSite=Lax';
+                    if (resolvedTheme === 'dark') {
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                    } else {
+                        document.documentElement.removeAttribute('data-theme');
+                    }
+                }
+
+                $('#id_site_theme').on('change', function() {
+                    var theme = this.value;
+                    applyTheme(theme);
+                    $.ajax({
+                        url: '{{ url('set_theme') }}',
+                        method: 'POST',
+                        data: {
+                            theme: theme,
+                            csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                        }
+                    }).fail(function() {
+                        window.alert('{{ _('테마 설정을 저장하지 못했습니다. 다시 시도해주세요.') }}');
+                    });
+                });
+
                 $('form').on('submit', function() {
                     var theme = $('#id_site_theme').val();
                     if (theme) {
-                        var cookieVal = theme;
-                        if (theme === 'auto') {
-                            cookieVal = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-                        }
-                        document.cookie = 'site_theme=' + cookieVal + ';path=/;max-age=31536000;SameSite=Lax';
+                        applyTheme(theme);
                     }
                 });
             });

@@ -38,9 +38,8 @@
     <div class="message-container">
         <p class="message-title">{{ _('회원가입이 완료되었습니다!') }}</p>
         <p class="message-text">
-            {{ _('입력하신 이메일로 인증 메일이 발송되었습니다.') }}<br>
-            {{ _('이메일을 확인하여 계정을 활성화해주세요.') }}<br><br>
-            {{ _('메일이 도착하지 않는 경우, 스팸함을 확인해주세요.') }}
+            {{ _('계정이 활성화되어 바로 로그인할 수 있습니다.') }}<br><br>
+            <a href="{{ url('auth_login') }}">{{ _('로그인하기') }}</a>
         </p>
     </div>
 {% endblock %}

@@ -96,7 +96,15 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             for port in web_ports
         ))
 
-        for internal_service in ('db', 'redis', 'bridge'):
+        db_ports = config['services']['db']['ports']
+        self.assertTrue(any(
+            port.get('host_ip') == '127.0.0.1'
+            and str(port.get('published')) == '3306'
+            and int(port.get('target')) == 3306
+            for port in db_ports
+        ))
+
+        for internal_service in ('redis', 'bridge'):
             with self.subTest(service=internal_service):
                 self.assertNotIn('ports', config['services'][internal_service])
 

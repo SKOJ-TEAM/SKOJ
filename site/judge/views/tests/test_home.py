@@ -1,7 +1,7 @@
 from django.test import TestCase, override_settings
 
 
-@override_settings(COMPRESS_ENABLED=False)
+@override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class HomePageTestCase(TestCase):
     def setUp(self):
         self.response = self.client.get('/')
@@ -37,12 +37,16 @@ class HomePageTestCase(TestCase):
         content = self.response.content.decode()
         self.assertIn('border-bottom: 3px solid var(--brand-orange)', content)
 
-    def test_home_marks_assignments_active(self):
+    def test_primary_navigation_order_excludes_assignments(self):
         content = self.response.content.decode()
-        self.assertIn("assignmentsLink.classList.add('active')", content)
+        labels = ('PROBLEMS', 'CONTESTS', 'USERS', 'STATUS', 'ABOUT')
+        positions = [content.index('>%s</a>' % label) for label in labels]
+
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn('>ASSIGNMENTS</a>', content)
 
 
-@override_settings(COMPRESS_ENABLED=False)
+@override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class HomeHeroTestCase(TestCase):
     def setUp(self):
         self.response = self.client.get('/')

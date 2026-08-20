@@ -6,68 +6,27 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import get_default_password_validators, validate_password
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
-from django.db import models
-from django.forms import ChoiceField, ModelChoiceField
+from django.forms import ModelChoiceField
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils import timezone
-from django.utils.translation import gettext, gettext_lazy as _, ngettext
+from django.utils.translation import gettext, gettext_lazy as _
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from registration import signals
 from registration.backends.default.views import (ActivationView as OldActivationView,
                                                  RegistrationView as OldRegistrationView)
 from registration.forms import RegistrationForm
-from sortedm2m.forms import SortedMultipleChoiceField
-
-# from judge.models import Language, Organization, Profile, TIMEZONE
-from judge.models import Language, Profile, Department, School, TIMEZONE
+from judge.models import Language, Profile
 
 from judge.utils.recaptcha import ReCaptchaField, ReCaptchaWidget
 from judge.utils.subscription import Subscription, newsletter_id
-from judge.widgets import Select2MultipleWidget, Select2Widget
+from judge.widgets import Select2Widget
 
 
 
 bad_mail_regex = list(map(re.compile, settings.BAD_MAIL_PROVIDER_REGEX))
 
-JBNU_EMAIL_DOMAIN = '@jbnu.ac.kr'
-EXTERNAL_SCHOOL_EMAIL_DOMAIN = '@g.jbedu.kr'
-
-
-def _current_registration_student_year():
-    now = timezone.now()
-    if timezone.is_aware(now):
-        now = timezone.localtime(now)
-    return now.year
-
-
-def _registration_student_year_error(year):
-    max_year = _current_registration_student_year()
-    if year > max_year:
-        return '{:02d}학번까지만 가입이 가능합니다.'.format(max_year % 100)
-    return None
-
-
-def _build_registration_email(school, email_local, email_domain):
-    if not email_local:
-        return '', []
-
-    expected_domain = JBNU_EMAIL_DOMAIN if school and school.is_jbnu else EXTERNAL_SCHOOL_EMAIL_DOMAIN
-    errors = []
-
-    if email_domain and email_domain != expected_domain:
-        if expected_domain == JBNU_EMAIL_DOMAIN:
-            errors.append(gettext('전북대학교는 %(domain)s 이메일만 사용 가능합니다.') % {'domain': JBNU_EMAIL_DOMAIN})
-        else:
-            errors.append(gettext('외부 학교는 %(domain)s 이메일만 사용 가능합니다.') % {
-                'domain': EXTERNAL_SCHOOL_EMAIL_DOMAIN,
-            })
-
-    return f'{email_local}{expected_domain}', errors
-
-
-def _validate_registration_username(username, school):
+def _validate_registration_username(username):
     errors = []
 
     if not username:
@@ -80,44 +39,22 @@ def _validate_registration_username(username, school):
         errors.extend(exc.messages)
         return errors
 
-    if school and school.is_jbnu:
-        if len(username) not in (5, 9):
-            errors.append('학번을 올바르게 입력해주세요.')
-            return errors
-
-        if len(username) == 9:
-            year_part = username[:4]
-            try:
-                year = int(year_part)
-            except ValueError:
-                errors.append('올바른 학번 형식이 아닙니다.')
-                return errors
-
-            year_error = _registration_student_year_error(year)
-            if year_error:
-                errors.append(year_error)
-
     return errors
 
 
-def _validate_registration_email(email_local, school, email_domain):
+def _validate_registration_email(email):
     errors = []
 
-    if not email_local:
+    if not email:
         return '', errors
 
-    field = CustomRegistrationForm.base_fields['email_local']
+    field = CustomRegistrationForm.base_fields['email']
     try:
-        email_local = field.clean(email_local)
+        email = field.clean(email)
     except ValidationError as exc:
         return '', exc.messages
 
-    email, domain_errors = _build_registration_email(school, email_local, email_domain)
-    errors.extend(domain_errors)
-    if errors:
-        return email, errors
-
-    if User.objects.filter(email=email).exists():
+    if User.objects.filter(email__iexact=email).exists():
         errors.append(gettext('해당 이메일은 이미 존재하는 이메일입니다.'))
         return email, errors
 
@@ -175,19 +112,13 @@ def validate_registration_method(request):
     except (TypeError, ValueError):
         return JsonResponse({'errors': ['Invalid request body.']}, status=400)
 
-    school_id = data.get('school')
-    school = None
-    if school_id:
-        school = School.objects.filter(pk=school_id, is_active=True).first()
-
     username = (data.get('username') or '').strip()
     first_name = (data.get('first_name') or '').strip()
-    email_local = (data.get('email_local') or '').strip()
-    email_domain = (data.get('email_domain') or '').strip()
+    email = (data.get('email') or '').strip()
     password1 = data.get('password1') or ''
     password2 = data.get('password2') or ''
 
-    email, email_errors = _validate_registration_email(email_local, school, email_domain)
+    email, email_errors = _validate_registration_email(email)
     password1_errors = _validate_registration_password(
         password1,
         username=username,
@@ -196,8 +127,8 @@ def validate_registration_method(request):
     )
 
     errors = {
-        'username': _validate_registration_username(username, school),
-        'email_local': email_errors,
+        'username': _validate_registration_username(username),
+        'email': email_errors,
         'password1': password1_errors,
         'password2': [],
     }
@@ -210,11 +141,11 @@ def validate_registration_method(request):
 
 class CustomRegistrationForm(RegistrationForm):
     username = forms.RegexField(
-        regex=r'^\d+$',
-        max_length=9,
-        label=_('Username'),
-        error_messages={'invalid': '학번은 숫자만 입력해야 합니다.'},
-        widget=forms.TextInput(attrs={'placeholder': _('학번 (아이디)')})
+        regex=r'^[A-Za-z0-9_]+$',
+        max_length=150,
+        label=_('아이디'),
+        error_messages={'invalid': '아이디는 영문자, 숫자, 밑줄(_)만 사용할 수 있습니다.'},
+        widget=forms.TextInput(attrs={'placeholder': _('아이디'), 'autocomplete': 'username'})
     )
 
     # 이름
@@ -225,34 +156,9 @@ class CustomRegistrationForm(RegistrationForm):
         widget=forms.TextInput(attrs={'placeholder': '이름'})
     )
 
-    # 이메일
-
-    # 변경 전 
-    # email = forms.EmailField(
-    #     widget=forms.EmailInput(attrs={'placeholder': _('이메일')})
-    # ) 
-
-    ## 변경 후
-    email_local = forms.CharField(
-        max_length=64,
-        widget=forms.TextInput(attrs={'placeholder': _('이메일'), 'class': 'email_local'}),
-        validators=[
-            RegexValidator(
-                regex=r'^(?!.*\.\.)(?!\.)[a-zA-Z0-9._+-]+(?<!\.)$',
-                message='영문자, 숫자, 그리고 일부 특수 문자(., -, _, +)만 사용할 수 있습니다. 마침표로 시작하거나 끝나는 것은 허용되지 않습니다.'
-            )
-        ],
-        label=_('Email')
-    )
-    email_domain = forms.CharField(
-        max_length=50,
-        initial='@jbnu.ac.kr',
-        widget=forms.HiddenInput(),
-        required=False
-    )
     email = forms.EmailField(
-        widget=forms.HiddenInput(),  # 사용자에게 보이지 않는 숨겨진 필드
-        required=False
+        label=_('Email'),
+        widget=forms.EmailInput(attrs={'placeholder': _('이메일'), 'autocomplete': 'email'}),
     )
 
     password1 = forms.CharField(
@@ -263,25 +169,8 @@ class CustomRegistrationForm(RegistrationForm):
         widget=forms.PasswordInput(attrs={'placeholder': _('비밀번호 확인'), 'maxlength': '100', 'autocomplete': 'off'}),
         label=_('Password Confirmation')
     )
-    ## html에서 쓰이지 않을 필드는 주석처리 필요
-    # timezone = ChoiceField(label=_('Timezone'), choices=TIMEZONE,
-    #                        widget=Select2Widget(attrs={'style': 'width:100%'}))
     language = ModelChoiceField(queryset=Language.objects.all(), label=_('Preferred language'), empty_label=None,
                                 widget=Select2Widget(attrs={'style': 'width:100%', 'data-maximum-input-length': '50'}))
-    school = ModelChoiceField(
-        queryset=School.objects.filter(is_active=True),
-        label=_('학교'), empty_label=None,
-        widget=Select2Widget(attrs={'style': 'width:100%', 'id': 'id_school'}))
-    department = ModelChoiceField(
-        queryset=Department.objects.all().order_by(
-            models.Case(
-                models.When(name='중/고등학생', then=models.Value(1)),
-                default=models.Value(0),
-                output_field=models.IntegerField(),
-            ), 'name',
-        ),
-        label=_('학과 리스트'), empty_label=None,
-        widget=Select2Widget(attrs={'style': 'width:100%', 'data-maximum-input-length': '50'}))
     # organizations = SortedMultipleChoiceField(queryset=Organization.objects.filter(is_open=True),
     #                                           label=_('Organizations'), required=False,
     #                                           widget=Select2MultipleWidget(attrs={'style': 'width:100%'}))
@@ -292,74 +181,16 @@ class CustomRegistrationForm(RegistrationForm):
     if ReCaptchaField is not None:
         captcha = ReCaptchaField(widget=ReCaptchaWidget())
 
-    # 변경 전
-    # def clean_email(self):
-    #     if User.objects.filter(email=self.cleaned_data['email']).exists():
-    #         raise forms.ValidationError(gettext('The email address "%s" is already taken. Only one registration '
-    #                                             'is allowed per address.') % self.cleaned_data['email'])
-    #     if '@' in self.cleaned_data['email']:
-    #         domain = self.cleaned_data['email'].split('@')[-1].lower()
-    #         if (domain in settings.BAD_MAIL_PROVIDERS or
-    #                 any(regex.match(domain) for regex in bad_mail_regex)):
-    #             raise forms.ValidationError(gettext('Your email provider is not allowed due to history of abuse. '
-    #                                                 'Please use a reputable email provider.'))
-    #     return self.cleaned_data['email']
-
-    # 변경 후
-    # def clean_email_local(self):
-    #     email_local = self.cleaned_data.get('email_local')
-        
-    def clean(self):
-        cleaned_data = super().clean()
-        school = cleaned_data.get('school')
-        email_local = cleaned_data.get('email_local')
-        email_domain = cleaned_data.get('email_domain')
-
-        if school and school.is_jbnu:
-            email = f"{email_local}{JBNU_EMAIL_DOMAIN}"
-            if email_domain != JBNU_EMAIL_DOMAIN:
-                raise forms.ValidationError(
-                    gettext('전북대학교는 %(domain)s 이메일만 사용 가능합니다.') % {
-                        'domain': JBNU_EMAIL_DOMAIN,
-                    }, code='email')
-        else:
-            email = f"{email_local}{EXTERNAL_SCHOOL_EMAIL_DOMAIN}"
-            if email_domain != EXTERNAL_SCHOOL_EMAIL_DOMAIN:
-                raise forms.ValidationError(
-                    gettext('외부 학교는 %(domain)s 이메일만 사용 가능합니다.') % {
-                        'domain': EXTERNAL_SCHOOL_EMAIL_DOMAIN,
-                    }, code='email')
-
-        cleaned_data['email'] = email
-
-        if User.objects.filter(email=email).exists():
-            raise forms.ValidationError(gettext('해당 이메일은 이미 존재하는 이메일입니다.'), code='email')
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(gettext('해당 이메일은 이미 존재하는 이메일입니다.'))
         domain = email.split('@')[-1].lower()
         if (domain in settings.BAD_MAIL_PROVIDERS or
                 any(regex.match(domain) for regex in bad_mail_regex)):
             raise forms.ValidationError(gettext('Your email provider is not allowed due to history of abuse. '
-                                                'Please use a reputable email provider.'), code='email')
-
-        return cleaned_data
-
-    def clean_username(self):
-        username = self.cleaned_data.get('username')
-        school = self.cleaned_data.get('school')
-
-        if school and school.is_jbnu:
-            if len(username) != 5 and len(username) != 9:
-                raise forms.ValidationError('학번을 올바르게 입력해주세요.')
-            if len(username) == 9:
-                year_part = username[:4]
-                try:
-                    year = int(year_part)
-                    year_error = _registration_student_year_error(year)
-                    if year_error:
-                        raise forms.ValidationError(year_error)
-                except ValueError:
-                    raise forms.ValidationError('올바른 학번 형식이 아닙니다.')
-
-        return username
+                                                'Please use a reputable email provider.'))
+        return email
 
     # def clean_organizations(self):
     #     organizations = self.cleaned_data.get('organizations') or []
@@ -386,14 +217,20 @@ class RegistrationView(OldRegistrationView):
         kwargs['tos_url'] = settings.TERMS_OF_SERVICE_URL
         kwargs['validate_password_url'] = reverse('validate_password')
         kwargs['validate_registration_url'] = reverse('validate_registration')
-        jbnu = School.objects.filter(is_jbnu=True).first()
-        kwargs['jbnu_school_id'] = jbnu.id if jbnu else ''
-        kwargs['jbnu_email_domain'] = JBNU_EMAIL_DOMAIN
-        kwargs['external_school_email_domain'] = EXTERNAL_SCHOOL_EMAIL_DOMAIN
         return super(RegistrationView, self).get_context_data(**kwargs)
 
     def register(self, form):
-        user = super(RegistrationView, self).register(form)
+        user = form.save()
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+
+        signals.user_registered.send(
+            sender=self.__class__,
+            user=user,
+            request=self.request,
+        )
+
         profile, _ = Profile.objects.get_or_create(user=user, defaults={
             'language': Language.get_default_language(),
         })
@@ -404,8 +241,6 @@ class RegistrationView(OldRegistrationView):
 
         profile.timezone = settings.DEFAULT_USER_TIME_ZONE
         profile.language = cleaned_data['language']
-        profile.department = cleaned_data['department']
-        profile.school = cleaned_data['school']
         profile.save()
 
         if newsletter_id is not None and cleaned_data['newsletter']:

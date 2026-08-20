@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.sitemaps.views import sitemap
 from django.http import Http404, HttpResponseRedirect, HttpResponsePermanentRedirect
 from django.templatetags.static import static
-from django.urls import include, path, re_path, reverse
+from django.urls import include, path, re_path, register_converter, reverse
 from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView
@@ -26,6 +26,21 @@ from judge.views.select2 import ClassSelect2View, CommentSelect2View, ContestSel
 from judge.views.widgets import martor_image_uploader
 
 admin.autodiscover()
+
+
+class ContestListTypeConverter:
+    regex = '0'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        if int(value) != 0:
+            raise ValueError
+        return str(value)
+
+
+register_converter(ContestListTypeConverter, 'contest_list_type')
 
 register_patterns = [
     path('activate/complete/',
@@ -264,7 +279,8 @@ urlpatterns = [
     ## Practice End ##
 
 
-    path('contests/<int:is_practice>/', include([
+    # path('contests/<int:is_practice>/', include([  # Assignments routing (is_practice=1) disabled.
+    path('contests/<contest_list_type:is_practice>/', include([
         path('', paged_list_view(contests.ContestList, 'contest_list')),
         path('past', paged_list_view(contests.ContestPastList, 'contest_past_list')),
         # path('spectate', paged_list_view(views.contests.ContestSpectateList, 'contest_spectate_list')),

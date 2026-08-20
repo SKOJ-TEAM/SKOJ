@@ -336,29 +336,6 @@
     }
 },
 {
-    "java8": {
-        "display_name": "Java 8",
-        "extensions": ["java"],
-        "compile": {
-            "exe": "/usr/lib/jvm/java-8-openjdk-amd64/bin/javac",
-            "args": ["{filename}"],
-            "env": {},
-            "time_limit": 10
-        },
-        "execute": {
-            "exe": "/usr/lib/jvm/java-8-openjdk-amd64/bin/java",
-            "args": ["-cp", "{dirname}", "{basename}"],
-            "env": {},
-            "memory_limit": 256
-        },
-        "version": {
-            "exe": "/usr/lib/jvm/java-8-openjdk-amd64/bin/java",
-            "args": ["-version"],
-            "pattern": "java version \"([\\d+\\.]+)\""
-        }
-    }
-},
-{
     "model": "judge.language",
     "pk": 27,
     "fields": {

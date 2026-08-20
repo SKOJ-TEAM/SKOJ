@@ -61,3 +61,8 @@ EMAIL_ACTIVATION_BLOCKED = True
 
 LOGGING_ROOT = env('LOGGING_ROOT', default=os.path.join(BASE_DIR, 'tmp', 'logs'))
 os.makedirs(LOGGING_ROOT, exist_ok=True)
+
+CSRF_TRUSTED_ORIGINS = env.list(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    default=[],
+)

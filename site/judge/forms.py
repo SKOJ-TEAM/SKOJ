@@ -129,10 +129,10 @@ class ProfileForm(ModelForm):
         # if not self.fields['organizations'].queryset:
         #     self.fields.pop('organizations')
 
-        # 전과/계열제 학부 선택 등으로 학과가 바뀐 사용자가 직접 수정할 수 있도록 함.
-        # 중/고등학생(비전북대 학교 소속)은 학과 개념이 없으므로 필드를 제거.
+        # 전북대학교 소속이 명시된 기존 사용자만 학과를 수정할 수 있도록 한다.
+        # 학교 정보가 없는 신규 사용자와 비전북대 사용자는 학과 필드를 표시하지 않는다.
         school = self.instance.school if self.instance and self.instance.pk else None
-        if school is not None and not school.is_jbnu:
+        if school is None or not school.is_jbnu:
             self.fields.pop('department')
         else:
             self.fields['department'].queryset = Department.objects.exclude(name='중/고등학생').order_by('name')

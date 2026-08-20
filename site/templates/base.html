@@ -106,16 +106,6 @@
                 const currentPath = window.location.pathname;
                 const navLinks = document.querySelectorAll('#nav-list > li > a');
 
-                if (currentPath === '/') {
-                    // 홈에서는 ASSIGNMENTS를 활성으로 표시한다.
-                    const assignmentsLink = document.querySelector(
-                        '#nav-list > li > a[href="/contests/1/"]');
-                    if (assignmentsLink) {
-                        assignmentsLink.classList.add('active');
-                    }
-                    return;
-                }
-
                 navLinks.forEach(link => {
                     const href = link.getAttribute('href');
                     if (href && href !== '/' && currentPath.includes(href)) {
@@ -1031,18 +1021,9 @@
         <div id="navicon" href="javascript:void(0)" onclick="toggleMenu()"><i class="fa fa-bars"></i></div>
         <ul id="nav-list">
             <li class="home-nav-element"><a href="{{ url('home') }}">{% include "site-logo-fragment.html" %}</a></li>
-            <li><a href="{{ url('contest_list', 1) }}">ASSIGNMENTS</a></li>
-            <li><a href="{{ url('contest_list', 0) }}">CONTESTS</a></li>
-            {# 교수님 이상의 권한에서 보이도록 수정 #}
-            <!-- {% if request.user and (request.user.is_superuser or request.user.groups.filter(name='professor').exists()) %}
+            {# <li><a href="{{ url('contest_list', 1) }}">ASSIGNMENTS</a></li> #}
             <li><a href="{{ url('problem_list') }}">PROBLEMS</a></li>
-            {% endif %} -->
-            
-            <!-- 일반 사용자도 보이도록 수정 -->
-            {% if request.user.is_authenticated %}
-                <li><a href="{{ url('problem_list') }}">PROBLEMS</a></li>
-            {% endif %}
-            
+            <li><a href="{{ url('contest_list', 0) }}">CONTESTS</a></li>
             <li><a href="{{ url('user_list') }}">USERS</a></li>
             <li><a href="{{ url('status_all') }}">STATUS</a></li>
             <li><a href="{{ url('about') }}">ABOUT</a></li>
