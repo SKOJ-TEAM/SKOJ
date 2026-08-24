@@ -75,6 +75,8 @@ class PostList(ListView):
         context['future_contests'] = visible_contests.filter(start_time__gt=now)
 
         if self.request.user.is_authenticated:
+            from judge.gamification import get_profile_dashboard_context
+            context.update(get_profile_dashboard_context(self.request.profile))
             context['own_open_tickets'] = (
                 Ticket.objects.filter(user=self.request.profile, is_open=True).order_by('-id')
                               .prefetch_related('linked_item').select_related('user__user')

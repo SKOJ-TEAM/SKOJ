@@ -1,7 +1,116 @@
 {% extends "blog/list.html" %}
+{% block media %}
+    {{ super() }}
+    <style>
+        .home-dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            width: min(1100px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 0 0 36px;
+        }
+        .home-dashboard-card {
+            position: relative;
+            overflow: hidden;
+            min-height: 220px;
+            padding: 26px;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            background: var(--page-bg);
+            box-shadow: 0 12px 30px rgba(24, 32, 48, 0.08);
+        }
+        .home-dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--brand-red), var(--brand-orange));
+        }
+        .home-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .home-card-header h2 { margin: 0; color: var(--font-black); font-size: 20px; }
+        .home-card-link { font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .home-tier-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .home-tier-badge { display: inline-flex; padding: 6px 13px; border-radius: 999px; font-weight: 800; }
+        .home-tier-bronze { color: #8a4f2d; background: #f4dfd0; }
+        .home-tier-gold { color: #7a5a00; background: #fff0ad; }
+        .home-tier-diamond { color: #176b87; background: #d9f4ff; }
+        .home-weighted-score { color: var(--font-grey); font-size: 14px; }
+        .home-progress-list { display: grid; gap: 12px; }
+        .home-progress-label { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; font-size: 13px; }
+        .home-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--background-second); }
+        .home-progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-red), var(--brand-orange)); }
+        .home-promotion-copy { margin: 0 0 16px; color: var(--font-grey); line-height: 1.65; }
+        .home-promotion-list { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+        .home-promotion-list a { display: flex; justify-content: space-between; gap: 14px; padding: 11px 13px; border-radius: 10px; background: var(--background-second); }
+        .home-promotion-state { color: var(--brand-red); font-size: 13px; font-weight: 800; white-space: nowrap; }
+        @media (max-width: 760px) {
+            #home-hero { padding: 32px 20px; }
+            .home-dashboard { grid-template-columns: 1fr; width: min(100% - 28px, 560px); }
+            .home-dashboard-card { min-height: 0; padding: 22px; }
+        }
+    </style>
+{% endblock %}
 {% block before_posts %}
     {% if i18n_config.home_page_top %}
         {{ render_django(i18n_config.home_page_top, request=request, user_count=user_count, problem_count=problem_count, submission_count=submission_count, language_count=language_count, perms=perms) }}
+    {% endif %}
+{% endblock %}
+{% block home_dashboard %}
+    {% if request.user.is_authenticated %}
+        <section class="home-dashboard" aria-label="내 학습 현황">
+            <article class="home-dashboard-card">
+                <div class="home-card-header">
+                    <h2>내 티어</h2>
+                    <a class="home-card-link" href="{{ url('gamification_ranking') }}">전체 랭킹 보기 →</a>
+                </div>
+                <div class="home-tier-summary">
+                    <span class="home-tier-badge home-tier-{{ gamification.current_tier }}">{{ gamification.get_current_tier_display() }}</span>
+                    <span class="home-weighted-score">가중 점수 <strong>{{ gamification.weighted_score }}</strong></span>
+                </div>
+                {% if gamification.current_tier == 'diamond' %}
+                    <p class="home-promotion-copy">최고 티어에 도달했습니다. 더 많은 문제를 해결해 랭킹에 도전해 보세요.</p>
+                {% elif tier_progress %}
+                    <div class="home-progress-list">
+                        {% for cluster in tier_progress %}
+                            {% set progress_percent = ([cluster.solved_count * 100 // cluster.required_solve_count, 100]|min) %}
+                            <div>
+                                <div class="home-progress-label"><span>{{ cluster.problem_group.full_name }}</span><strong>{{ cluster.solved_count }} / {{ cluster.required_solve_count }}</strong></div>
+                                <div class="home-progress-track"><div class="home-progress-value" style="width: {{ progress_percent }}%"></div></div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="home-promotion-copy">현재 티어에 활성화된 문제 그룹이 없습니다.</p>
+                {% endif %}
+            </article>
+
+            <article class="home-dashboard-card">
+                <div class="home-card-header"><h2>승급전</h2></div>
+                {% if gamification.current_tier == 'diamond' %}
+                    <p class="home-promotion-copy">모든 승급 과정을 완료했습니다. 이제 풀이 점수로 순위를 높여보세요.</p>
+                {% elif promotion_attempt %}
+                    <p class="home-promotion-copy"><strong>{{ promotion_attempt.exam.title }}</strong><br>모든 문제를 해결하면 {{ promotion_attempt.get_target_tier_display() }}로 승격됩니다.</p>
+                    <ul class="home-promotion-list">
+                        {% for item in promotion_problems %}
+                            <li><a href="{{ url('problem_detail', item.problem.code) }}"><span>{{ item.problem.name }}</span><span class="home-promotion-state">{{ '완료' if item.solved else '도전' }}</span></a></li>
+                        {% endfor %}
+                    </ul>
+                {% elif promotion_eligible %}
+                    <p class="home-promotion-copy">승급 조건을 모두 충족했습니다. 활성 승급전이 준비되면 자동으로 열립니다.</p>
+                {% else %}
+                    <p class="home-promotion-copy">현재 티어의 모든 문제 그룹에서 기준 풀이 수를 채우면 승급전이 자동으로 열립니다.</p>
+                {% endif %}
+            </article>
+        </section>
     {% endif %}
 {% endblock %}
 {% block meta %}

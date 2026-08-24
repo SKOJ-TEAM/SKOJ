@@ -25,13 +25,16 @@ class RankingViewTestCase(TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_authenticated_user_sees_bronze_tier(self):
+    def test_ranking_page_only_contains_ranking(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('gamification_ranking'))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '브론즈')
 
-    def test_only_diamond_profiles_appear_in_ranking(self):
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '전체 사용자 랭킹')
+        self.assertNotContains(response, '내 티어')
+        self.assertNotContains(response, '<h2>승급전</h2>', html=True)
+
+    def test_all_tiers_appear_in_global_ranking(self):
         diamond = User.objects.create_user(username='diamond-user')
         ProfileGamification.objects.filter(profile=diamond.profile).update(
             current_tier=Tier.DIAMOND,
@@ -39,10 +42,13 @@ class RankingViewTestCase(TestCase):
         )
         self.client.force_login(self.user)
         response = self.client.get(reverse('gamification_ranking'))
-        self.assertNotContains(response, 'diamond-user')  # no cohort membership means no cohort ranking
 
-    def test_admin_can_view_global_diamond_ranking_with_difficulty_tiebreak(self):
-        admin = User.objects.create_superuser(username='ranking-admin', email='admin@example.com', password='pw')
+        self.assertContains(response, 'ranking-user')
+        self.assertContains(response, 'diamond-user')
+        self.assertContains(response, '브론즈')
+        self.assertContains(response, '다이아몬드')
+
+    def test_ranking_uses_difficulty_tiebreak(self):
         gold_heavy = User.objects.create_user(username='gold-heavy')
         diamond_heavy = User.objects.create_user(username='diamond-heavy')
         ProfileGamification.objects.filter(profile=gold_heavy.profile).update(
@@ -52,8 +58,8 @@ class RankingViewTestCase(TestCase):
             current_tier=Tier.DIAMOND, weighted_score=20, gold_solved=1, diamond_solved=2,
         )
 
-        self.client.force_login(admin)
-        response = self.client.get(reverse('gamification_ranking'), {'scope': 'all'})
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('gamification_ranking'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'gold-heavy')
@@ -62,6 +68,29 @@ class RankingViewTestCase(TestCase):
             response.content.index(b'diamond-heavy'),
             response.content.index(b'gold-heavy'),
         )
+
+
+@override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
+class HomeGamificationCardTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='home-tier-user', password='test-password')
+
+    def test_anonymous_home_hides_gamification_cards(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<section class="home-dashboard"')
+        self.assertNotContains(response, '내 티어')
+
+    def test_authenticated_home_shows_tier_and_promotion_cards(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<section class="home-dashboard"')
+        self.assertContains(response, '내 티어')
+        self.assertContains(response, '<h2>승급전</h2>', html=True)
+        self.assertContains(response, reverse('gamification_ranking'))
 
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)

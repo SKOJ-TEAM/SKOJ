@@ -152,5 +152,25 @@ def sync_profile_gamification(profile):
     return gamification
 
 
+def get_profile_dashboard_context(profile):
+    gamification = sync_profile_gamification(profile)
+    progress = get_tier_progress(profile, gamification.current_tier)
+    attempt = get_active_attempt(profile, gamification)
+    attempt_problems = []
+    if attempt is not None:
+        solved_ids = get_attempt_solved_problem_ids(attempt)
+        attempt_problems = [
+            {'problem': item.problem, 'solved': item.problem_id in solved_ids}
+            for item in attempt.snapshot_problems.select_related('problem').all()
+        ]
+    return {
+        'gamification': gamification,
+        'tier_progress': progress,
+        'promotion_eligible': is_eligible_for_promotion(profile, gamification),
+        'promotion_attempt': attempt,
+        'promotion_problems': attempt_problems,
+    }
+
+
 def can_access_promotion_problem(profile, problem):
     return PromotionAttemptProblem.objects.filter(attempt__profile=profile, problem=problem).exists()
