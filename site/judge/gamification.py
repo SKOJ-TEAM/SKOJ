@@ -48,7 +48,7 @@ def recalculate_profile_score(profile):
 def get_tier_progress(profile, tier=None):
     gamification = get_or_create_gamification(profile)
     tier = tier or gamification.current_tier
-    return list(DifficultyCluster.objects.filter(tier=tier, is_active=True).select_related('problem_type').annotate(
+    return list(DifficultyCluster.objects.filter(tier=tier, is_active=True).select_related('problem_group').annotate(
         solved_count=Count('problems', filter=Q(
             problems__is_public=True,
             problems__is_contest_problem=False,
@@ -56,7 +56,7 @@ def get_tier_progress(profile, tier=None):
             problems__submission__result='AC',
             problems__submission__points__gte=F('problems__points'),
         ), distinct=True),
-    ).order_by('order', 'problem_type__full_name'))
+    ).order_by('order', 'problem_group__full_name'))
 
 
 def is_eligible_for_promotion(profile, gamification=None):

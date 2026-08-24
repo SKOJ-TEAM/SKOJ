@@ -620,21 +620,6 @@
         {% endif %}
 
 
-        <!-- 문제 유형
-                {% if not contest_problem or not contest_problem.contest.hide_problem_tags %}
-                <div id="problem-types">
-                    {% with types=problem.types_list %}
-                        <div class="toggle closed unselectable">
-                            <i class="fa fa-chevron-right fa-fw"></i>{% trans trimmed count=problem.types_list|length %}
-                            Problem type
-                            {% pluralize count %}
-                            Problem types
-                        {% endtrans %}
-                        </div>
-                        <div style="display:none" class="toggled">{{ problem.types_list|join(", ") }}</div>
-                    {% endwith %}
-                </div>
-                -->
         {% endif %}
         <!-- 허용된 언어 - 삭제됨 -->
         <a>&nbsp;</a>

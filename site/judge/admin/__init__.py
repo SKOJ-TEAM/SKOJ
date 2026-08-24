@@ -13,18 +13,18 @@ from judge.admin.training import CampusAdmin, CohortAdmin, TrainingClassAdmin
 from judge.admin.users import UserAdmin
 from judge.admin.runtime import JudgeAdmin, LanguageAdmin
 from judge.admin.submission import SubmissionAdmin
-from judge.admin.taxon import ProblemGroupAdmin, ProblemTypeAdmin
+from judge.admin.taxon import ProblemGroupAdmin
 from judge.admin.patch_note import PatchNoteAdmin
 from judge.admin.guide import AlgorithmGuideAdmin
 from judge.admin import gamification  # noqa: F401
 # from judge.models import BlogPost, Class, Comment, CommentLock, Contest, ContestParticipation, \
 #     ContestTag, Judge, Language, License, MiscConfig, NavigationBar, Organization, \
-#     OrganizationRequest, Problem, ProblemGroup, ProblemPointsVote, ProblemType, Profile, Submission, Ticket
+#     OrganizationRequest, Problem, ProblemGroup, ProblemPointsVote, Profile, Submission, Ticket
 
 
 from judge.models import BlogPost, Comment, CommentLock, Contest, ContestParticipation, \
     ContestTag, Judge, Language, License, MiscConfig, NavigationBar, \
-    Campus, Cohort, Problem, ProblemGroup, ProblemPointsVote, ProblemType, Profile, Submission, Subject, \
+    Campus, Cohort, Problem, ProblemGroup, ProblemPointsVote, Profile, Submission, Subject, \
     TrainingClass, PatchNote
 
 # admin.site.register(BlogPost, BlogPostAdmin)``
@@ -47,7 +47,6 @@ admin.site.register(NavigationBar, NavigationBarAdmin)
 admin.site.register(Problem, ProblemAdmin)
 admin.site.register(ProblemGroup, ProblemGroupAdmin)
 # admin.site.register(ProblemPointsVote, ProblemPointsVoteAdmin)
-admin.site.register(ProblemType, ProblemTypeAdmin)
 admin.site.register(Profile, ProfileAdmin)
 admin.site.register(Subject,SubjectAdmin)
 admin.site.register(Cohort, CohortAdmin)

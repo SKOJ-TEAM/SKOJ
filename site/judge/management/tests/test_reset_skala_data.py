@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from judge.management.commands.reset_skala_data import CONFIRMATION
-from judge.models import AlgorithmGuide, Contest, Problem, ProblemType
+from judge.models import AlgorithmGuide, Contest, Problem, ProblemGroup
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -15,9 +15,9 @@ class ResetSkalaDataCommandTest(CommonDataMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.problem = create_problem(code='preserved-problem')
-        problem_type = ProblemType.objects.create(name='preserved-guide', full_name='보존 가이드')
+        problem_group = ProblemGroup.objects.create(name='preserved-guide', full_name='보존 가이드')
         cls.guide = AlgorithmGuide.objects.create(
-            problem_type=problem_type,
+            problem_group=problem_group,
             title='보존할 가이드',
             summary='요약',
             content='본문',

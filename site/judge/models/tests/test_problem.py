@@ -5,7 +5,7 @@ from django.utils import timezone
 from judge.models import Language, LanguageLimit, Problem, Submission
 from judge.models.problem import VotePermission, disallowed_characters_validator
 from judge.models.tests.util import CommonDataMixin, create_contest, create_contest_participation, \
-     create_problem, create_problem_type, create_solution, create_user #,create_organization
+     create_problem, create_solution, create_user #,create_organization
 
 
 class ProblemTestCase(CommonDataMixin, TestCase):
@@ -21,12 +21,9 @@ class ProblemTestCase(CommonDataMixin, TestCase):
             ),
         })
 
-        create_problem_type(name='type')
-
         self.basic_problem = create_problem(
             code='basic',
             allowed_languages=Language.objects.values_list('key', flat=True),
-            types=('type',),
             authors=('normal',),
             testers=('staff_problem_edit_public',),
         )
@@ -81,7 +78,6 @@ class ProblemTestCase(CommonDataMixin, TestCase):
         self.assertListEqual(list(self.basic_problem.editor_ids), [self.users['normal'].profile.id])
         self.assertListEqual(list(self.basic_problem.tester_ids), [self.users['staff_problem_edit_public'].profile.id])
         self.assertListEqual(list(self.basic_problem.usable_languages), [])
-        self.assertListEqual(self.basic_problem.types_list, ['type'])
         self.assertSetEqual(self.basic_problem.usable_common_names, set())
 
         self.assertEqual(self.basic_problem.translated_name('ABCDEFGHIJK'), self.basic_problem.name)

@@ -4,7 +4,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from judge.admin.guide import AlgorithmGuideAdmin, AlgorithmGuideForm
-from judge.models import AlgorithmGuide, ProblemType
+from judge.models import AlgorithmGuide, ProblemGroup
 from judge.models.tests.util import CommonDataMixin
 from judge.widgets import AdminMartorWidget
 
@@ -13,11 +13,11 @@ class AlgorithmGuideModelTest(CommonDataMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.problem_type = ProblemType.objects.create(name='sorting-guide', full_name='정렬')
+        cls.problem_group = ProblemGroup.objects.create(name='sorting-guide', full_name='정렬')
 
     def test_string_and_absolute_url(self):
         guide = AlgorithmGuide.objects.create(
-            problem_type=self.problem_type,
+            problem_group=self.problem_group,
             title='버블 정렬',
             summary='버블 정렬의 원리를 배웁니다.',
             content='# 버블 정렬',
@@ -29,23 +29,23 @@ class AlgorithmGuideModelTest(CommonDataMixin, TestCase):
             reverse('guide_detail', args=('sorting-guide', guide.pk)),
         )
 
-    def test_problem_type_with_guides_is_protected(self):
+    def test_problem_group_with_guides_is_protected(self):
         AlgorithmGuide.objects.create(
-            problem_type=self.problem_type,
+            problem_group=self.problem_group,
             title='버블 정렬',
             summary='요약',
             content='본문',
         )
 
         with self.assertRaises(ProtectedError):
-            self.problem_type.delete()
+            self.problem_group.delete()
 
 
 class AlgorithmGuideAdminTest(CommonDataMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.problem_type = ProblemType.objects.create(name='graph-guide', full_name='그래프')
+        cls.problem_group = ProblemGroup.objects.create(name='graph-guide', full_name='그래프')
 
     def test_form_uses_markdown_editor(self):
         form = AlgorithmGuideForm()
@@ -57,7 +57,7 @@ class AlgorithmGuideAdminTest(CommonDataMixin, TestCase):
         request = RequestFactory().post('/admin/judge/algorithmguide/add/')
         request.user = self.users['superuser']
         guide = AlgorithmGuide(
-            problem_type=self.problem_type,
+            problem_group=self.problem_group,
             title='그래프 탐색',
             summary='요약',
             content='본문',

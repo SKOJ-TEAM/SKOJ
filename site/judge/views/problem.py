@@ -19,7 +19,8 @@ from django.db import transaction
 from django.db.models import BooleanField, Case, CharField, Count, F, FilteredRelation, Prefetch, Q, When
 from django.db.models.functions import Coalesce
 from django.db.utils import ProgrammingError
-from django.http import Http404, HttpResponse, HttpResponseForbidden, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden, HttpResponsePermanentRedirect, \
+    HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import get_template
 from django.urls import reverse
@@ -37,7 +38,7 @@ from reversion import revisions
 from judge.comments import CommentedDetailView
 from judge.forms import ProblemCloneForm, ProblemPointsVoteForm, ProblemSubmitForm
 from judge.models import ContestSubmission, Judge, Language, Problem, ProblemGroup, ProblemPointsVote, \
-    ProblemTranslation, ProblemType, RuntimeVersion, Solution, Submission, SubmissionSource,LatestSubmission,ProblemClarification
+    ProblemTranslation, RuntimeVersion, Solution, Submission, SubmissionSource,LatestSubmission,ProblemClarification
 from judge.pdf_problems import DefaultPdfMaker, HAS_PDF
 from judge.utils.diggpaginator import DiggPaginator
 from judge.utils.opengraph import generate_opengraph
@@ -540,31 +541,6 @@ class ProblemPdfView(ProblemMixin, SingleObjectMixin, View):
 
 
 
-PROBLEM_GROUP_CATALOG = (
-    {'slug': 'basic', 'name': 'Basic'},
-    {'slug': 'practice', 'name': 'Practice'},
-    {'slug': 'bruteforce', 'name': 'Bruteforce-Guide'},
-    {'slug': 'backtracking', 'name': 'BackTracking-Guide'},
-    {'slug': 'dynamic-programming', 'name': 'DP-Guide'},
-    {'slug': 'stack', 'name': 'Stack-Guide'},
-    {'slug': 'queue', 'name': 'Queue-Guide'},
-    {'slug': 'deque', 'name': 'Deque-Guide'},
-    {'slug': 'heap', 'name': 'Heap-Guide'},
-    {'slug': 'binary-search-tree', 'name': 'BST-Guide'},
-    {'slug': 'trie', 'name': 'Trie-Guide'},
-    {'slug': 'prefix-sum', 'name': 'PrefixSum-Guide'},
-    {'slug': 'dfs', 'name': 'DFS-Guide'},
-    {'slug': 'bfs', 'name': 'BFS-Guide'},
-    {'slug': 'topological-sort', 'name': 'TopoSort-Guide'},
-    {'slug': 'union-find', 'name': 'DSU-Guide'},
-    {'slug': 'kruskal', 'name': 'MST-Guide'},
-    {'slug': 'dijkstra', 'name': 'Dijkstra'},
-    {'slug': 'floyd', 'name': 'Floyd-Guide'},
-)
-PROBLEM_GROUP_BY_SLUG = {item['slug']: item for item in PROBLEM_GROUP_CATALOG}
-PROBLEM_GROUP_BY_NAME = {item['name']: item for item in PROBLEM_GROUP_CATALOG}
-
-
 def get_visible_problem_filter(user, profile=None):
     problem_filter = Q(is_public=True)
     if user.has_perm('judge.see_private_problem') or user.has_perm('judge.view_all_problem'):
@@ -589,34 +565,29 @@ class ProblemCategoryList(LoginRequiredMixin, TitleMixin, ListView):
         category_id = safe_int_or_none(request.GET.get('category'))
         if category_id is not None:
             problem_group = ProblemGroup.objects.filter(pk=category_id).first()
-            config = problem_group and PROBLEM_GROUP_BY_NAME.get(problem_group.name)
-            if config is not None:
+            if problem_group is not None:
                 query = request.GET.copy()
                 query.pop('category', None)
-                target = reverse('problem_group_list', args=(config['slug'],))
+                target = reverse('problem_group_list', args=(problem_group.name,))
                 if query:
                     target += '?' + query.urlencode()
                 return HttpResponseRedirect(target)
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        visible_groups = {
-            row['group__name']: row
+        return [
+            {
+                'slug': row['group__name'],
+                'name': row['group__name'],
+                'display_name': row['group__full_name'],
+                'problem_count': row['problem_count'],
+            }
             for row in Problem.objects.filter(
                 get_visible_problem_filter(self.request.user, self.request.profile),
-                group__name__in=tuple(PROBLEM_GROUP_BY_NAME),
-            ).values('group__name', 'group__full_name').annotate(problem_count=Count('id', distinct=True))
-        }
-        result = []
-        for config in PROBLEM_GROUP_CATALOG:
-            visible_group = visible_groups.get(config['name'])
-            if visible_group is None:
-                continue
-            item = config.copy()
-            item['display_name'] = visible_group['group__full_name']
-            item['problem_count'] = visible_group['problem_count']
-            result.append(item)
-        return result
+            ).values('group__name', 'group__full_name').annotate(
+                problem_count=Count('id', distinct=True),
+            ).order_by('group__full_name', 'group__name')
+        ]
 
 
 class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView):
@@ -627,7 +598,7 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
     template_name = 'problem/list.html'
     paginate_by = 20
     sql_sort = frozenset(('id','points', 'ac_rate', 'user_count', 'code'))
-    manual_sort = frozenset(('name', 'group', 'solved', 'type', 'editorial','authors'))
+    manual_sort = frozenset(('name', 'group', 'solved', 'editorial','authors'))
     all_sorts = sql_sort | manual_sort
     default_desc = frozenset(('points', 'ac_rate', 'user_count'))
     default_sort = 'code'
@@ -666,11 +637,6 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
 
                     queryset = list(queryset)
                     queryset.sort(key=_solved_sort_order, reverse=self.order.startswith('-'))
-            elif sort_key == 'type':
-                if self.show_types:
-                    queryset = list(queryset)
-                    queryset.sort(key=lambda problem: problem.types_list[0] if problem.types_list else '',
-                                  reverse=self.order.startswith('-'))
             elif sort_key == 'id':
                 queryset = queryset.order_by(self.order, 'id')
             elif sort_key == 'authors':
@@ -727,8 +693,6 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         if self.profile is not None and self.hide_solved:
             queryset = queryset.exclude(id__in=Submission.objects.filter(user=self.profile, points=F('problem__points'))
                                         .values_list('problem__id', flat=True))
-        if self.show_types:
-            queryset = queryset.prefetch_related('types')
         queryset = queryset.annotate(has_public_editorial=Case(
             When(solution__is_public=True, solution__publish_on__lte=timezone.now(), then=True),
             default=False,
@@ -738,8 +702,6 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
             queryset = queryset.filter(has_public_editorial=True)
         if self.category is not None:
             queryset = queryset.filter(group__id=self.category)
-        if self.selected_types:
-            queryset = queryset.filter(types__in=self.selected_types)
         if 'search' in self.request.GET:
             self.search_query = query = ' '.join(self.request.GET.getlist('search')).strip()
             if query:
@@ -773,14 +735,10 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         context['title_info'] = self.title_info
 
         context['hide_solved'] = 0 if self.in_contest else int(self.hide_solved)
-        context['show_types'] = 0 if self.in_contest else int(self.show_types)
         context['has_public_editorial'] = 0 if self.in_contest else int(self.has_public_editorial)
         context['full_text'] = 0 if self.in_contest else int(self.full_text)
         context['category'] = self.category
         context['categories'] = ProblemGroup.objects.all()
-        if self.show_types:
-            context['selected_types'] = self.selected_types
-            context['problem_types'] = ProblemType.objects.all()
         context['has_fts'] = settings.ENABLE_FTS
         context['search_query'] = self.search_query
         context['completed_problem_ids'] = self.get_completed_problems()
@@ -836,25 +794,15 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
 
     def setup_problem_list(self, request):
         self.hide_solved = self.GET_with_session(request, 'hide_solved')
-        self.show_types = self.GET_with_session(request, 'show_types')
         self.full_text = self.GET_with_session(request, 'full_text')
         self.has_public_editorial = self.GET_with_session(request, 'has_public_editorial')
 
         self.search_query = None
         self.category = None
-        self.selected_types = []
 
         # This actually copies into the instance dictionary...
         self.all_sorts = set(self.all_sorts)
-        if not self.show_types:
-            self.all_sorts.discard('type')
-
         self.category = safe_int_or_none(request.GET.get('category'))
-        if 'type' in request.GET:
-            try:
-                self.selected_types = list(map(int, request.GET.getlist('type')))
-            except ValueError:
-                pass
 
         self.point_start = safe_float_or_none(request.GET.get('point_start'))
         self.point_end = safe_float_or_none(request.GET.get('point_end'))
@@ -868,7 +816,7 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
             return generic_message(request, 'FTS syntax error', e.args[1], status=400)
 
     def post(self, request, *args, **kwargs):
-        to_update = ('hide_solved', 'show_types', 'has_public_editorial', 'full_text')
+        to_update = ('hide_solved', 'has_public_editorial', 'full_text')
         for key in to_update:
             if key in request.GET:
                 val = request.GET.get(key) == '1'
@@ -878,12 +826,14 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         return HttpResponseRedirect(request.get_full_path())
 class ProblemGroupProblemList(ProblemList):
     def get(self, request, *args, **kwargs):
-        self.problem_group_config = PROBLEM_GROUP_BY_SLUG.get(kwargs['problem_group'])
-        if self.problem_group_config is None:
-            raise Http404()
-        self.problem_group = get_object_or_404(ProblemGroup, name=self.problem_group_config['name'])
-        self.problem_group_config = self.problem_group_config.copy()
-        self.problem_group_config['display_name'] = self.problem_group.full_name
+        if kwargs['problem_group'] == 'bruteforce':
+            return HttpResponsePermanentRedirect(reverse('problem_group_list', args=('brute-force',)))
+        self.problem_group = get_object_or_404(ProblemGroup, name=kwargs['problem_group'])
+        self.problem_group_config = {
+            'slug': self.problem_group.name,
+            'name': self.problem_group.name,
+            'display_name': self.problem_group.full_name,
+        }
         return super().get(request, *args, **kwargs)
 
     def setup_problem_list(self, request):
@@ -1234,7 +1184,6 @@ class ProblemClone(ProblemMixin, PermissionRequiredMixin, TitleMixin, SingleObje
         languages = problem.allowed_languages.all()
         language_limits = problem.language_limits.all()
         # organizations = problem.organizations.all()
-        types = problem.types.all()
         old_code = problem.code
 
         problem.pk = None
@@ -1248,7 +1197,6 @@ class ProblemClone(ProblemMixin, PermissionRequiredMixin, TitleMixin, SingleObje
             problem.allowed_languages.set(languages)
             problem.language_limits.set(language_limits)
             # problem.organizations.set(organizations)
-            problem.types.set(types)
             revisions.set_user(self.request.user)
             revisions.set_comment(_('Cloned problem from %s') % old_code)
 

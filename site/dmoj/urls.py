@@ -462,8 +462,8 @@ urlpatterns = [
 
     path('about/', about.about_view, name='about'),
     path('guides/', guide.GuideTagList.as_view(), name='guide_tag_list'),
-    path('guides/<str:problem_type>/', guide.GuideList.as_view(), name='guide_list'),
-    path('guides/<str:problem_type>/<int:pk>/', guide.GuideDetail.as_view(), name='guide_detail'),
+    path('guides/<str:problem_group>/', guide.GuideList.as_view(), name='guide_list'),
+    path('guides/<str:problem_group>/<int:pk>/', guide.GuideDetail.as_view(), name='guide_detail'),
     path('term/', include([
         path('', term.term_view, name='term_one'),
         path('2', term.term_two_view, name='term_two'),

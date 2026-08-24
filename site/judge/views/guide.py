@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import DetailView, ListView
 
-from judge.models import AlgorithmGuide, ProblemType
+from judge.models import AlgorithmGuide, ProblemGroup
 
 
 LEGACY_GUIDE_SLUGS = {
@@ -38,8 +38,8 @@ LEGACY_GUIDE_SLUGS = {
     'KMP': 'kmp',
 }
 
-def redirect_legacy_slug(problem_type, view_name, *args):
-    canonical_slug = LEGACY_GUIDE_SLUGS.get(problem_type)
+def redirect_legacy_slug(problem_group, view_name, *args):
+    canonical_slug = LEGACY_GUIDE_SLUGS.get(problem_group)
     if canonical_slug is None:
         return None
     return HttpResponsePermanentRedirect(reverse(view_name, args=(canonical_slug, *args)))
@@ -50,7 +50,7 @@ class GuideTagList(LoginRequiredMixin, ListView):
     context_object_name = 'guide_tags'
 
     def get_queryset(self):
-        return ProblemType.objects.filter(
+        return ProblemGroup.objects.filter(
             algorithm_guides__is_published=True,
         ).annotate(
             guide_order=Min(
@@ -64,20 +64,20 @@ class GuideList(LoginRequiredMixin, ListView):
     context_object_name = 'guides'
 
     def dispatch(self, request, *args, **kwargs):
-        redirect_response = redirect_legacy_slug(kwargs['problem_type'], 'guide_list')
+        redirect_response = redirect_legacy_slug(kwargs['problem_group'], 'guide_list')
         if redirect_response is not None:
             return redirect_response
-        self.guide_tag = get_object_or_404(ProblemType, name=kwargs['problem_type'])
-        if self.guide_tag.name != kwargs['problem_type']:
-            return HttpResponsePermanentRedirect(reverse('guide_list', args=(self.guide_tag.name,)))
+        self.guide_group = get_object_or_404(ProblemGroup, name=kwargs['problem_group'])
+        if self.guide_group.name != kwargs['problem_group']:
+            return HttpResponsePermanentRedirect(reverse('guide_list', args=(self.guide_group.name,)))
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return self.guide_tag.algorithm_guides.filter(is_published=True)
+        return self.guide_group.algorithm_guides.filter(is_published=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['guide_tag'] = self.guide_tag
+        context['guide_group'] = self.guide_group
         return context
 
 
@@ -86,7 +86,7 @@ class GuideDetail(LoginRequiredMixin, DetailView):
     context_object_name = 'guide'
 
     def dispatch(self, request, *args, **kwargs):
-        redirect_response = redirect_legacy_slug(kwargs['problem_type'], 'guide_detail', kwargs['pk'])
+        redirect_response = redirect_legacy_slug(kwargs['problem_group'], 'guide_detail', kwargs['pk'])
         if redirect_response is not None:
             return redirect_response
         return super().dispatch(request, *args, **kwargs)
@@ -94,5 +94,5 @@ class GuideDetail(LoginRequiredMixin, DetailView):
     def get_queryset(self):
         return AlgorithmGuide.objects.filter(
             is_published=True,
-            problem_type__name=self.kwargs['problem_type'],
-        ).select_related('problem_type')
+            problem_group__name=self.kwargs['problem_group'],
+        ).select_related('problem_group')

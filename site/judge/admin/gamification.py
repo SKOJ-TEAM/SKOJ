@@ -16,10 +16,10 @@ from judge.models import DifficultyCluster, Problem, ProfileGamification, Promot
 
 @admin.register(DifficultyCluster)
 class DifficultyClusterAdmin(admin.ModelAdmin):
-    fields = ('tier', 'problem_type', 'required_solve_count', 'ranking_weight', 'order', 'is_active')
-    list_display = ('problem_type', 'tier', 'required_solve_count', 'ranking_weight', 'order', 'is_active')
+    fields = ('tier', 'problem_group', 'required_solve_count', 'ranking_weight', 'order', 'is_active')
+    list_display = ('problem_group', 'tier', 'required_solve_count', 'ranking_weight', 'order', 'is_active')
     list_filter = ('tier', 'is_active')
-    ordering = ('tier', 'order', 'problem_type__full_name')
+    ordering = ('tier', 'order', 'problem_group__full_name')
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

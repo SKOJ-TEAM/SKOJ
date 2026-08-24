@@ -1,7 +1,7 @@
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import AlgorithmGuide, ProblemType
+from judge.models import AlgorithmGuide, ProblemGroup
 from judge.models.tests.util import CommonDataMixin
 
 
@@ -10,11 +10,11 @@ class GuideViewTest(CommonDataMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.sorting = ProblemType.objects.create(name='sorting-guide', full_name='정렬')
-        cls.graph = ProblemType.objects.create(name='graph-guide', full_name='그래프')
-        cls.empty = ProblemType.objects.create(name='empty-guide', full_name='빈 태그')
+        cls.sorting = ProblemGroup.objects.create(name='sorting-guide', full_name='정렬')
+        cls.graph = ProblemGroup.objects.create(name='graph-guide', full_name='그래프')
+        cls.empty = ProblemGroup.objects.create(name='empty-guide', full_name='빈 그룹')
         cls.published = AlgorithmGuide.objects.create(
-            problem_type=cls.sorting,
+            problem_group=cls.sorting,
             title='버블 정렬',
             summary='인접한 원소를 비교하는 정렬입니다.',
             content=(
@@ -28,7 +28,7 @@ class GuideViewTest(CommonDataMixin, TestCase):
             order=2,
         )
         cls.first = AlgorithmGuide.objects.create(
-            problem_type=cls.sorting,
+            problem_group=cls.sorting,
             title='정렬 소개',
             summary='정렬을 시작합니다.',
             content='정렬 소개',
@@ -36,14 +36,14 @@ class GuideViewTest(CommonDataMixin, TestCase):
             order=1,
         )
         cls.draft = AlgorithmGuide.objects.create(
-            problem_type=cls.sorting,
+            problem_group=cls.sorting,
             title='작성 중',
             summary='아직 공개되지 않았습니다.',
             content='<script>alert(1)</script>',
             is_published=False,
         )
         cls.graph_draft = AlgorithmGuide.objects.create(
-            problem_type=cls.graph,
+            problem_group=cls.graph,
             title='그래프 초안',
             summary='초안',
             content='초안',
@@ -71,12 +71,12 @@ class GuideViewTest(CommonDataMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '정렬')
         self.assertNotContains(response, '그래프')
-        self.assertNotContains(response, '빈 태그')
+        self.assertNotContains(response, '빈 그룹')
 
     def test_tag_list_uses_curriculum_order_and_shows_contiguous_numbers(self):
-        fundamentals = ProblemType.objects.create(name='fundamentals', full_name='Fundamentals')
+        fundamentals = ProblemGroup.objects.create(name='fundamentals', full_name='Fundamentals')
         AlgorithmGuide.objects.create(
-            problem_type=fundamentals,
+            problem_group=fundamentals,
             title='기초',
             summary='기초 과정',
             content='기초',
@@ -91,10 +91,10 @@ class GuideViewTest(CommonDataMixin, TestCase):
         self.assertContains(response, '<span class="guide-number">01</span>', html=True)
         self.assertContains(response, '<span class="guide-number">02</span>', html=True)
 
-    def test_legacy_problem_type_urls_redirect_permanently_to_english_slug(self):
-        greedy = ProblemType.objects.create(name='greedy', full_name='Greedy Algorithms')
+    def test_legacy_problem_group_urls_redirect_permanently_to_english_slug(self):
+        greedy = ProblemGroup.objects.create(name='greedy', full_name='그리디')
         guide = AlgorithmGuide.objects.create(
-            problem_type=greedy,
+            problem_group=greedy,
             title='그리디',
             summary='그리디 과정',
             content='그리디',
@@ -118,10 +118,10 @@ class GuideViewTest(CommonDataMixin, TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_guide_ui_uses_problem_type_full_name(self):
-        greedy = ProblemType.objects.create(name='greedy', full_name='Greedy Algorithms')
+    def test_guide_ui_uses_problem_group_full_name(self):
+        greedy = ProblemGroup.objects.create(name='greedy', full_name='그리디')
         guide = AlgorithmGuide.objects.create(
-            problem_type=greedy,
+            problem_group=greedy,
             title='그리디 입문',
             summary='그리디 과정',
             content='그리디',
@@ -133,9 +133,9 @@ class GuideViewTest(CommonDataMixin, TestCase):
         list_response = self.client.get(reverse('guide_list', args=('greedy',)))
         detail_response = self.client.get(guide.get_absolute_url())
 
-        self.assertContains(tag_response, '<h2>Greedy Algorithms</h2>', html=True)
-        self.assertContains(list_response, '<h1>Greedy Algorithms</h1>', html=True)
-        self.assertContains(detail_response, '← Greedy Algorithms')
+        self.assertContains(tag_response, '<h2>그리디</h2>', html=True)
+        self.assertContains(list_response, '<h1>그리디</h1>', html=True)
+        self.assertContains(detail_response, '← 그리디')
 
     def test_guide_list_shows_published_guides_in_order(self):
         response = self.client.get(reverse('guide_list', args=(self.sorting.name,)))

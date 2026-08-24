@@ -10,7 +10,7 @@ from judge.models.contest import Contest, ContestJplag, ContestParticipation, Co
     ContestTag, Rating
 from judge.models.interface import BlogPost, MiscConfig, NavigationBar, validate_regex
 from judge.models.problem import LanguageLimit, License, Problem, ProblemClarification, ProblemGroup, \
-    ProblemPointsVote, ProblemTranslation, ProblemType, Solution, SubmissionSourceAccess, \
+    ProblemPointsVote, ProblemTranslation, Solution, SubmissionSourceAccess, \
     TranslatedProblemQuerySet
 from judge.models.problem_data import CHECKERS, ProblemData, ProblemTestCase, problem_data_storage, \
     problem_directory_file

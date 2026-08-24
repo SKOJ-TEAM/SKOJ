@@ -203,7 +203,6 @@ else:
                     'icon': 'fa-question-circle',
                     'children': [
                         'judge.ProblemGroup',
-                        'judge.ProblemType',
                         # 라이선스 비활성화
                         # 'judge.License',
                         

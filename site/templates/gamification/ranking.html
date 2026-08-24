@@ -38,7 +38,7 @@
             <div class="tier-progress">
                 {% for cluster in tier_progress %}
                     <div class="tier-progress-row">
-                        <span>{{ cluster.problem_type.full_name }}</span>
+                        <span>{{ cluster.problem_group.full_name }}</span>
                         <span class="{{ 'progress-complete' if cluster.solved_count >= cluster.required_solve_count else '' }}">{{ cluster.solved_count }} / {{ cluster.required_solve_count }}</span>
                     </div>
                 {% endfor %}

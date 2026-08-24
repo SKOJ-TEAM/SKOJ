@@ -21,8 +21,8 @@ class Tier(models.TextChoices):
 
 class DifficultyCluster(models.Model):
     tier = models.CharField(max_length=10, choices=Tier.choices, db_index=True, verbose_name=_('티어'))
-    problem_type = models.ForeignKey('ProblemType', on_delete=models.PROTECT, related_name='difficulty_clusters',
-                                     verbose_name=_('문제 유형'))
+    problem_group = models.ForeignKey('ProblemGroup', on_delete=models.PROTECT, related_name='difficulty_clusters',
+                                      verbose_name=_('문제 그룹'))
     required_solve_count = models.PositiveIntegerField(
         validators=[MinValueValidator(1)], verbose_name=_('승급 기준 풀이 수'),
     )
@@ -33,12 +33,12 @@ class DifficultyCluster(models.Model):
     is_active = models.BooleanField(default=True, verbose_name=_('활성화'))
 
     def __str__(self):
-        return '%s · %s' % (self.get_tier_display(), self.problem_type.full_name)
+        return '%s · %s' % (self.get_tier_display(), self.problem_group.full_name)
 
     class Meta:
-        ordering = ('tier', 'order', 'problem_type__full_name')
+        ordering = ('tier', 'order', 'problem_group__full_name')
         constraints = [
-            models.UniqueConstraint(fields=('tier', 'problem_type'), name='unique_tier_problem_type_cluster'),
+            models.UniqueConstraint(fields=('tier', 'problem_group'), name='unique_tier_problem_group_cluster'),
             models.CheckConstraint(check=Q(required_solve_count__gte=1), name='positive_cluster_required_solves'),
             models.CheckConstraint(check=Q(ranking_weight__gte=1), name='positive_cluster_ranking_weight'),
         ]

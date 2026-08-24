@@ -3,7 +3,7 @@
 {% block media %}
     <link rel="stylesheet" href="{{ static('libs/nouislider.min.css') }}">
     <noscript>
-        <style>#category, #types {
+        <style>#category {
             visibility: visible;
         }
         </style>
@@ -261,11 +261,6 @@
                 $category.select2({
                     theme: '{{ DMOJ_SELECT2_THEME }}'
                 }).css({'visibility': 'visible'}).change(clean_submit);
-                $('#types').select2({
-                    theme: '{{ DMOJ_SELECT2_THEME }}',
-                    multiple: 1, placeholder: '{{ _('Filter by type...') }}'
-                }).css({'visibility': 'visible'});
-
                 // This is incredibly nasty to do but it's needed because otherwise the select2 steals the focus
                 $search.keypress(function (e) {
                     if (e.keyCode == 13)
@@ -281,7 +276,7 @@
 
                 $('#go').click(clean_submit);
 
-                $('input#full_text, input#hide_solved, input#show_types, input#has_public_editorial').click(function () {
+                $('input#full_text, input#hide_solved, input#has_public_editorial').click(function () {
                     prep_form();
                     ($('<form>').attr('action', window.location.pathname + '?' + $form.serialize())
                         .append($('<input>').attr('type', 'hidden').attr('name', 'csrfmiddlewaretoken')
@@ -510,12 +505,6 @@
                                     <a href="{{ sort_links.group }}">{{ _('분류') }}
                                         {{ sort_order.group }}</a>
                                 </th>
-                                {% if show_types %}
-                                    <th class="types">
-                                        <a href="{{ sort_links.type }}">{{ _('Types') }}
-                                            {{ sort_order.type }}</a>
-                                    </th>
-                                {% endif %}
                                 <th class="points">
                                     <a href="{{ sort_links.authors }}">{{ _('포인트') }}
                                         {{ sort_order.authors }}</a>
@@ -634,14 +623,7 @@
                                     <td class="problem">
                                         <a href="{{ url('problem_detail', problem.code) }}">{{ problem.i18n_name or problem.name }}</a>
                                     </td>
-                                    <!-- <td class="category">{{ problem.group.full_name }}</td>
-                                    {% if show_types %}
-                                        <td class="types">
-                                            {% for type in problem.types_list %}
-                                                <span class="type-tag">{{ type }}</span>{% if not loop.last %}, {% endif %}
-                                            {% endfor %}
-                                        </td>
-                                    {% endif %} -->
+                                    <!-- <td class="category">{{ problem.group.full_name }}</td> -->
                                     <td class="author">
                                         {% for author in problem.authors.all() %}
                                             {{ author.user.first_name }}
@@ -675,9 +657,6 @@
                                         {% endif %}
                                         <th class="problem">{{ _('Problem') }}</th>
                                         <th class="category">{{ _('Category') }}</th>
-                                        {% if show_types %}
-                                            <th>{{ _('Types') }}</th>
-                                        {% endif %}
                                         <th class="points">{{ _('Points') }}</th>
                                         <th class="users">{{ _('Users') }}</th> 
                                         #}

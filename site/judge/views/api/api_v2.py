@@ -10,11 +10,11 @@ from django.views.generic.detail import BaseDetailView
 from django.views.generic.list import BaseListView
 
 # from judge.models import (
-#     Contest, ContestParticipation, ContestTag, Judge, Language, Organization, Problem, ProblemType, Profile, Rating,
+#     Contest, ContestParticipation, ContestTag, Judge, Language, Organization, Problem, Profile, Rating,
 #     Submission,
 # )
 from judge.models import (
-    Contest, ContestParticipation, ContestTag, Judge, Language, Problem, ProblemType, Profile, Rating,
+    Contest, ContestParticipation, ContestTag, Judge, Language, Problem, Profile, Rating,
     Submission,
 )
 from judge.utils.infinite_paginator import InfinitePaginationMixin
@@ -417,7 +417,6 @@ class APIProblemList(APIListView):
     )
     list_filters = (
         ('group', 'group__full_name'),
-        ('type', 'types__full_name'),
         # ('organization', 'organizations'),
     )
 
@@ -425,13 +424,6 @@ class APIProblemList(APIListView):
         return (
             Problem.get_visible_problems(self.request.user)
             .select_related('group')
-            .prefetch_related(
-                Prefetch(
-                    'types',
-                    queryset=ProblemType.objects.only('full_name'),
-                    to_attr='type_list',
-                ),
-            )
             .order_by('code')
             .distinct()
         )
@@ -448,7 +440,6 @@ class APIProblemList(APIListView):
         return {
             'code': problem.code,
             'name': problem.name,
-            'types': list(map(attrgetter('full_name'), problem.type_list)),
             'group': problem.group.full_name,
             'points': problem.points,
             'partial': problem.partial,
@@ -473,7 +464,6 @@ class APIProblemDetail(APIDetailView):
             'code': problem.code,
             'name': problem.name,
             'authors': list(problem.authors.values_list('user__username', flat=True)),
-            'types': list(problem.types.values_list('full_name', flat=True)),
             'group': problem.group.full_name,
             'time_limit': problem.time_limit,
             'memory_limit': problem.memory_limit,

@@ -2,7 +2,7 @@ from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.utils import timezone
 
 from judge.models import BlogPost, Contest, ContestParticipation, ContestProblem, ContestTag, Language, \
-    Problem, ProblemGroup, ProblemType, Profile, Solution #, Organization
+    Problem, ProblemGroup, Profile, Solution #, Organization
 
 
 class CreateModel:
@@ -117,26 +117,12 @@ class CreateProblemGroup(CreateModel):
 create_problem_group = CreateProblemGroup()
 
 
-class CreateProblemType(CreateModel):
-    model = ProblemType
-    required_fields = ('name',)
-
-    def get_defaults(self, required_kwargs, kwargs):
-        return {
-            'full_name': required_kwargs['name'],
-        }
-
-
-create_problem_type = CreateProblemType()
-
-
 class CreateProblem(CreateModel):
     model = Problem
     m2m_fields = {
         'authors': (Profile, 'user__username'),
         'curators': (Profile, 'user__username'),
         'testers': (Profile, 'user__username'),
-        'types': (ProblemType, 'name'),
         'allowed_languages': (Language, 'key'),
         'banned_users': (Profile, 'user__username'),
         # 'organizations': (Organization, 'name'),

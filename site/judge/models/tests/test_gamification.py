@@ -4,22 +4,23 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from judge.gamification import get_attempt_solved_problem_ids, get_tier_progress, sync_profile_gamification
-from judge.models import DifficultyCluster, Language, ProblemType, PromotionAttempt, PromotionExam, Submission, Tier
+from judge.models import DifficultyCluster, Language, ProblemGroup, PromotionAttempt, PromotionExam, Submission, Tier
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
 class GamificationProgressTestCase(CommonDataMixin, TestCase):
     def setUp(self):
         self.profile = self.users['normal'].profile
-        self.problem_type = ProblemType.objects.create(name='tier-array', full_name='배열')
+        self.problem_group = ProblemGroup.objects.create(name='tier-array', full_name='배열')
         self.cluster = DifficultyCluster.objects.create(
             tier=Tier.BRONZE,
-            problem_type=self.problem_type,
+            problem_group=self.problem_group,
             required_solve_count=1,
             ranking_weight=3,
         )
         self.regular_problem = create_problem(
-            code='tierregular', points=10, is_public=True, gamification_cluster=self.cluster,
+            code='tierregular', points=10, is_public=True, group=self.problem_group,
+            gamification_cluster=self.cluster,
         )
         self.exam = PromotionExam.objects.create(title='Gold 승급전', source_tier=Tier.BRONZE)
         self.exam_problem = create_problem(
@@ -102,16 +103,22 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         with self.assertRaises(ValidationError):
             self.exam_problem.full_clean()
 
+    def test_problem_and_cluster_must_use_same_group(self):
+        other_group = ProblemGroup.objects.create(name='other-group', full_name='다른 그룹')
+        self.regular_problem.group = other_group
+        with self.assertRaises(ValidationError):
+            self.regular_problem.full_clean()
+
     def test_contest_problem_cannot_have_gamification_role(self):
         self.regular_problem.is_contest_problem = True
         with self.assertRaises(ValidationError):
             self.regular_problem.full_clean()
 
     def test_all_active_cluster_requirements_are_required(self):
-        second_type = ProblemType.objects.create(name='tier-stack', full_name='스택')
+        second_group = ProblemGroup.objects.create(name='tier-stack', full_name='스택')
         DifficultyCluster.objects.create(
             tier=Tier.BRONZE,
-            problem_type=second_type,
+            problem_group=second_group,
             required_solve_count=1,
             ranking_weight=5,
         )

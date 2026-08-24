@@ -6,7 +6,7 @@
 {% block body %}
 <article class="guide-page">
     <div class="guide-actions">
-        <a class="guide-back" href="{{ url('guide_list', guide.problem_type.name) }}">← {{ guide.problem_type.full_name }}</a>
+        <a class="guide-back" href="{{ url('guide_list', guide.problem_group.name) }}">← {{ guide.problem_group.full_name }}</a>
         {% if perms.judge.change_algorithmguide %}
             <a class="guide-admin-link" href="{{ url('admin:judge_algorithmguide_change', guide.pk) }}">관리자에서 편집</a>
         {% endif %}

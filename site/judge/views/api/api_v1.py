@@ -117,7 +117,6 @@ def api_v1_problem_info(request, problem):
     return JsonResponse({
         'name': p.name,
         'authors': list(p.authors.values_list('user__username', flat=True)),
-        'types': list(p.types.values_list('full_name', flat=True)),
         'group': p.group.full_name,
         'time_limit': p.time_limit,
         'memory_limit': p.memory_limit,

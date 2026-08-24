@@ -2,8 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models.tests.util import create_problem
-from judge.views.problem import PROBLEM_GROUP_CATALOG
+from judge.models.tests.util import create_problem, create_problem_group
 
 
 User = get_user_model()
@@ -32,41 +31,21 @@ class ProblemListAuthenticationTestCase(TestCase):
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class ProblemGroupNavigationTestCase(TestCase):
-    expected_group_catalog = (
-        ('basic', 'Basic'),
-        ('practice', 'Practice'),
-        ('bruteforce', 'Bruteforce-Guide'),
-        ('backtracking', 'BackTracking-Guide'),
-        ('dynamic-programming', 'DP-Guide'),
-        ('stack', 'Stack-Guide'),
-        ('queue', 'Queue-Guide'),
-        ('deque', 'Deque-Guide'),
-        ('heap', 'Heap-Guide'),
-        ('binary-search-tree', 'BST-Guide'),
-        ('trie', 'Trie-Guide'),
-        ('prefix-sum', 'PrefixSum-Guide'),
-        ('dfs', 'DFS-Guide'),
-        ('bfs', 'BFS-Guide'),
-        ('topological-sort', 'TopoSort-Guide'),
-        ('union-find', 'DSU-Guide'),
-        ('kruskal', 'MST-Guide'),
-        ('dijkstra', 'Dijkstra'),
-        ('floyd', 'Floyd-Guide'),
-    )
-
     def setUp(self):
         self.user = User.objects.create_user(username='problem-group-user', password='test-password')
         self.client.force_login(self.user)
+        self.basic_group = create_problem_group(name='basic', full_name='기초')
+        self.practice_group = create_problem_group(name='practice', full_name='연습')
         self.basic_problem = create_problem(
             code='basic-navigation',
             name='기초 탐색',
-            group='Basic',
+            group=self.basic_group,
             is_public=True,
         )
         self.practice_problem = create_problem(
             code='practice-navigation',
             name='실전 탐색',
-            group='Practice',
+            group=self.practice_group,
             is_public=True,
         )
 
@@ -74,39 +53,25 @@ class ProblemGroupNavigationTestCase(TestCase):
         response = self.client.get(reverse('problem_list'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Basic')
-        self.assertContains(response, 'Practice')
+        self.assertContains(response, '기초')
+        self.assertContains(response, '연습')
         self.assertContains(response, reverse('problem_group_list', args=('basic',)))
         self.assertContains(response, reverse('problem_group_list', args=('practice',)))
 
-    def test_all_catalog_groups_have_cards_urls_and_filtered_lists(self):
-        self.assertEqual(
-            tuple((item['slug'], item['name']) for item in PROBLEM_GROUP_CATALOG),
-            self.expected_group_catalog,
+    def test_group_slug_is_used_in_url_and_korean_name_is_displayed(self):
+        stack_group = create_problem_group(name='stack', full_name='스택')
+        stack_problem = create_problem(
+            code='stack-navigation', name='스택 탐색', group=stack_group, is_public=True,
         )
-
-        problems = {
-            'Basic': self.basic_problem,
-            'Practice': self.practice_problem,
-        }
-        for index, (_, group_name) in enumerate(self.expected_group_catalog[2:], start=2):
-            problems[group_name] = create_problem(
-                code='catalog-navigation-%02d' % index,
-                name='분류 탐색 %02d' % index,
-                group=group_name,
-                is_public=True,
-            )
 
         catalog_response = self.client.get(reverse('problem_list'))
         self.assertEqual(catalog_response.status_code, 200)
-        for slug, group_name in self.expected_group_catalog:
-            with self.subTest(group=group_name, page='catalog'):
-                self.assertContains(catalog_response, reverse('problem_group_list', args=(slug,)))
+        self.assertContains(catalog_response, '스택')
+        self.assertContains(catalog_response, reverse('problem_group_list', args=('stack',)))
 
-            group_response = self.client.get(reverse('problem_group_list', args=(slug,)))
-            with self.subTest(group=group_name, page='filtered-list'):
-                self.assertEqual(group_response.status_code, 200)
-                self.assertContains(group_response, problems[group_name].name)
+        group_response = self.client.get(reverse('problem_group_list', args=('stack',)))
+        self.assertEqual(group_response.status_code, 200)
+        self.assertContains(group_response, stack_problem.name)
 
     def test_group_page_only_shows_problems_in_selected_group(self):
         response = self.client.get(reverse('problem_group_list', args=('basic',)))
@@ -120,7 +85,7 @@ class ProblemGroupNavigationTestCase(TestCase):
     def test_legacy_group_id_does_not_override_path_group(self):
         response = self.client.get(
             reverse('problem_group_list', args=('basic',)),
-            {'groupId': 'BFS-Guide'},
+            {'groupId': 'bfs'},
         )
 
         self.assertEqual(response.status_code, 200)

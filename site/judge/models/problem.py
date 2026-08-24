@@ -1,5 +1,4 @@
 from enum import IntEnum
-from operator import attrgetter
 from cryptography.fernet import Fernet
 import hashlib
 import base64
@@ -21,13 +20,12 @@ from judge.fulltext import SearchQuerySet
 # from judge.models.profile import Organization, Profile
 from judge.models.profile import Profile
 from judge.models.runtime import Language
-from judge.user_translations import gettext as user_gettext
 from judge.utils.encryption import encrypt_text, decrypt_text
 from judge.utils.problem_data import ProblemDataCompiler
 
 from zipfile import ZipFile
 
-__all__ = ['ProblemGroup', 'ProblemType', 'Problem', 'ProblemTranslation', 'ProblemClarification', 'License',
+__all__ = ['ProblemGroup', 'Problem', 'ProblemTranslation', 'ProblemClarification', 'License',
            'Solution', 'SubmissionSourceAccess', 'TranslatedProblemQuerySet']
 
 
@@ -38,30 +36,27 @@ def disallowed_characters_validator(text):
                               params={'value': ''.join(common_disallowed_characters)})
 
 
-class ProblemType(models.Model):
-    name = models.CharField(max_length=20, verbose_name=_('problem category ID'), unique=True)
-    full_name = models.CharField(max_length=100, verbose_name='문제 유형 이름')
-
-    def __str__(self):
-        return self.full_name
-
-    class Meta:
-        ordering = ['full_name']
-        verbose_name = _('problem type')
-        verbose_name_plural = _('problem types')
-
-
 class ProblemGroup(models.Model):
-    name = models.CharField(max_length=100, verbose_name=_('problem group ID'), unique=True)
-    full_name = models.CharField(max_length=100, verbose_name=_('problem group name'))
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_('URL slug'),
+        unique=True,
+        validators=[RegexValidator(r'^[a-z0-9-]+$', _('URL slug는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.'))],
+        help_text=_('문제 그룹 URL에 사용됩니다. 예: stack'),
+    )
+    full_name = models.CharField(
+        max_length=100,
+        verbose_name=_('화면 표시명'),
+        help_text=_('사용자 화면에 표시됩니다. 예: 스택'),
+    )
 
     def __str__(self):
         return self.full_name
 
     class Meta:
         ordering = ['full_name']
-        verbose_name = _('problem group')
-        verbose_name_plural = _('problem groups')
+        verbose_name = _('문제 그룹')
+        verbose_name_plural = _('문제 그룹')
 
 
 class License(models.Model):
@@ -151,10 +146,8 @@ class Problem(models.Model):
     testers = models.ManyToManyField(Profile, verbose_name=_('testers'), blank=True, related_name='tested_problems',
                                      help_text=_(
                                          'These users will be able to view the private problem, but not edit it.'))
-    types = models.ManyToManyField(ProblemType, verbose_name=_('problem types'),
-                                   help_text=_("The type of problem, as shown on the problem's page."))
-    group = models.ForeignKey(ProblemGroup, verbose_name=_('problem group'), on_delete=CASCADE,
-                              help_text=_('The group of problem, shown under Category in the problem list.'))
+    group = models.ForeignKey(ProblemGroup, verbose_name=_('문제 그룹'), on_delete=CASCADE,
+                              help_text=_('문제 목록의 분류와 URL에 사용됩니다.'))
     gamification_cluster = models.ForeignKey(
         'DifficultyCluster', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
         verbose_name=_('난이도 클러스터'),
@@ -236,10 +229,6 @@ class Problem(models.Model):
         self._translated_name_cache = {}
         self._i18n_name = None
         self.__original_code = self.code
-
-    @cached_property
-    def types_list(self):
-        return list(map(user_gettext, map(attrgetter('full_name'), self.types.all())))
 
     def languages_list(self):
         return self.allowed_languages.values_list('common_name', flat=True).distinct().order_by('common_name')
@@ -551,6 +540,11 @@ class Problem(models.Model):
             raise ValidationError({
                 'gamification_cluster': _('일반 티어 문제와 승급전 문제로 동시에 지정할 수 없습니다.'),
                 'promotion_exam': _('일반 티어 문제와 승급전 문제로 동시에 지정할 수 없습니다.'),
+            })
+        if self.gamification_cluster_id and self.group_id \
+                and self.gamification_cluster.problem_group_id != self.group_id:
+            raise ValidationError({
+                'gamification_cluster': _('문제와 난이도 클러스터의 문제 그룹이 같아야 합니다.'),
             })
         if self.is_contest_problem and (self.gamification_cluster_id or self.promotion_exam_id):
             raise ValidationError({

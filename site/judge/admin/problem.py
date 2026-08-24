@@ -34,7 +34,7 @@ from judge.utils.views import NoBatchDeleteMixin
 #TestCase 처리를 위한 import
 from judge.views.problem_data import *
 from judge.widgets import (AdminHeavySelect2MultipleWidget, AdminMartorWidget, 
-                          AdminSelect2MultipleWidget, AdminSelect2Widget, 
+                          AdminSelect2Widget,
                           CheckboxSelectMultipleWithSelectAll)
 from judge.widgets.select2 import AdminHeavySelect2Widget
 from django.contrib.admin.filters import FieldListFilter
@@ -238,7 +238,6 @@ class ProblemForm(ModelForm):
             'banned_users': AdminHeavySelect2MultipleWidget(data_view='profile_select2',
                                                            attrs={'style': 'width: 100%'}),
             # 'organizations': AdminHeavySelect2MultipleWidget(data_view='organization_select2', attrs={'style': 'width: 100%'}),
-            'types': AdminSelect2MultipleWidget,
             'group': AdminSelect2Widget,
             'description': AdminMartorWidget(attrs={'data-markdownfy-url': reverse_lazy('problem_preview')}),
             'sample_input': forms.Textarea(attrs={'rows': 4, 'style': 'width: 100%'}),

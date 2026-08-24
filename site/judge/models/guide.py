@@ -3,15 +3,15 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from judge.models.problem import ProblemType
+from judge.models.problem import ProblemGroup
 
 
 class AlgorithmGuide(models.Model):
-    problem_type = models.ForeignKey(
-        ProblemType,
+    problem_group = models.ForeignKey(
+        ProblemGroup,
         related_name='algorithm_guides',
         on_delete=models.PROTECT,
-        verbose_name=_('algorithm tag'),
+        verbose_name=_('문제 그룹'),
     )
     title = models.CharField(max_length=150, verbose_name=_('title'))
     summary = models.CharField(max_length=300, verbose_name=_('summary'))
@@ -33,7 +33,7 @@ class AlgorithmGuide(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('guide_detail', args=(self.problem_type.name, self.pk))
+        return reverse('guide_detail', args=(self.problem_group.name, self.pk))
 
     class Meta:
         ordering = ('order', 'title', 'id')

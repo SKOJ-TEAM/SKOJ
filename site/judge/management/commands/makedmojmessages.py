@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.management import CommandError
 from django.core.management.commands.makemessages import Command as MakeMessagesCommand, check_programs
 
-from judge.models import NavigationBar, ProblemType
+from judge.models import NavigationBar, ProblemGroup
 
 
 class Command(MakeMessagesCommand):
@@ -123,8 +123,8 @@ msgstr ""
                 self._emit_message(potfile, label)
 
             if self.verbosity > 1:
-                self.stdout.write('processing problem types')
-            for name in ProblemType.objects.values_list('full_name', flat=True):
+                self.stdout.write('processing problem groups')
+            for name in ProblemGroup.objects.values_list('full_name', flat=True):
                 if self.verbosity > 2:
-                    self.stdout.write('processing problem type name "%s"\n' % name)
+                    self.stdout.write('processing problem group name "%s"\n' % name)
                 self._emit_message(potfile, name)

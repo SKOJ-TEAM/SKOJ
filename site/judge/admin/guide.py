@@ -18,12 +18,12 @@ class AlgorithmGuideForm(ModelForm):
 @admin.register(AlgorithmGuide)
 class AlgorithmGuideAdmin(admin.ModelAdmin):
     form = AlgorithmGuideForm
-    fields = ('problem_type', 'title', 'summary', 'content', 'is_published', 'order', 'created_by')
+    fields = ('problem_group', 'title', 'summary', 'content', 'is_published', 'order', 'created_by')
     readonly_fields = ('created_by',)
-    list_display = ('title', 'problem_type', 'is_published', 'order', 'updated_at')
-    list_filter = ('is_published', 'problem_type')
+    list_display = ('title', 'problem_group', 'is_published', 'order', 'updated_at')
+    list_filter = ('is_published', 'problem_group')
     list_editable = ('is_published', 'order')
-    search_fields = ('title', 'summary', 'content', 'problem_type__full_name')
+    search_fields = ('title', 'summary', 'content', 'problem_group__full_name')
     ordering = ('order', 'title')
 
     def save_model(self, request, obj, form, change):
