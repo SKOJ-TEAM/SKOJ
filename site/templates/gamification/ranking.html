@@ -1,0 +1,76 @@
+{% extends "common-content.html" %}
+
+{% block title %}Ranking - SKOJ{% endblock %}
+{% block content_title %}Ranking{% endblock %}
+
+{% block media %}
+<style>
+    .ranking-page { display: grid; gap: 24px; }
+    .ranking-card { background: var(--page-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; }
+    .ranking-card h2 { margin-top: 0; color: var(--font-black); }
+    .tier-badge { display: inline-flex; padding: 5px 11px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
+    .tier-bronze { color: #8a4f2d; background: #f4dfd0; }
+    .tier-gold { color: #7a5a00; background: #fff0ad; }
+    .tier-diamond { color: #176b87; background: #d9f4ff; }
+    .tier-progress { display: grid; gap: 10px; }
+    .tier-progress-row { display: grid; grid-template-columns: minmax(150px, 1fr) auto; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+    .tier-progress-row:last-child { border-bottom: 0; }
+    .progress-complete { color: #238636; font-weight: 700; }
+    .promotion-list { display: grid; gap: 10px; padding: 0; list-style: none; }
+    .promotion-list a { display: flex; justify-content: space-between; padding: 13px 15px; border: 1px solid var(--border-color); border-radius: 9px; }
+    .ranking-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .ranking-controls a { padding: 8px 12px; border-radius: 8px; background: var(--background-second); }
+    .ranking-controls a.active { color: white; background: var(--primary-color); }
+    .ranking-table { width: 100%; border-collapse: collapse; }
+    .ranking-table th, .ranking-table td { padding: 11px 8px; border-bottom: 1px solid var(--border-color); text-align: center; }
+    .ranking-table .ranking-user { text-align: left; }
+    @media (max-width: 700px) { .ranking-card { padding: 16px; overflow-x: auto; } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="ranking-page">
+    <section class="ranking-card">
+        <h2>내 티어 <span class="tier-badge tier-{{ gamification.current_tier }}">{{ gamification.get_current_tier_display() }}</span></h2>
+        {% if gamification.current_tier == 'diamond' %}
+            <p>가중 풀이 점수 <strong>{{ gamification.weighted_score }}</strong></p>
+        {% elif tier_progress %}
+            <div class="tier-progress">
+                {% for cluster in tier_progress %}
+                    <div class="tier-progress-row">
+                        <span>{{ cluster.problem_type.full_name }}</span>
+                        <span class="{{ 'progress-complete' if cluster.solved_count >= cluster.required_solve_count else '' }}">{{ cluster.solved_count }} / {{ cluster.required_solve_count }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}<p>현재 티어에 활성화된 난이도 클러스터가 없습니다.</p>{% endif %}
+    </section>
+
+    {% if gamification.current_tier != 'diamond' %}
+    <section class="ranking-card">
+        <h2>승급전</h2>
+        {% if promotion_attempt and not promotion_attempt.is_completed %}
+            <p>{{ promotion_attempt.exam.title }} · 모든 문제를 해결하면 {{ promotion_attempt.get_target_tier_display() }}로 승격됩니다.</p>
+            <ul class="promotion-list">
+                {% for item in promotion_problems %}
+                    <li><a href="{{ url('problem_detail', item.problem.code) }}"><span>{{ item.problem.name }}</span><strong>{{ '완료' if item.solved else '도전' }}</strong></a></li>
+                {% endfor %}
+            </ul>
+        {% elif promotion_eligible %}<p>승급 조건을 충족했습니다. 활성 승급전이 준비되면 자동으로 열립니다.</p>
+        {% else %}<p>모든 클러스터의 최소 풀이 수를 채우면 승급전이 열립니다.</p>{% endif %}
+    </section>
+    {% endif %}
+
+    <section class="ranking-card">
+        <h2>Diamond 랭킹{% if selected_cohort %} · {{ selected_cohort }}{% endif %}</h2>
+        {% if is_admin_view %}<div class="ranking-controls">
+            <a class="{{ 'active' if ranking_scope == 'all' else '' }}" href="?scope=all">전체</a>
+            {% for cohort in cohorts %}<a class="{{ 'active' if ranking_scope != 'all' and selected_cohort and selected_cohort.id == cohort.id else '' }}" href="?scope=cohort&amp;cohort={{ cohort.id }}">{{ cohort }}</a>{% endfor %}
+        </div>{% endif %}
+        {% if rankings %}<table class="ranking-table">
+            <thead><tr><th>순위</th><th class="ranking-user">사용자</th><th>가중 점수</th><th>Diamond</th><th>Gold</th><th>Bronze</th></tr></thead>
+            <tbody>{% for row in rankings %}<tr><td>{{ row.rank }}</td><td class="ranking-user">{{ link_user(row.profile) }}</td><td>{{ row.weighted_score }}</td><td>{{ row.diamond_solved }}</td><td>{{ row.gold_solved }}</td><td>{{ row.bronze_solved }}</td></tr>{% endfor %}</tbody>
+        </table>{% else %}<p>표시할 Diamond 사용자가 없습니다.</p>{% endif %}
+    </section>
+</div>
+{% endblock %}

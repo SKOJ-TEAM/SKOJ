@@ -548,7 +548,7 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
     def get_queryset(self):
         training_class = self.get_training_class()
         queryset = Profile.objects.filter(is_unlisted=False).select_related(
-            'user', 'training_class__cohort', 'training_class__campus',
+            'user', 'training_class__cohort', 'training_class__campus', 'gamification',
         ).order_by('-performance_points')
 
         if training_class is not None:
@@ -561,7 +561,7 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
         return queryset.only(
             'display_rank', 'user__username', 'user__first_name', 'points', 'rating', 'performance_points',
             'problem_count', 'training_class', 'training_class__number', 'training_class__cohort__number',
-            'training_class__campus__name',
+            'training_class__campus__name', 'gamification__current_tier',
         )
 
     def get_context_data(self, **kwargs):

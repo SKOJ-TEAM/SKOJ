@@ -13,7 +13,7 @@ from martor.views import markdown_search_user
 from judge.feed import AtomBlogFeed, AtomCommentFeed, AtomProblemFeed, BlogFeed, CommentFeed, ProblemFeed
 from judge.sitemap import BlogPostSitemap, ContestSitemap, HomePageSitemap, ProblemSitemap, \
     SolutionSitemap, UrlSitemap, UserSitemap#, OrganizationSitemap, PracticeSitemap
-from judge.views import TitledTemplateView, about, api, blog, comment, practices, contests, guide, language, license, mailgun, \
+from judge.views import TitledTemplateView, about, api, blog, comment, practices, contests, gamification, guide, language, license, mailgun, \
     preview, problem, problem_manage, ranked_submission, register, stats, status, submission, tasks, term, \
     two_factor, user, widgets #, organization
 from judge.views.problem_data import ProblemDataView, ProblemSubmissionDiff, TestCasePreView, \
@@ -144,6 +144,7 @@ urlpatterns = [
     path('problems/random/', problem.RandomProblem.as_view(), name='problem_random'),
     path('problems/', problem.ProblemCategoryList.as_view(), name='problem_list'),
     path('problems/<slug:problem_group>/', problem.ProblemGroupProblemList.as_view(), name='problem_group_list'),
+    path('ranking/', gamification.RankingView.as_view(), name='gamification_ranking'),
     path('problem/<str:problem>', include([
         
         path('/check-password/', problem.check_problem_password, name='check_problem_password'),

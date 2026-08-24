@@ -1025,6 +1025,7 @@
             <li><a href="{{ url('problem_list') }}">PROBLEMS</a></li>
             {% if request.user.is_authenticated %}
                 <li><a href="{{ url('guide_tag_list') }}">GUIDE</a></li>
+                <li><a href="{{ url('gamification_ranking') }}">RANKING</a></li>
             {% endif %}
             <li><a href="{{ url('contest_list', 0) }}">CONTESTS</a></li>
             <li><a href="{{ url('user_list') }}">USERS</a></li>

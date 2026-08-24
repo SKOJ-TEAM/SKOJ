@@ -401,6 +401,7 @@
              #}
             
             <th class="header first_name">{{ _('사용자') }}</th>
+            {% block tier_field scoped %}{% endblock %}
             {% block training_class_field scoped %}{% endblock %}
             {% block information_field %}{% endblock %}
             
@@ -433,6 +434,7 @@
                         {{ link_user(user) }}
                     {% endif %}
                 </td>
+                {% block after_tier scoped %}{% endblock %}
                 {% block after_training_class scoped%}{% endblock %}
                 <td class="user-information">
                     <div>

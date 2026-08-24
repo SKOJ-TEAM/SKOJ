@@ -8,6 +8,10 @@
         .training-class {
             width: 10%;
         }
+        .tier-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        .tier-bronze { color: #8a4f2d; background: #f4dfd0; }
+        .tier-gold { color: #7a5a00; background: #fff0ad; }
+        .tier-diamond { color: #176b87; background: #d9f4ff; }
     </style>
 {% endblock %}
 
@@ -49,6 +53,14 @@
 
 {% block training_class_field %}
     <th class="header training-class">{{ _('소속') }}</th>
+{% endblock %}
+
+{% block tier_field %}
+    <th class="header tier">{{ _('티어') }}</th>
+{% endblock %}
+
+{% block after_tier %}
+    <td><span class="tier-badge tier-{{ user.gamification.current_tier }}">{{ user.gamification.get_current_tier_display() }}</span></td>
 {% endblock %}
 
 {% block after_training_class %}
