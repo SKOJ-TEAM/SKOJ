@@ -69,6 +69,24 @@ class RankingViewTestCase(TestCase):
             response.content.index(b'gold-heavy'),
         )
 
+    def test_ranking_orders_by_tier_before_weighted_score(self):
+        bronze = User.objects.create_user(username='high-score-bronze')
+        diamond = User.objects.create_user(username='low-score-diamond')
+        ProfileGamification.objects.filter(profile=bronze.profile).update(
+            current_tier=Tier.BRONZE, weighted_score=100,
+        )
+        ProfileGamification.objects.filter(profile=diamond.profile).update(
+            current_tier=Tier.DIAMOND, weighted_score=1,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('gamification_ranking'))
+
+        self.assertLess(
+            response.content.index(b'low-score-diamond'),
+            response.content.index(b'high-score-bronze'),
+        )
+
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class HomeGamificationCardTestCase(TestCase):
@@ -81,6 +99,14 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '<section class="home-dashboard"')
         self.assertNotContains(response, '내 티어')
+        self.assertContains(response, 'id="home-theme-toggle"')
+
+    def test_anonymous_home_uses_theme_cookie(self):
+        self.client.cookies['site_theme'] = 'dark'
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, "var theme = 'dark';")
 
     def test_authenticated_home_shows_tier_and_promotion_cards(self):
         self.client.force_login(self.user)
@@ -91,6 +117,25 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, '내 티어')
         self.assertContains(response, '<h2>승급전</h2>', html=True)
         self.assertContains(response, reverse('gamification_ranking'))
+
+    def test_authenticated_home_prefers_profile_theme_over_cookie(self):
+        self.user.profile.site_theme = 'dark'
+        self.user.profile.save(update_fields=('site_theme',))
+        self.client.cookies['site_theme'] = 'light'
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, "var theme = 'dark';")
+
+    def test_home_theme_toggle_saves_authenticated_profile_theme(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse('set_theme'), {'theme': 'dark'})
+
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.site_theme, 'dark')
 
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)

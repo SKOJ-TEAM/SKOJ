@@ -1,7 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Case, IntegerField, Value, When
 from django.views.generic import TemplateView
 
-from judge.models import ProfileGamification
+from judge.models import ProfileGamification, Tier
 from judge.utils.views import TitleMixin
 
 
@@ -16,9 +17,16 @@ class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
             profile__user__is_active=True,
             profile__user__is_staff=False,
             profile__user__is_superuser=False,
-        ).select_related('profile__user', 'profile__training_class__cohort', 'profile__training_class__campus')
+        ).select_related(
+            'profile__user', 'profile__training_class__cohort', 'profile__training_class__campus',
+        ).annotate(tier_order=Case(
+            When(current_tier=Tier.DIAMOND, then=Value(3)),
+            When(current_tier=Tier.GOLD, then=Value(2)),
+            default=Value(1),
+            output_field=IntegerField(),
+        ))
         rankings = list(rankings.order_by(
-            '-weighted_score', '-diamond_solved', '-gold_solved', '-bronze_solved', 'profile_id',
+            '-tier_order', '-weighted_score', '-diamond_solved', '-gold_solved', '-bronze_solved', 'profile_id',
         ))
         for index, ranking in enumerate(rankings, start=1):
             ranking.rank = index
