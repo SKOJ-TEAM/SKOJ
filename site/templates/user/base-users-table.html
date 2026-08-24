@@ -143,7 +143,8 @@
     }
 
     .h-scrollable-table {
-        overflow: visible;
+        max-width: 100%;
+        overflow-x: auto;
     }
     
     .div-table {
@@ -284,6 +285,35 @@
         overflow: hidden;
         padding-left: 20px;
     }
+    .user-directory-table {
+        min-width: 1000px;
+        table-layout: fixed;
+    }
+    .user-directory-table .header.rank {
+        width: 7%;
+    }
+    .user-directory-table .header.first_name,
+    .user-directory-table .user-first_name {
+        width: 18%;
+    }
+    .user-directory-table .header.tier,
+    .user-directory-table .user-tier {
+        width: 12%;
+        white-space: nowrap;
+    }
+    .user-directory-table .header.training-class,
+    .user-directory-table .user-training-class {
+        width: 28%;
+        padding: 0 16px;
+        white-space: nowrap;
+    }
+    .user-directory-table .header.information,
+    .user-directory-table .user-information {
+        width: 35%;
+    }
+    .user-directory-table .user-information div {
+        width: auto;
+    }
     .search-container {
         position: relative;
         display: flex;
@@ -392,7 +422,8 @@
 
 <!-- */ -->
 <div class="h-scrollable-table">
-    <table {% if table_id %}id="{{ table_id }}"{% endif %} class="users-table table striped">
+    <table {% if table_id %}id="{{ table_id }}"{% endif %}
+           class="users-table table striped {% block additional_table_classes %}{% endblock %}">
         <thead>
         <tr>
             <th class="header rank">{{ _('번호') }}</h>

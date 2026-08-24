@@ -1,5 +1,7 @@
 {% extends "user/base-users-table.html" %}
 
+{% block additional_table_classes %}user-directory-table{% endblock %}
+
 {% block media %}
     <style>
         .problems {
@@ -60,7 +62,7 @@
 {% endblock %}
 
 {% block after_tier %}
-    <td><span class="tier-badge tier-{{ user.gamification.current_tier }}">{{ user.gamification.get_current_tier_display() }}</span></td>
+    <td class="user-tier"><span class="tier-badge tier-{{ user.gamification.current_tier }}">{{ user.gamification.get_current_tier_display() }}</span></td>
 {% endblock %}
 
 {% block after_training_class %}
