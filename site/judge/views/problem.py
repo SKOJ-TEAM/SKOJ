@@ -1,5 +1,4 @@
 import csv
-import json
 import logging
 import os
 import re
@@ -541,21 +540,86 @@ class ProblemPdfView(ProblemMixin, SingleObjectMixin, View):
 
 
 
-class GroupIdReceiverView(View):
-    def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        group_id = data.get('groupId', None)
+PROBLEM_GROUP_CATALOG = (
+    {'slug': 'basic', 'name': 'Basic'},
+    {'slug': 'practice', 'name': 'Practice'},
+    {'slug': 'bruteforce', 'name': 'Bruteforce-Guide'},
+    {'slug': 'backtracking', 'name': 'BackTracking-Guide'},
+    {'slug': 'dynamic-programming', 'name': 'DP-Guide'},
+    {'slug': 'stack', 'name': 'Stack-Guide'},
+    {'slug': 'queue', 'name': 'Queue-Guide'},
+    {'slug': 'deque', 'name': 'Deque-Guide'},
+    {'slug': 'heap', 'name': 'Heap-Guide'},
+    {'slug': 'binary-search-tree', 'name': 'BST-Guide'},
+    {'slug': 'trie', 'name': 'Trie-Guide'},
+    {'slug': 'prefix-sum', 'name': 'PrefixSum-Guide'},
+    {'slug': 'dfs', 'name': 'DFS-Guide'},
+    {'slug': 'bfs', 'name': 'BFS-Guide'},
+    {'slug': 'topological-sort', 'name': 'TopoSort-Guide'},
+    {'slug': 'union-find', 'name': 'DSU-Guide'},
+    {'slug': 'kruskal', 'name': 'MST-Guide'},
+    {'slug': 'dijkstra', 'name': 'Dijkstra'},
+    {'slug': 'floyd', 'name': 'Floyd-Guide'},
+)
+PROBLEM_GROUP_BY_SLUG = {item['slug']: item for item in PROBLEM_GROUP_CATALOG}
+PROBLEM_GROUP_BY_NAME = {item['name']: item for item in PROBLEM_GROUP_CATALOG}
 
-        if group_id is not None:
-            # 이곳에서 group_id를 사용한 로직을 처리
-            print(f"Received group ID: {group_id}")
-            # 적절한 처리 후, 응답을 반환
-            return JsonResponse({'status': 'success', 'message': f'Group ID {group_id} received.'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Group ID not provided.'}, status=400)
+
+def get_visible_problem_filter(user, profile=None):
+    problem_filter = Q(is_public=True)
+    if user.has_perm('judge.see_private_problem') or user.has_perm('judge.view_all_problem'):
+        problem_filter |= Q(is_public=False)
+    if user.has_perm('judge.manage_contest_problem'):
+        problem_filter |= Q(is_contest_problem=True)
+    else:
+        problem_filter &= Q(is_contest_problem=False)
+    if profile is not None:
+        problem_filter |= Q(authors=profile)
+        problem_filter |= Q(curators=profile)
+        problem_filter |= Q(testers=profile)
+    return problem_filter
 
 
-class ProblemList(QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView):
+class ProblemCategoryList(LoginRequiredMixin, TitleMixin, ListView):
+    title = gettext_lazy('Problems')
+    template_name = 'problem/group-list.html'
+    context_object_name = 'problem_groups'
+
+    def get(self, request, *args, **kwargs):
+        category_id = safe_int_or_none(request.GET.get('category'))
+        if category_id is not None:
+            problem_group = ProblemGroup.objects.filter(pk=category_id).first()
+            config = problem_group and PROBLEM_GROUP_BY_NAME.get(problem_group.name)
+            if config is not None:
+                query = request.GET.copy()
+                query.pop('category', None)
+                target = reverse('problem_group_list', args=(config['slug'],))
+                if query:
+                    target += '?' + query.urlencode()
+                return HttpResponseRedirect(target)
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        visible_groups = {
+            row['group__name']: row
+            for row in Problem.objects.filter(
+                get_visible_problem_filter(self.request.user, self.request.profile),
+                group__name__in=tuple(PROBLEM_GROUP_BY_NAME),
+            ).values('group__name', 'group__full_name').annotate(problem_count=Count('id', distinct=True))
+        }
+        result = []
+        for config in PROBLEM_GROUP_CATALOG:
+            visible_group = visible_groups.get(config['name'])
+            if visible_group is None:
+                continue
+            item = config.copy()
+            item['display_name'] = visible_group['group__full_name']
+            item['problem_count'] = visible_group['problem_count']
+            result.append(item)
+        return result
+
+
+class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView):
     model = Problem
     title = gettext_lazy('Problems')
     title_info = '공개된 모든 문제의 목록'
@@ -656,23 +720,10 @@ class ProblemList(QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView
         return queryset.search(query, queryset.BOOLEAN).extra(order_by=['-relevance'])
 
     def get_normal_queryset(self):
-        filter = Q(is_public=True)
-        if self.request.user.has_perm('judge.see_private_problem') or self.request.user.has_perm('judge.view_all_problem'):
-            filter |= Q(is_public=False)
-        if self.request.user.has_perm('judge.manage_contest_problem'):
-            filter |= Q(is_contest_problem=True)
-        else:
-            filter &= Q(is_contest_problem=False)
-        # if not self.request.user.has_perm('see_organization_problem'):
-        #     org_filter = Q(is_organization_private=False)
-        #     if self.profile is not None:
-        #         org_filter |= Q(organizations__in=self.profile.organizations.all())
-        #     filter &= org_filter
-        if self.profile is not None:
-            filter |= Q(authors=self.profile)
-            filter |= Q(curators=self.profile)
-            filter |= Q(testers=self.profile)
-        queryset = Problem.objects.filter(filter).select_related('group').prefetch_related('authors').defer('description', 'summary')
+        problem_filter = get_visible_problem_filter(self.request.user, self.profile)
+        queryset = Problem.objects.filter(problem_filter).select_related('group').prefetch_related('authors').defer(
+            'description', 'summary',
+        )
         if self.profile is not None and self.hide_solved:
             queryset = queryset.exclude(id__in=Submission.objects.filter(user=self.profile, points=F('problem__points'))
                                         .values_list('problem__id', flat=True))
@@ -704,10 +755,6 @@ class ProblemList(QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView
         if self.point_end is not None:
             queryset = queryset.filter(points__lte=self.point_end)
 
-        if self.groupId is not None:
-            queryset = queryset.filter(group__full_name__startswith=self.groupId)
-
-
         return queryset.distinct()
 
     def get_queryset(self):
@@ -738,10 +785,6 @@ class ProblemList(QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView
         context['search_query'] = self.search_query
         context['completed_problem_ids'] = self.get_completed_problems()
         context['attempted_problems'] = self.get_attempted_problems()
-        context['problem_groups'] = json.dumps(self.problem_manager_view(), ensure_ascii=False)
-        # 문제 그룹에 대한 정보
-        context['all_groups'] = ProblemGroup.objects.all()
-
         context.update(self.get_sort_paginate_context())
 
         # 기존 코드 - 대회에 참여한 경우 / 참여하지 않은 경우 문제 목록을 다르게 표기함. 지금은 문제 리스트를 교수 권한 이상만 확인할 수 있으므로, 항상 모든 문제 목록이 보이도록 수정정
@@ -818,11 +861,8 @@ class ProblemList(QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView
 
     def get(self, request, *args, **kwargs):
         self.setup_problem_list(request)
-        self.groupId = None
 
         try:
-            if 'groupId' in request.GET:
-                self.groupId = request.GET.get('groupId')
             return super(ProblemList, self).get(request, *args, **kwargs)
         except ProgrammingError as e:
             return generic_message(request, 'FTS syntax error', e.args[1], status=400)
@@ -836,18 +876,24 @@ class ProblemList(QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView
             else:
                 request.session.pop(key, None)
         return HttpResponseRedirect(request.get_full_path())
-    def problem_manager_view(self):
-        groups = ProblemGroup.objects.distinct()
-        data = {}
+class ProblemGroupProblemList(ProblemList):
+    def get(self, request, *args, **kwargs):
+        self.problem_group_config = PROBLEM_GROUP_BY_SLUG.get(kwargs['problem_group'])
+        if self.problem_group_config is None:
+            raise Http404()
+        self.problem_group = get_object_or_404(ProblemGroup, name=self.problem_group_config['name'])
+        self.problem_group_config = self.problem_group_config.copy()
+        self.problem_group_config['display_name'] = self.problem_group.full_name
+        return super().get(request, *args, **kwargs)
 
-        for group in groups:
-            parts = group.full_name.split('/')
-            current = data
-            for part in parts:
-                if part not in current:
-                    current[part] = {}
-                current = current[part]
-        return data
+    def setup_problem_list(self, request):
+        super().setup_problem_list(request)
+        self.category = self.problem_group.pk
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['selected_problem_group'] = self.problem_group_config
+        return context
 
 
 class ProblemExportView(LoginRequiredMixin, TitleMixin, TemplateView):

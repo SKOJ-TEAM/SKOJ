@@ -68,6 +68,19 @@
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
         }
+        .problem-group-heading {
+            box-sizing: border-box;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .problem-group-heading h1 {
+            margin: 8px 0 0;
+            color: var(--font-black);
+            font-size: 28px;
+        }
+        .problem-group-back {
+            color: var(--primary-color);
+        }
 
         
         .table-div {
@@ -214,92 +227,6 @@
         .table tr:first-child th:last-child {
             border-top-right-radius: 10px !important;
         }
-        #problem-group {
-            width: 200px;
-            border-radius: 10px;
-        }
-        #problem-group > ul {
-            list-style-type: none;
-            padding-left: 0;
-            margin: 0;
-        }
-        #problem-group li {
-            cursor: pointer;
-            margin-bottom: 5px;
-        }
-        
-        #problem-group li span {
-            width: auto;
-            min-width: 120px;
-            max-width: 180px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: background-color 0.2s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 16px;
-            color: var(--font-grey);
-        }
-
-        #problem-group li span:hover {
-            background-color: var(--tab-active-bg);
-            transition: background-color 0.3s ease;
-        }
-        
-        #problem-group li.active > span {
-            background-color: var(--tab-active-bg);
-            color: var(--content-text);
-        }
-        
-        #problem-group li ul {
-            margin-top: 5px;
-            padding-left: 15px;
-            list-style-type: none;
-        }
-        
-        /* Material Icons 사용을 위한 폰트 로딩 */
-        @font-face {
-            font-family: 'Material Symbols Outlined';
-            font-style: normal;
-            font-weight: 400;
-            src: url(/static/fonts/material-symbols/MaterialSymbolsOutlined.woff2) format('woff2');
-        }
-        
-        /* 폴더 아이콘 대신 material icons 사용 */
-        .folder-toggle::before {
-            font-family: 'Material Symbols Outlined';
-            content: '\e2c8'; /* folder icon */
-            margin-right: 10px;
-            font-size: 20px;
-            color: var(--font-grey);
-            display: inline-block;
-        }
-        
-        /* 폴더가 활성화되었을 때 아이콘 변경 */
-        #problem-group li.active > span.folder-toggle::before {
-            content: '\e2c7'; /* open folder icon */
-            color: var(--primary-color);
-        }
-        
-        /* All 버튼을 위한 아이콘 */
-        #problem-group li span.all-problems::before {
-            font-family: 'Material Symbols Outlined';
-            content: '\e896'; /* list icon */
-            margin-right: 10px;
-            font-size: 20px;
-            color: var(--font-grey);
-            display: inline-block;
-        }
-        
-        /* 활성화된 All 버튼 */
-        #problem-group li.active > span.all-problems::before {
-            color: var(--primary-color);
-        }
-
     </style>
 
     
@@ -315,153 +242,6 @@
         <script src="{{ static('libs/nouislider.min.js') }}" type="text/javascript"></script>
         
         
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                const problemGroups = JSON.parse('{{ problem_groups|safe }}');
-                
-                function createTree(group, path) {
-                    const ul = document.createElement('ul');
-                    ul.style.listStyleType = 'none';
-            
-                    // 객체의 키를 배열로 변환하여 순회
-                    Object.keys(group).forEach(key => {
-                        const item = group[key];
-                        const li = document.createElement('li');
-            
-                        if (item && Object.keys(item).length > 0) {
-                            li.classList.add('has-children'); // 하위 요소가 있는 경우 클래스 추가
-                            const span = document.createElement('span');
-                            span.classList.add('folder-toggle', 'collapsed');
-                            span.id = path + key;
-            
-                            span.textContent = key; // 텍스트만 표시 (아이콘은 CSS로 표시)
-                            span.onclick = () => {
-                                const nextUl = li.querySelector('ul');
-                                li.classList.toggle('active'); // li에 active 클래스 토글
-                                if (nextUl.style.display === 'none') {
-                                    nextUl.style.display = 'block';
-                                } else {
-                                    nextUl.style.display = 'none';
-                                }
-                                postGroupId(span.id); // 그룹 id를 POST 요청으로 전송
-                            };
-                            li.appendChild(span);
-                            const childrenUl = createTree(item, span.id + '/');
-                            childrenUl.style.display = 'none'; // 기본적으로 숨김
-                            li.appendChild(childrenUl);
-                        } else {
-                            const span = document.createElement('span');
-                            span.classList.add('folder-toggle', 'collapsed');
-                            span.id = path + key;
-            
-                            span.textContent = key; // 텍스트만 표시 (아이콘은 CSS로 표시)
-                            span.onclick = () => {
-                                const nextUl = li.querySelector('ul');
-                                li.classList.toggle('active'); // li에 active 클래스 토글
-                                if (nextUl.style.display === 'none') {
-                                    nextUl.style.display = 'block';
-                                } else {
-                                    nextUl.style.display = 'none';
-                                }
-                                postGroupId(span.id); // 그룹 id를 POST 요청으로 전송
-                            };
-                            li.appendChild(span);
-                            const childrenUl = createTree(item, span.id + '/');
-                            childrenUl.style.display = 'none'; // 기본적으로 숨김
-                            li.appendChild(childrenUl);
-                        }
-            
-                        ul.appendChild(li);
-                    });
-            
-                    return ul;
-                }
-            
-                const rootUl = createTree(problemGroups, '');
-                // 'all' 그룹을 rootUl의 맨 앞에 추가
-                const allLi = document.createElement('li');
-                const allSpan = document.createElement('span');
-                allSpan.classList.add('all-problems'); // 특별한 클래스 추가
-                allSpan.id = 'all';
-                allSpan.textContent = 'All'; // 텍스트만 표시
-                allSpan.onclick = () => {
-                    // 모든 li에서 active 클래스 제거
-                    document.querySelectorAll('#problem-group li').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    allLi.classList.add('active'); // 현재 항목만 active 클래스 추가
-                    postGroupId('all');
-                };
-                allLi.appendChild(allSpan);
-            
-                // rootUl의 맨 앞에 'all' 그룹을 추가
-                rootUl.insertBefore(allLi, rootUl.firstChild);
-            
-                // 생성된 트리를 DOM에 추가
-                document.getElementById('problem-group').appendChild(rootUl);
-                const urlParams = new URLSearchParams(window.location.search);
-                const activeGroup = urlParams.get('groupId') ? decodeURIComponent(urlParams.get('groupId')) : null;
-                console.log(activeGroup);
-                
-                // URL에 groupId 파라미터가 없으면 'All'을 active로 설정
-                if (!activeGroup) {
-                    const allSpan = document.getElementById('all');
-                    if (allSpan) {
-                        const allLi = allSpan.parentElement;
-                        allLi.classList.add('active');
-                    }
-                }
-                
-                // 특정 그룹이 선택된 경우 해당 경로의 모든 상위 폴더 표시
-                if (activeGroup) {
-                    // '/'로 구분하여 그룹 경로를 나눔
-                    const groupParts = activeGroup.split('/');
-                    let currentPath = '';
-            
-                    groupParts.forEach(part => {
-                        if (currentPath) {
-                            currentPath += '/';
-                        }
-                        currentPath += part;
-            
-                        // 현재 경로에 해당하는 span 요소를 찾음
-                        const activeSpan = document.getElementById(currentPath);
-                        if (activeSpan) {
-                            const activeLi = activeSpan.parentElement;
-                            const nextUl = activeLi.querySelector('ul');
-                            activeLi.classList.add('active');
-                            nextUl.style.display = 'block'; // 현재 그룹을 표시
-            
-                            // 아이콘 업데이트
-                            activeSpan.textContent = part;
-                        }
-                    });
-                }
-                
-            
-                // 그룹 클릭 시 문제를 필터링하는 이벤트 리스너 추가
-                document.querySelectorAll('.folder-toggle').forEach(element => {
-                    element.addEventListener('click', function() {
-                        const groupName = this.id; // id 속성에 그룹 이름이 설정되어 있다고 가정
-                        postGroupId(groupName); // id를 POST 요청으로 전송
-                    });
-                });
-            
-                function postGroupId(groupId) {
-
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('groupId');
-                    url.searchParams.delete('page');
-                    if (groupId != 'all'){
-                        url.searchParams.append('groupId', groupId);
-                    }
-                    window.location.href = url.toString();
-
-                    
-                }
-            
-            });
-        </script>
         <script>
             $(function () {
                 var $form = $('form#filter-form');
@@ -657,6 +437,12 @@
     {% endif %} -->
     #}
     <div id="common-content">
+        {% if selected_problem_group %}
+            <header class="problem-group-heading">
+                <a class="problem-group-back" href="{{ url('problem_list') }}">← 전체 문제 분류</a>
+                <h1>{{ selected_problem_group.display_name }}</h1>
+            </header>
+        {% endif %}
         {% if not request.in_contest %}
             <div id="content-top" class="problems">
                 <!-- <div class="info-float"> -->
@@ -682,7 +468,6 @@
         
         </div>
         <div id="content-bottom">
-            <div id="problem-group"></div>
             <div class="problems h-scrollable-table">
                 <div class="table-div">
                     <table id="problem-table" class="table striped">
