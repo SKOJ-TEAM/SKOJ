@@ -34,6 +34,16 @@ class RankingViewTestCase(TestCase):
         self.assertNotContains(response, '내 티어')
         self.assertNotContains(response, '<h2>승급전</h2>', html=True)
 
+    def test_ranking_displays_name_instead_of_username(self):
+        self.user.first_name = '홍길동'
+        self.user.save(update_fields=('first_name',))
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('gamification_ranking'))
+
+        self.assertContains(response, '>홍길동</a>')
+        self.assertNotContains(response, '>ranking-user</a>')
+
     def test_all_tiers_appear_in_global_ranking(self):
         diamond = User.objects.create_user(username='diamond-user')
         ProfileGamification.objects.filter(profile=diamond.profile).update(

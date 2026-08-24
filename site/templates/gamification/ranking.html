@@ -32,7 +32,7 @@
         <div class="ranking-heading"><div><h2>전체 사용자 랭킹</h2><p>티어를 우선하고, 같은 티어에서는 가중 풀이 점수가 높은 순으로 집계합니다.</p></div></div>
         {% if rankings %}<div class="ranking-table-wrap"><table class="ranking-table">
             <thead><tr><th>순위</th><th class="ranking-user">사용자</th><th>티어</th><th>가중 점수</th><th>Diamond</th><th>Gold</th><th>Bronze</th></tr></thead>
-            <tbody>{% for row in rankings %}<tr><td class="ranking-rank">{{ row.rank }}</td><td class="ranking-user">{{ link_user(row.profile) }}</td><td><span class="tier-badge tier-{{ row.current_tier }}">{{ row.get_current_tier_display() }}</span></td><td><strong>{{ row.weighted_score }}</strong></td><td>{{ row.diamond_solved }}</td><td>{{ row.gold_solved }}</td><td>{{ row.bronze_solved }}</td></tr>{% endfor %}</tbody>
+            <tbody>{% for row in rankings %}<tr><td class="ranking-rank">{{ row.rank }}</td><td class="ranking-user"><span class="{{ row.profile.css_class }}"><a href="{{ url('user_page', row.profile.user.username) }}">{{ row.profile.user.first_name or '이름 없음' }}</a></span></td><td><span class="tier-badge tier-{{ row.current_tier }}">{{ row.get_current_tier_display() }}</span></td><td><strong>{{ row.weighted_score }}</strong></td><td>{{ row.diamond_solved }}</td><td>{{ row.gold_solved }}</td><td>{{ row.bronze_solved }}</td></tr>{% endfor %}</tbody>
         </table></div>{% else %}<p>표시할 사용자가 없습니다.</p>{% endif %}
     </section>
 </div>
