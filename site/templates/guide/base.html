@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block media %}
+    <style>
+        .guide-page {
+            width: 100%;
+            max-width: 900px;
+            margin: 35px auto 70px;
+        }
+        .guide-heading {
+            margin-bottom: 28px;
+        }
+        .guide-heading h1 {
+            margin: 0 0 10px;
+            font-size: 34px;
+            color: var(--font-black);
+        }
+        .guide-heading p, .guide-summary {
+            color: var(--font-grey);
+            line-height: 1.6;
+        }
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .guide-card {
+            display: block;
+            padding: 22px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--page-bg);
+            box-shadow: var(--standard-box-shadow);
+            transition: transform .15s ease, background .15s ease;
+        }
+        .guide-card:hover {
+            transform: translateY(-2px);
+            background: var(--hover-background-color);
+            text-decoration: none;
+        }
+        .guide-card h2 {
+            margin: 0 0 9px;
+            font-size: 19px;
+            color: var(--primary-color);
+        }
+        .guide-number {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--font-grey);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .08em;
+        }
+        .guide-card p {
+            margin: 0;
+        }
+        .guide-back {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: var(--primary-color);
+        }
+        .guide-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .guide-admin-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .guide-admin-link:hover {
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+        }
+        .guide-empty {
+            padding: 35px;
+            border: 1px dashed var(--border-color);
+            border-radius: 14px;
+            color: var(--font-grey);
+            text-align: center;
+        }
+        .guide-article {
+            padding: 30px 36px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--page-bg);
+            box-shadow: var(--standard-box-shadow);
+            font-size: 16px;
+            line-height: 1.75;
+            overflow-wrap: anywhere;
+        }
+        .guide-article img {
+            max-width: 100%;
+            height: auto;
+        }
+        .guide-article pre {
+            overflow-x: auto;
+            margin: 20px 0;
+            padding: 18px 20px;
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            background: #f6f8fa;
+            color: #24292f;
+        }
+        .guide-article .codehilite {
+            border-radius: 10px;
+            background: #f6f8fa;
+        }
+        .guide-article .codehilite pre,
+        .guide-article .codehilite code {
+            background: transparent;
+        }
+        [data-theme="dark"] .guide-article pre {
+            border-color: #30363d;
+            background: #161b22;
+            color: #f0f6fc;
+        }
+        [data-theme="dark"] .guide-article .codehilite {
+            background: #161b22;
+        }
+        .guide-article .codehilite .hll { background-color: #ffffcc; }
+        .guide-article .codehilite .c,
+        .guide-article .codehilite .ch,
+        .guide-article .codehilite .cm,
+        .guide-article .codehilite .cpf,
+        .guide-article .codehilite .c1,
+        .guide-article .codehilite .cs { color: #6a737d; font-style: italic; }
+        .guide-article .codehilite .k,
+        .guide-article .codehilite .kc,
+        .guide-article .codehilite .kd,
+        .guide-article .codehilite .kn,
+        .guide-article .codehilite .kp,
+        .guide-article .codehilite .kr,
+        .guide-article .codehilite .kt { color: #008000; font-weight: 600; }
+        .guide-article .codehilite .s,
+        .guide-article .codehilite .sa,
+        .guide-article .codehilite .sb,
+        .guide-article .codehilite .sc,
+        .guide-article .codehilite .dl,
+        .guide-article .codehilite .sd,
+        .guide-article .codehilite .s1,
+        .guide-article .codehilite .s2 { color: #ba2121; }
+        .guide-article .codehilite .nf,
+        .guide-article .codehilite .fm { color: #0000ff; }
+        .guide-article .codehilite .nc { color: #0000ff; font-weight: 600; }
+        .guide-article .codehilite .nb,
+        .guide-article .codehilite .bp { color: #008000; }
+        .guide-article .codehilite .m,
+        .guide-article .codehilite .mb,
+        .guide-article .codehilite .mf,
+        .guide-article .codehilite .mh,
+        .guide-article .codehilite .mi,
+        .guide-article .codehilite .mo { color: #666666; }
+        .guide-article .codehilite .o,
+        .guide-article .codehilite .ow { color: #666666; font-weight: 600; }
+        [data-theme="dark"] .guide-article .codehilite .hll { background-color: #49483e; }
+        [data-theme="dark"] .guide-article .codehilite .c,
+        [data-theme="dark"] .guide-article .codehilite .ch,
+        [data-theme="dark"] .guide-article .codehilite .cm,
+        [data-theme="dark"] .guide-article .codehilite .cpf,
+        [data-theme="dark"] .guide-article .codehilite .c1,
+        [data-theme="dark"] .guide-article .codehilite .cs { color: #959077; }
+        [data-theme="dark"] .guide-article .codehilite .k,
+        [data-theme="dark"] .guide-article .codehilite .kc,
+        [data-theme="dark"] .guide-article .codehilite .kd,
+        [data-theme="dark"] .guide-article .codehilite .kn,
+        [data-theme="dark"] .guide-article .codehilite .kp,
+        [data-theme="dark"] .guide-article .codehilite .kr,
+        [data-theme="dark"] .guide-article .codehilite .kt { color: #66d9ef; }
+        [data-theme="dark"] .guide-article .codehilite .s,
+        [data-theme="dark"] .guide-article .codehilite .sa,
+        [data-theme="dark"] .guide-article .codehilite .sb,
+        [data-theme="dark"] .guide-article .codehilite .sc,
+        [data-theme="dark"] .guide-article .codehilite .dl,
+        [data-theme="dark"] .guide-article .codehilite .sd,
+        [data-theme="dark"] .guide-article .codehilite .s1,
+        [data-theme="dark"] .guide-article .codehilite .s2 { color: #e6db74; }
+        [data-theme="dark"] .guide-article .codehilite .nf,
+        [data-theme="dark"] .guide-article .codehilite .fm { color: #a6e22e; }
+        [data-theme="dark"] .guide-article .codehilite .nc { color: #a6e22e; font-weight: 600; }
+        [data-theme="dark"] .guide-article .codehilite .nb,
+        [data-theme="dark"] .guide-article .codehilite .bp { color: #f8f8f2; }
+        [data-theme="dark"] .guide-article .codehilite .m,
+        [data-theme="dark"] .guide-article .codehilite .mb,
+        [data-theme="dark"] .guide-article .codehilite .mf,
+        [data-theme="dark"] .guide-article .codehilite .mh,
+        [data-theme="dark"] .guide-article .codehilite .mi,
+        [data-theme="dark"] .guide-article .codehilite .mo { color: #ae81ff; }
+        [data-theme="dark"] .guide-article .codehilite .o,
+        [data-theme="dark"] .guide-article .codehilite .ow { color: #f92672; }
+        @media (max-width: 1080px) {
+            .guide-page { width: calc(100% - 32px); }
+        }
+        @media (max-width: 600px) {
+            .guide-heading h1 { font-size: 28px; }
+            .guide-article { padding: 22px 18px; }
+            .guide-actions { align-items: flex-start; }
+        }
+    </style>
+{% endblock %}
+
+{% block title_ruler %}{% endblock %}
+{% block body %}{% endblock %}

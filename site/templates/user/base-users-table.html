@@ -241,7 +241,7 @@
         width: 10%;
     }
     .users-table .header.username {
-        display: none; /* 학번(사번) 안보이게 수정 */
+        display: none;
         width: 10%; 
         text-align: center;
     }
@@ -256,10 +256,10 @@
         text-align: left;
         padding-left: 20px;
     }
-    .users-table .header.department {
+    .users-table .header.training-class {
         width: 15%;
     }
-    .users-table .user-department {
+    .users-table .user-training-class {
         width: 65%;
     }
     .users-table .user-first_name {
@@ -270,7 +270,7 @@
         color: var(--font-basic-black);
     }
     .users-table .user-name {
-        display: none; /* 학번(사번) 안보이게 수정 */
+        display: none;
         text-align: left;
     }
     .users-table .user-information {
@@ -401,7 +401,7 @@
              #}
             
             <th class="header first_name">{{ _('사용자') }}</th>
-            {% block department_field scoped %}{% endblock %}
+            {% block training_class_field scoped %}{% endblock %}
             {% block information_field %}{% endblock %}
             
             {% block point_field scoped %}
@@ -433,7 +433,7 @@
                         {{ link_user(user) }}
                     {% endif %}
                 </td>
-                {% block after_department scoped%}{% endblock %}
+                {% block after_training_class scoped%}{% endblock %}
                 <td class="user-information">
                     <div>
                         {% if user.about %}

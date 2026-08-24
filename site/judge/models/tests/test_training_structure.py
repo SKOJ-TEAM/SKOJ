@@ -1,0 +1,129 @@
+from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
+from django.test import TestCase
+from django.utils import timezone
+
+from judge.models import Campus, Cohort, Contest, Language, TrainingClass
+from judge.models.tests.util import CommonDataMixin
+from judge.views.register import CustomRegistrationForm
+
+
+class TrainingStructureModelTest(TestCase):
+    def setUp(self):
+        self.cohort = Cohort.objects.create(number=3)
+        self.pangyo = Campus.objects.create(code='pangyo-test', name='판교 테스트')
+
+    def test_class_is_unique_within_cohort_and_campus(self):
+        TrainingClass.objects.create(cohort=self.cohort, campus=self.pangyo, number=1)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            TrainingClass.objects.create(cohort=self.cohort, campus=self.pangyo, number=1)
+
+    def test_same_class_number_is_allowed_in_another_cohort_or_campus(self):
+        TrainingClass.objects.create(cohort=self.cohort, campus=self.pangyo, number=1)
+        other_cohort = Cohort.objects.create(number=4)
+        gwangju = Campus.objects.create(code='gwangju-test', name='광주 테스트')
+
+        TrainingClass.objects.create(cohort=other_cohort, campus=self.pangyo, number=1)
+        TrainingClass.objects.create(cohort=self.cohort, campus=gwangju, number=1)
+
+        self.assertEqual(TrainingClass.objects.count(), 3)
+
+    def test_class_display_contains_full_affiliation(self):
+        training_class = TrainingClass.objects.create(cohort=self.cohort, campus=self.pangyo, number=1)
+
+        self.assertEqual(str(training_class), '3기 판교 테스트 1반')
+
+    def test_zero_cohort_and_class_numbers_are_rejected(self):
+        with self.assertRaises(ValidationError):
+            Cohort(number=0).full_clean()
+        with self.assertRaises(ValidationError):
+            TrainingClass(cohort=self.cohort, campus=self.pangyo, number=0).full_clean()
+
+
+class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.cohort = Cohort.objects.create(number=3)
+        cls.pangyo = Campus.objects.create(code='pangyo-registration', name='판교 가입')
+        cls.gwangju = Campus.objects.create(code='gwangju-registration', name='광주 가입')
+        cls.training_class = TrainingClass.objects.create(
+            cohort=cls.cohort,
+            campus=cls.pangyo,
+            number=1,
+        )
+
+    def form_data(self, **overrides):
+        data = {
+            'username': 'new_skala_user',
+            'first_name': '교육생',
+            'email': 'new-skala@example.com',
+            'password1': 'N7!qZ4@vL9#sK2',
+            'password2': 'N7!qZ4@vL9#sK2',
+            'language': Language.objects.first().pk,
+            'cohort': self.cohort.pk,
+            'campus': self.pangyo.pk,
+            'training_class': self.training_class.pk,
+        }
+        data.update(overrides)
+        return data
+
+    def test_active_matching_affiliation_is_valid(self):
+        form = CustomRegistrationForm(data=self.form_data())
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['training_class'], self.training_class)
+
+    def test_training_class_options_include_filter_metadata(self):
+        form = CustomRegistrationForm()
+        rendered = str(form['training_class'])
+
+        self.assertIn('data-cohort="%s"' % self.cohort.pk, rendered)
+        self.assertIn('data-campus="%s"' % self.pangyo.pk, rendered)
+
+    def test_mismatched_campus_is_rejected(self):
+        form = CustomRegistrationForm(data=self.form_data(campus=self.gwangju.pk))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.', form.non_field_errors())
+
+    def test_inactive_class_is_not_selectable(self):
+        self.training_class.is_active = False
+        self.training_class.save(update_fields=['is_active'])
+        form = CustomRegistrationForm(data=self.form_data())
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('training_class', form.errors)
+
+
+class ClassRestrictedContestTest(CommonDataMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cohort = Cohort.objects.create(number=3)
+        campus = Campus.objects.create(code='pangyo-contest', name='판교 대회')
+        cls.allowed_class = TrainingClass.objects.create(cohort=cohort, campus=campus, number=1)
+        cls.other_class = TrainingClass.objects.create(cohort=cohort, campus=campus, number=2)
+        now = timezone.now()
+        cls.contest = Contest(key='class-limited', name='반 제한 대회', is_visible=True,
+                              start_time=now - timezone.timedelta(days=1),
+                              end_time=now + timezone.timedelta(days=1))
+        cls.contest.save()
+        cls.contest.allowed_classes.add(cls.allowed_class)
+
+        cls.other_user = cls.users['normal']
+        cls.allowed_user = cls.users['staff_problem_edit_own_no_staff']
+        cls.allowed_user.profile.training_class = cls.allowed_class
+        cls.allowed_user.profile.save(update_fields=['training_class'])
+        cls.other_user.profile.training_class = cls.other_class
+        cls.other_user.profile.save(update_fields=['training_class'])
+
+    def test_only_allowed_class_sees_contest(self):
+        self.assertTrue(self.contest.is_accessible_by(self.allowed_user))
+        self.assertFalse(self.contest.is_accessible_by(self.other_user))
+        self.assertFalse(self.contest.is_accessible_by(AnonymousUser()))
+
+        self.assertTrue(self.contest in self.contest.get_visible_contests(self.allowed_user))
+        self.assertFalse(self.contest in self.contest.get_visible_contests(self.other_user))

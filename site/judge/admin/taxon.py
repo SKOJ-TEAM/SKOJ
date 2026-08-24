@@ -60,7 +60,7 @@ class ProblemTypeForm(ModelForm):
 
 
 class ProblemTypeAdmin(admin.ModelAdmin):
-    fields = ( 'full_name', 'problems') #name
+    fields = ('name', 'full_name', 'problems')
     form = ProblemTypeForm
     action_form = CustomActionForm
 

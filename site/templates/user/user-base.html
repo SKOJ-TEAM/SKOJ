@@ -231,72 +231,14 @@
                     <br>
                     <div class="user-info-text">
                         <div class="user-info-text-1">
-                            <!-- <div style="display: flex;"> -->
-                                
-                                {% if object.user == request.user %} 
-                                <!-- 자기 자신의 경우 -->
-                                    {% if request.user.is_superuser or request.user.is_staff %}
-                                        <p>{{ object.student_number_display }}</p> <!-- 교수/관리자 - 학번(사번) 표기 -->
-                                    {% else %}
-                                        <p>{{object.user.first_name}}</p> <!-- 학생 - 이름 표기 -->
-                                        <h4>
-                                            {% if object.department.name %}
-                                                {{ object.department.name }}
-                                            {% else %}
-                                                소속된 학과 없음
-                                            {% endif %}
-                                        </h4> <!-- 학과 -->
-                                        <h3>{{ object.student_number_display }}</h3> <!-- 학번 -->
-                                    {% endif %}
-                                {% elif request.user.is_superuser %}
-                                <!-- 관리자의 경우 -->
-                                    {% if object.user.is_superuser or object.user.is_staff %}
-                                        <p>
-                                            {{ object.user.first_name}}
-                                        </p>
-                                        <h3>
-                                            {{ object.student_number_display }}
-                                        </h3>
-                                            
-                                    {% else %}
-                                        <p>{{object.user.first_name}}</p> <!-- 학생 - 이름 표기 -->
-                                        <h4>
-                                            {% if object.department.name %}
-                                                {{ object.department.name }}
-                                            {% else %}
-                                                소속된 학과 없음
-                                            {% endif %}
-                                        </h4> <!-- 학과 -->
-                                        <h3>{{ object.student_number_display }}</h3> <!-- 학번 -->
-                                    {% endif %}
-                                {% elif request.user.is_staff %} 
-                                <!-- 교수의 경우 -->
-                                    {% if object.user.is_superuser or object.user.is_staff %} 
-                                    <!-- 교수, 관리자의 학번(사번)은 표기하지 않음 -->
-                                        <p>{{object.user.first_name}}</p> <!-- 교수자나 관리자 - 이름 표기 -->
-                                    {% else %} 
-                                        <p>{{object.user.first_name}}</p> <!-- 학생 - 이름 표기 -->
-                                        <h4>
-                                            {% if object.department.name %}
-                                                {{ object.department.name }}
-                                            {% else %}
-                                                소속된 학과 없음
-                                            {% endif %}
-                                        </h4> <!-- 학과 -->
-                                        <h3>{{ object.student_number_display }}</h3> <!-- 학번 -->
-                                    <!-- 학생의 경우 -->
-                                    {% endif %}
+                            <p>{{ object.user.first_name or object.user.username }}</p>
+                            <h4>
+                                {% if object.training_class %}
+                                    {{ object.training_class }}
                                 {% else %}
-                                    <!-- 일반 사용자가 다른 사용자의 페이지를 보는 경우 -->
-                                    <p>{{ object.student_number_display }}</p>       <!-- 학번 --> 
-                                    <h4>
-                                        {% if object.department.name %}
-                                            {{ object.department.name }}
-                                        {% else %}
-                                            소속된 학과 없음
-                                        {% endif %}
-                                    </h4> <!-- 학과 -->
-                                {% endif %}          
+                                    소속된 반 없음
+                                {% endif %}
+                            </h4>
                         </div>
                         <!-- <div class="user-info-text-2">
                             <div>

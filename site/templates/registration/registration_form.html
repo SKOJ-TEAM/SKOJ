@@ -471,6 +471,31 @@
 
         });
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var cohort = document.querySelector('#id_cohort');
+            var campus = document.querySelector('#id_campus');
+            var trainingClass = document.querySelector('#id_training_class');
+
+            function filterTrainingClasses() {
+                var cohortId = cohort.value;
+                var campusId = campus.value;
+                Array.prototype.forEach.call(trainingClass.options, function (option) {
+                    if (!option.value) return;
+                    var matches = (!cohortId || option.dataset.cohort === cohortId) &&
+                                  (!campusId || option.dataset.campus === campusId);
+                    option.disabled = !matches;
+                    option.hidden = !matches;
+                    if (!matches && option.selected) trainingClass.value = '';
+                });
+                $(trainingClass).trigger('change.select2');
+            }
+
+            cohort.addEventListener('change', filterTrainingClasses);
+            campus.addEventListener('change', filterTrainingClasses);
+            filterTrainingClasses();
+        });
+    </script>
 {% endblock %}
 
 {% block body %}
@@ -507,6 +532,12 @@
             <!-- 국가선택 -->
             <!-- 언어선택 -->
             <span class="fullwidth">{{ form.language }}</span>
+            <span class="fullwidth">{{ form.cohort }}</span>
+            <span class="fullwidth">{{ form.campus }}</span>
+            <span class="fullwidth">{{ form.training_class }}</span>
+            {% if form.non_field_errors %}
+                <div class="form-field-error">{{ form.non_field_errors }}</div>
+            {% endif %}
             <!-- 조직선택 -->
             {#
             <!-- {% if form.organizations %}

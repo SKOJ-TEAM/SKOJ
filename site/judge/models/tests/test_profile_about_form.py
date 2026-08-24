@@ -43,11 +43,10 @@ class ProfileAboutFormTestCase(CommonDataMixin, TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data['about'], 'body{color:red}hello')
 
-    def test_profile_without_school_does_not_require_department(self):
-        self.profile.school = None
+    def test_profile_form_does_not_allow_training_class_changes(self):
         form = self.make_form('hello')
 
-        self.assertNotIn('department', form.fields)
+        self.assertNotIn('training_class', form.fields)
         self.assertTrue(form.is_valid(), form.errors)
 
     def test_theme_endpoint_persists_dark_theme(self):

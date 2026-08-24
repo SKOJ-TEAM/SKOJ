@@ -8,7 +8,7 @@ from django.utils.translation import gettext, gettext_lazy as _, ngettext
 from reversion.admin import VersionAdmin
 
 from django_ace import AceWidget
-from judge.models import Profile, WebAuthnCredential, Department, School
+from judge.models import Campus, Cohort, Profile, TrainingClass, WebAuthnCredential
 from judge.utils.views import NoBatchDeleteMixin
 from judge.widgets import AdminMartorWidget, AdminSelect2Widget
 
@@ -21,10 +21,8 @@ class ProfileForm(ModelForm):
                 .only('contest__name', 'user_id', 'virtual')
             self.fields['current_contest'].label_from_instance = \
                 lambda obj: '%s v%d' % (obj.contest.name, obj.virtual) if obj.virtual else obj.contest.name
-            #학과 관련 옵션 버튼은 비활성화
-            self.fields['department'].widget.can_add_related = False
-            self.fields['department'].widget.can_change_related = False
-            self.fields['department'].widget.can_delete_related = False
+        if 'training_class' in self.fields:
+            self.fields['training_class'].queryset = TrainingClass.objects.select_related('cohort', 'campus')
 
     class Meta:
         widgets = {
@@ -63,32 +61,36 @@ class CombinedProfileFilter(FieldListFilter):
         )
         self.__timezone_handles = {tz for tz, _ in self.__timezone_lookups}
         
-        self.__department_lookups = tuple(
-            Department.objects.values_list('id', 'name')
+        self.__cohort_lookups = tuple(Cohort.objects.values_list('id', 'number'))
+        self.__cohort_handles = {str(value) for value, _ in self.__cohort_lookups}
+        self.__campus_lookups = tuple(Campus.objects.values_list('id', 'name'))
+        self.__campus_handles = {str(value) for value, _ in self.__campus_lookups}
+        self.__training_class_lookups = tuple(
+            (training_class.id, str(training_class))
+            for training_class in TrainingClass.objects.select_related('cohort', 'campus')
         )
-        self.__department_handles = set(str(dep_id) for dep_id, _ in self.__department_lookups)
+        self.__training_class_handles = {str(value) for value, _ in self.__training_class_lookups}
 
-        self.__school_lookups = tuple(
-            School.objects.filter(is_active=True).values_list('id', 'name')
-        )
-        self.__school_handles = set(str(s_id) for s_id, _ in self.__school_lookups)
-
-        self.filter_keys = ['username', 'email', 'department', 'school', 'timezone', 'IP']
+        self.filter_keys = ['username', 'email', 'cohort', 'campus', 'training_class', 'timezone', 'IP']
     
     @property
     def timezone_lookups(self):
         return self.__timezone_lookups
     
     @property
-    def department_lookups(self):
-        return self.__department_lookups
+    def cohort_lookups(self):
+        return self.__cohort_lookups
 
     @property
-    def school_lookups(self):
-        return self.__school_lookups
+    def campus_lookups(self):
+        return self.__campus_lookups
+
+    @property
+    def training_class_lookups(self):
+        return self.__training_class_lookups
 
     def expected_parameters(self):
-        return ['username', 'email', 'department', 'school', 'timezone', 'IP']
+        return ['username', 'email', 'cohort', 'campus', 'training_class', 'timezone', 'IP']
 
     def choices(self, changelist):
         yield {
@@ -100,7 +102,6 @@ class CombinedProfileFilter(FieldListFilter):
     def queryset(self, request, queryset):
         username = request.GET.get('username')
         email=request.GET.get('email')
-        department=request.GET.get('department')
         timezone=request.GET.get('timezone')
         ip=request.GET.get('IP')
 
@@ -110,12 +111,15 @@ class CombinedProfileFilter(FieldListFilter):
         if email:
             queryset = queryset.filter(user__email__icontains=email)
 
-        if department and department in self.__department_handles:
-            queryset = queryset.filter(user__profile__department_id=department)
-
-        school = request.GET.get('school')
-        if school and school in self.__school_handles:
-            queryset = queryset.filter(school_id=school)
+        cohort = request.GET.get('cohort')
+        if cohort and cohort in self.__cohort_handles:
+            queryset = queryset.filter(training_class__cohort_id=cohort)
+        campus = request.GET.get('campus')
+        if campus and campus in self.__campus_handles:
+            queryset = queryset.filter(training_class__campus_id=campus)
+        training_class = request.GET.get('training_class')
+        if training_class and training_class in self.__training_class_handles:
+            queryset = queryset.filter(training_class_id=training_class)
 
         if timezone and timezone in self.__timezone_handles:
             queryset = queryset.filter(user__profile__timezone=timezone)
@@ -153,15 +157,6 @@ class CustomActionForm(forms.Form):
         self.fields['action'].choices.insert(0, ("", "작업을 선택하세요."))
 
 
-class DepartmentAdmin(admin.ModelAdmin):
-    fields = ('name',)
-    list_display = ('id', 'name')
-    form = ProfileForm
-    action_form = CustomActionForm
-    
-
-    
-
 class GroupAdmin(admin.ModelAdmin):
     fields = ('name',)
     list_display = ('id', 'name')
@@ -180,11 +175,11 @@ class ProfileAdmin(NoBatchDeleteMixin, VersionAdmin):
     # fields = ('user', 'display_rank', 'about', 'organizations', 'timezone', 'language', 'ace_theme',
     #           'math_engine', 'last_access', 'ip', 'mute', 'is_unlisted', 'is_banned_from_problem_voting',
     #           'username_display_override', 'notes', 'is_totp_enabled', 'user_script', 'current_contest')
-    fields = ('user', 'display_rank', 'about', 'timezone', 'language', 'department', 'school',
-              'student_number', 'math_engine', 'last_access', 'ip', 'mute', 'is_unlisted', 'is_banned_from_problem_voting',
+    fields = ('user', 'display_rank', 'about', 'timezone', 'language', 'training_class',
+              'math_engine', 'last_access', 'ip', 'mute', 'is_unlisted', 'is_banned_from_problem_voting',
               'username_display_override', 'notes', 'is_totp_enabled', 'user_script', 'current_contest')
     readonly_fields = ('user',)
-    list_display = ('admin_user_admin', 'email', 'department', 'school', 'student_number', 'staff_status', 'active_status',
+    list_display = ('admin_user_admin', 'email', 'training_class', 'staff_status', 'active_status',
                     'timezone_full', 'date_joined_display', 'last_access_display', 'ip', 'show_public')
     ordering = ('user__username',)
     search_fields = ('user__username', 'ip', 'user__email')
@@ -204,7 +199,9 @@ class ProfileAdmin(NoBatchDeleteMixin, VersionAdmin):
     
 
     def get_queryset(self, request):
-        return super(ProfileAdmin, self).get_queryset(request).select_related('user')
+        return super(ProfileAdmin, self).get_queryset(request).select_related(
+            'user', 'training_class__cohort', 'training_class__campus',
+        )
 
     def get_fields(self, request, obj=None):
         if request.user.has_perm('judge.totp'):

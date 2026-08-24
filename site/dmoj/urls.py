@@ -13,7 +13,7 @@ from martor.views import markdown_search_user
 from judge.feed import AtomBlogFeed, AtomCommentFeed, AtomProblemFeed, BlogFeed, CommentFeed, ProblemFeed
 from judge.sitemap import BlogPostSitemap, ContestSitemap, HomePageSitemap, ProblemSitemap, \
     SolutionSitemap, UrlSitemap, UserSitemap#, OrganizationSitemap, PracticeSitemap
-from judge.views import TitledTemplateView, about, api, blog, comment, practices, contests, language, license, mailgun, \
+from judge.views import TitledTemplateView, about, api, blog, comment, practices, contests, guide, language, license, mailgun, \
     preview, problem, problem_manage, ranked_submission, register, stats, status, submission, tasks, term, \
     two_factor, user, widgets #, organization
 from judge.views.problem_data import ProblemDataView, ProblemSubmissionDiff, TestCasePreView, \
@@ -80,11 +80,6 @@ register_patterns = [
     # 이메일 변경 기능 라우팅
     path('email/change/', user.EmailChangeView.as_view(), name='email_change'),
     path('email/change/complete/', user.EmailChangeCompleteView.as_view(), name='email_change_complete'),
-    path('email/change/domain/', user.email_change_domain_lookup, name='email_change_domain_lookup'),
-
-    # 학번 등록 기능 라우팅
-    path('student-number/register/', user.StudentNumberRegisterView.as_view(), name='student_number_register'),
-    path('student-number/register/complete/', user.StudentNumberRegisterCompleteView.as_view(), name='student_number_register_complete'),
 
     # 이메일 인증 필요 안내 페이지
     path('activation/required/',
@@ -145,10 +140,10 @@ urlpatterns = [
     path('api/set-theme/', user.set_theme, name='set_theme'),
     path('', include('social_django.urls')),
 
-    path('problems/', problem.ProblemList.as_view(), name='problem_list'),
     path('problems/export/', problem.ProblemExportView.as_view(), name='problem_export'),
     path('problems/random/', problem.RandomProblem.as_view(), name='problem_random'),
-    path('path-to-your-view/', problem.GroupIdReceiverView.as_view(), name='group_id_receiver'),
+    path('problems/', problem.ProblemCategoryList.as_view(), name='problem_list'),
+    path('problems/<slug:problem_group>/', problem.ProblemGroupProblemList.as_view(), name='problem_group_list'),
     path('problem/<str:problem>', include([
         
         path('/check-password/', problem.check_problem_password, name='check_problem_password'),
@@ -436,6 +431,7 @@ urlpatterns = [
             # path('organization', preview.OrganizationMarkdownPreviewView.as_view(), name='organization_preview'),
             path('solution', preview.SolutionMarkdownPreviewView.as_view(), name='solution_preview'),
             path('license', preview.LicenseMarkdownPreviewView.as_view(), name='license_preview'),
+            path('guide', preview.GuideMarkdownPreviewView.as_view(), name='guide_preview'),
         ])),
 
         path('martor/', include([
@@ -464,6 +460,9 @@ urlpatterns = [
     ])),
 
     path('about/', about.about_view, name='about'),
+    path('guides/', guide.GuideTagList.as_view(), name='guide_tag_list'),
+    path('guides/<str:problem_type>/', guide.GuideList.as_view(), name='guide_list'),
+    path('guides/<str:problem_type>/<int:pk>/', guide.GuideDetail.as_view(), name='guide_detail'),
     path('term/', include([
         path('', term.term_view, name='term_one'),
         path('2', term.term_two_view, name='term_two'),

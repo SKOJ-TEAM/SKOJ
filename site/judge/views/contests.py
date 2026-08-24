@@ -372,7 +372,7 @@ class ContestListMixin(object):
         return queryset
 
 
-class ContestList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ContestListMixin, ListView):
+class ContestList(LoginRequiredMixin, QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ContestListMixin, ListView):
     model = Contest
     paginate_by = 20
     template_name = 'contest/list.html'

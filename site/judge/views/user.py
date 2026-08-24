@@ -28,7 +28,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, FormView, ListView, TemplateView, View
 from reversion import revisions
 
-from judge.forms import CustomAuthenticationForm, DownloadDataForm, ProfileForm, newsletter_id, IdFindForm, CustomPasswordResetForm, EmailChangeForm, ResendActivationEmailForm, StudentNumberRegisterForm, get_email_domain_for_user
+from judge.forms import CustomAuthenticationForm, DownloadDataForm, ProfileForm, newsletter_id, IdFindForm, CustomPasswordResetForm, EmailChangeForm, ResendActivationEmailForm
 from judge.models import Profile, Submission, ContestParticipation
 from judge.performance_points import get_pp_breakdown
 from judge.ratings import rating_class, rating_progress
@@ -531,37 +531,43 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
     default_desc = all_sorts
     default_sort = '-performance_points'
 
-    def get_school(self):
+    def get_training_class(self):
         user = self.request.user
         if user.is_authenticated:
             if user.is_superuser:
                 return None
-            return getattr(self.request.profile, 'school', None)
+            return getattr(self.request.profile, 'training_class', None)
         return None
 
     def get_title(self):
-        school = self.get_school()
-        if school:
-            return school.name + ' 사용자'
+        training_class = self.get_training_class()
+        if training_class:
+            return str(training_class) + ' 사용자'
         return str(gettext_lazy('사용자'))
 
     def get_queryset(self):
-        school = self.get_school()
-        queryset = Profile.objects.filter(is_unlisted=False).select_related('user').order_by('-performance_points')
+        training_class = self.get_training_class()
+        queryset = Profile.objects.filter(is_unlisted=False).select_related(
+            'user', 'training_class__cohort', 'training_class__campus',
+        ).order_by('-performance_points')
 
-        if school is not None:
-            queryset = queryset.filter(school=school)
+        if training_class is not None:
+            queryset = queryset.filter(training_class=training_class)
 
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(user__username__icontains=search)
 
-        return queryset.only('display_rank', 'user__username', 'points', 'rating', 'performance_points', 'problem_count')
+        return queryset.only(
+            'display_rank', 'user__username', 'user__first_name', 'points', 'rating', 'performance_points',
+            'problem_count', 'training_class', 'training_class__number', 'training_class__cohort__number',
+            'training_class__campus__name',
+        )
 
     def get_context_data(self, **kwargs):
         context = super(UserList, self).get_context_data(**kwargs)
         context['title_info'] = self.title_info
-        context['school'] = self.get_school()
+        context['training_class'] = self.get_training_class()
         start = self.paginate_by * (context['page_obj'].number - 1)
         context['users'] = enumerate(context['users'], start=start + 1)
         context['first_page_href'] = '.'
@@ -665,7 +671,7 @@ class IdFindView(FormView):
             return self.form_invalid(form)
         
         send_mail(
-            subject=_('Litmus 아이디 찾기'),
+            subject=_('SKOJ 아이디 찾기'),
             message=_('아이디: %s' % user.user.username),
             from_email=self.email_context,
             recipient_list=[email],
@@ -700,21 +706,6 @@ class AdminOnlyMixin:
         ):
             raise Http404
         return super().dispatch(request, *args, **kwargs)
-
-
-# 입력한 아이디(username)의 소속 학교에 맞는 이메일 도메인을 조회하는 용도.
-# 이메일 변경 화면에서 아이디 입력 시 표시 도메인을 실시간으로 갱신하기 위해 사용한다.
-# EmailChangeView와 동일하게 관리자만 호출 가능(비관리자가 API를 직접 두드려
-# 아이디→소속 학교를 알아내는 것을 막기 위함).
-def email_change_domain_lookup(request):
-    if not (
-        request.user.is_authenticated and
-        (request.user.is_staff or request.user.is_superuser)
-    ):
-        raise Http404
-    username = (request.GET.get('username') or '').strip()
-    target_user = User.objects.filter(username=username).first() if username else None
-    return JsonResponse({'domain': get_email_domain_for_user(target_user)})
 
 
 class EmailChangeView(AdminOnlyMixin, FormView):
@@ -752,48 +743,6 @@ class EmailChangeView(AdminOnlyMixin, FormView):
 class EmailChangeCompleteView(AdminOnlyMixin, TemplateView):
     template_name = 'registration/email_change_complete.html'
     title = _('이메일 변경 완료')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = self.title
-        return context
-
-
-# 중/고등학생 학번 등록/재등록 클래스.
-# 학번은 학년이 바뀔 때마다 관리자가 초기화(NULL)할 수 있으므로, 초기화된 이후
-# 본인이 다시 로그인해서 직접 등록할 수 있는 자기 자신 대상 페이지다.
-class StudentNumberRegisterView(LoginRequiredMixin, FormView):
-    title = _('학번 등록')
-    form_class = StudentNumberRegisterForm
-    template_name = 'registration/student_number_register.html'
-    success_url = reverse_lazy('student_number_register_complete')
-
-    def dispatch(self, request, *args, **kwargs):
-        profile = request.profile
-        if not (profile and profile.school and profile.school.school_type in ('highschool', 'middleschool')):
-            raise Http404()
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['profile'] = self.request.profile
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = self.title
-        return context
-
-    def form_valid(self, form):
-        profile = self.request.profile
-        profile.student_number = form.cleaned_data['student_number']
-        profile.save(update_fields=['student_number'])
-        return super().form_valid(form)
-
-
-class StudentNumberRegisterCompleteView(LoginRequiredMixin, TemplateView):
-    template_name = 'registration/student_number_register_complete.html'
-    title = _('학번 등록 완료')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

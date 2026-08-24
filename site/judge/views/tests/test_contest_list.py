@@ -1,9 +1,28 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+
+
+User = get_user_model()
+
+
+@override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
+class ContestListAuthenticationTestCase(TestCase):
+    def test_current_contest_list_redirects_anonymous_user_to_login(self):
+        response = self.client.get('/contests/0/')
+
+        self.assertRedirects(response, '/accounts/login/?next=/contests/0/', fetch_redirect_response=False)
+
+    def test_past_contest_list_redirects_anonymous_user_to_login(self):
+        response = self.client.get('/contests/0/past')
+
+        self.assertRedirects(response, '/accounts/login/?next=/contests/0/past', fetch_redirect_response=False)
 
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class ContestListPageTestCase(TestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username='contest-list-user', password='test-password')
+        self.client.force_login(self.user)
         self.contest_response = self.client.get('/contests/0/')
         self.practice_response = self.client.get('/contests/1/')
 
@@ -28,6 +47,8 @@ class ContestListPageTestCase(TestCase):
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class ContestPastListPageTestCase(TestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username='contest-past-list-user', password='test-password')
+        self.client.force_login(self.user)
         self.contest_response = self.client.get('/contests/0/past')
         self.practice_response = self.client.get('/contests/1/past')
 

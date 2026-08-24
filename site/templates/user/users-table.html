@@ -5,7 +5,7 @@
         .problems {
             width:8%;
         }
-        .department {
+        .training-class {
             width: 10%;
         }
     </style>
@@ -47,12 +47,12 @@
 {% endblock %}
 
 
-{% block department_field %}
-    <th class="header department">{{ _('학과') }}</th>
+{% block training_class_field %}
+    <th class="header training-class">{{ _('소속') }}</th>
 {% endblock %}
 
-{% block after_department %}
-    <td class="user-department">{{ user.department }}</td>
+{% block after_training_class %}
+    <td class="user-training-class">{{ user.training_class or '-' }}</td>
 {% endblock %}
 
 {% block information_field %}

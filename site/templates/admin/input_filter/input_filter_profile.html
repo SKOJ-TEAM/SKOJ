@@ -20,25 +20,27 @@
   이메일
   <input type="text" name="email" value="{{request.GET.email}}" placeholder="이메일">
 </label>
-<label>
-  학과
-  <select name="department">
-  <option value="">DEPARTMET</option>
-  {% for value, label in spec.department_lookups %}
-    <option value="{{ value }}" {% if request.GET.department == value %}selected{% endif %}>
-      {{ label }}
-    </option>
-  {% endfor %}
-</select>
+<label>기수
+  <select name="cohort">
+    <option value="">기수</option>
+    {% for value, label in spec.cohort_lookups %}
+      <option value="{{ value }}" {% if request.GET.cohort == value|stringformat:"s" %}selected{% endif %}>{{ label }}기</option>
+    {% endfor %}
+  </select>
 </label>
-<label>
-  학교
-  <select name="school">
-    <option value="">학교</option>
-    {% for value, label in spec.school_lookups %}
-      <option value="{{ value }}" {% if request.GET.school == value|stringformat:"s" %}selected{% endif %}>
-        {{ label }}
-      </option>
+<label>캠퍼스
+  <select name="campus">
+    <option value="">캠퍼스</option>
+    {% for value, label in spec.campus_lookups %}
+      <option value="{{ value }}" {% if request.GET.campus == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+</label>
+<label>반
+  <select name="training_class">
+    <option value="">반</option>
+    {% for value, label in spec.training_class_lookups %}
+      <option value="{{ value }}" {% if request.GET.training_class == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
 </label>

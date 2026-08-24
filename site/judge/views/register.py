@@ -16,7 +16,7 @@ from registration import signals
 from registration.backends.default.views import (ActivationView as OldActivationView,
                                                  RegistrationView as OldRegistrationView)
 from registration.forms import RegistrationForm
-from judge.models import Language, Profile
+from judge.models import Campus, Cohort, Language, Profile, TrainingClass
 
 from judge.utils.recaptcha import ReCaptchaField, ReCaptchaWidget
 from judge.utils.subscription import Subscription, newsletter_id
@@ -25,6 +25,16 @@ from judge.widgets import Select2Widget
 
 
 bad_mail_regex = list(map(re.compile, settings.BAD_MAIL_PROVIDER_REGEX))
+
+
+class TrainingClassSelect2Widget(Select2Widget):
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        instance = getattr(value, 'instance', None)
+        if instance is not None:
+            option['attrs']['data-cohort'] = instance.cohort_id
+            option['attrs']['data-campus'] = instance.campus_id
+        return option
 
 def _validate_registration_username(username):
     errors = []
@@ -171,6 +181,12 @@ class CustomRegistrationForm(RegistrationForm):
     )
     language = ModelChoiceField(queryset=Language.objects.all(), label=_('Preferred language'), empty_label=None,
                                 widget=Select2Widget(attrs={'style': 'width:100%', 'data-maximum-input-length': '50'}))
+    cohort = ModelChoiceField(queryset=Cohort.objects.none(), label=_('기수'), empty_label=_('기수 선택'),
+                              widget=Select2Widget(attrs={'style': 'width:100%'}))
+    campus = ModelChoiceField(queryset=Campus.objects.none(), label=_('캠퍼스'), empty_label=_('캠퍼스 선택'),
+                              widget=Select2Widget(attrs={'style': 'width:100%'}))
+    training_class = ModelChoiceField(queryset=TrainingClass.objects.none(), label=_('반'), empty_label=_('반 선택'),
+                                      widget=TrainingClassSelect2Widget(attrs={'style': 'width:100%'}))
     # organizations = SortedMultipleChoiceField(queryset=Organization.objects.filter(is_open=True),
     #                                           label=_('Organizations'), required=False,
     #                                           widget=Select2MultipleWidget(attrs={'style': 'width:100%'}))
@@ -180,6 +196,26 @@ class CustomRegistrationForm(RegistrationForm):
 
     if ReCaptchaField is not None:
         captcha = ReCaptchaField(widget=ReCaptchaWidget())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cohort'].queryset = Cohort.objects.filter(is_active=True).order_by('-number')
+        self.fields['campus'].queryset = Campus.objects.filter(is_active=True).order_by('name')
+        self.fields['training_class'].queryset = TrainingClass.objects.filter(
+            is_active=True,
+            cohort__is_active=True,
+            campus__is_active=True,
+        ).select_related('cohort', 'campus')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        cohort = cleaned_data.get('cohort')
+        campus = cleaned_data.get('campus')
+        training_class = cleaned_data.get('training_class')
+        if training_class and (training_class.cohort_id != getattr(cohort, 'id', None) or
+                               training_class.campus_id != getattr(campus, 'id', None)):
+            raise forms.ValidationError(_('선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.'))
+        return cleaned_data
 
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -241,6 +277,7 @@ class RegistrationView(OldRegistrationView):
 
         profile.timezone = settings.DEFAULT_USER_TIME_ZONE
         profile.language = cleaned_data['language']
+        profile.training_class = cleaned_data['training_class']
         profile.save()
 
         if newsletter_id is not None and cleaned_data['newsletter']:

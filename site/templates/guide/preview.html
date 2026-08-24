@@ -1,0 +1,3 @@
+<div class="require-mathjax-support" data-config="{{ static('mathjax_config.js') }}">
+    {{ preview_data|markdown('guide', 'jax')|reference|str|safe }}
+</div>

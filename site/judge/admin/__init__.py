@@ -8,13 +8,14 @@ from judge.admin.contest import ContestAdmin, ContestParticipationAdmin, Contest
 from judge.admin.interface import BlogPostAdmin, FlatPageAdmin, LicenseAdmin, LogEntryAdmin, NavigationBarAdmin
 # from judge.admin.organization import ClassAdmin, OrganizationAdmin, OrganizationRequestAdmin
 from judge.admin.problem import ProblemAdmin, ProblemPointsVoteAdmin
-from judge.admin.profile import ProfileAdmin, DepartmentAdmin, SubjectAdmin
-from judge.admin.school import SchoolAdmin
+from judge.admin.profile import ProfileAdmin, SubjectAdmin
+from judge.admin.training import CampusAdmin, CohortAdmin, TrainingClassAdmin
 from judge.admin.users import UserAdmin
 from judge.admin.runtime import JudgeAdmin, LanguageAdmin
 from judge.admin.submission import SubmissionAdmin
 from judge.admin.taxon import ProblemGroupAdmin, ProblemTypeAdmin
 from judge.admin.patch_note import PatchNoteAdmin
+from judge.admin.guide import AlgorithmGuideAdmin
 # from judge.models import BlogPost, Class, Comment, CommentLock, Contest, ContestParticipation, \
 #     ContestTag, Judge, Language, License, MiscConfig, NavigationBar, Organization, \
 #     OrganizationRequest, Problem, ProblemGroup, ProblemPointsVote, ProblemType, Profile, Submission, Ticket
@@ -22,8 +23,8 @@ from judge.admin.patch_note import PatchNoteAdmin
 
 from judge.models import BlogPost, Comment, CommentLock, Contest, ContestParticipation, \
     ContestTag, Judge, Language, License, MiscConfig, NavigationBar, \
-    Problem, ProblemGroup, ProblemPointsVote, ProblemType, Profile, Submission, Department, Subject, \
-    School, PatchNote
+    Campus, Cohort, Problem, ProblemGroup, ProblemPointsVote, ProblemType, Profile, Submission, Subject, \
+    TrainingClass, PatchNote
 
 # admin.site.register(BlogPost, BlogPostAdmin)``
 # admin.site.register(Comment, CommentAdmin) # 260112 댓글 기능 비활성화
@@ -47,9 +48,10 @@ admin.site.register(ProblemGroup, ProblemGroupAdmin)
 # admin.site.register(ProblemPointsVote, ProblemPointsVoteAdmin)
 admin.site.register(ProblemType, ProblemTypeAdmin)
 admin.site.register(Profile, ProfileAdmin)
-admin.site.register(Department,DepartmentAdmin)
 admin.site.register(Subject,SubjectAdmin)
-admin.site.register(School, SchoolAdmin)
+admin.site.register(Cohort, CohortAdmin)
+admin.site.register(Campus, CampusAdmin)
+admin.site.register(TrainingClass, TrainingClassAdmin)
 admin.site.register(Submission, SubmissionAdmin)
 
 #유저가 생성될때, 프로필도 같이 생성

@@ -11,7 +11,7 @@ import webauthn
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import F, Max, Q, UniqueConstraint
 from django.urls import reverse
@@ -36,7 +36,7 @@ from judge.ratings import rating_class
 from judge.utils.two_factor import webauthn_decode
 
 # __all__ = ['Class', 'Organization', 'Profile', 'OrganizationRequest', 'WebAuthnCredential']
-__all__ = ['Profile', 'WebAuthnCredential', 'School']
+__all__ = ['Campus', 'Cohort', 'Profile', 'Subject', 'TrainingClass', 'WebAuthnCredential']
 
 class EncryptedNullCharField(EncryptedCharField):
     def get_prep_value(self, value):
@@ -150,16 +150,6 @@ class EncryptedNullCharField(EncryptedCharField):
 #         verbose_name_plural = _('classes')
 #         constraints = [UniqueConstraint(fields=['name'], condition=Q(is_active=True), name='unique_active_name')]
 
-class Department(models.Model):
-    name = models.CharField(max_length=255)
-    
-    def __str__(self):
-        return self.name
-    
-    class Meta:
-        verbose_name = _('학과')
-        verbose_name_plural = _('학과')
-
 class Subject(models.Model):
     name = models.CharField(max_length=255)
     
@@ -170,25 +160,59 @@ class Subject(models.Model):
         verbose_name = _('과목')
         verbose_name_plural = _('과목')
 
-class School(models.Model):
-    SCHOOL_TYPES = [
-        ('university', '대학교'),
-        ('highschool', '고등학교'),
-        ('middleschool', '중학교'),
-    ]
-    name = models.CharField(max_length=100, verbose_name='학교 이름', unique=True)
-    short_name = models.CharField(max_length=20, verbose_name='약칭')
-    school_type = models.CharField(max_length=20, choices=SCHOOL_TYPES, verbose_name='학교 유형')
-    is_jbnu = models.BooleanField(default=False, verbose_name='전북대 여부',
-                                  help_text='True이면 @jbnu.ac.kr 이메일 강제, False이면 @g.jbedu.kr 강제')
-    is_active = models.BooleanField(default=True, verbose_name='활성 여부')
+class Cohort(models.Model):
+    number = models.PositiveIntegerField(unique=True, validators=[MinValueValidator(1)], verbose_name=_('기수'))
+    is_active = models.BooleanField(default=True, verbose_name=_('활성 여부'))
+
+    def __str__(self):
+        return _('%(number)s기') % {'number': self.number}
+
+    class Meta:
+        ordering = ('-number',)
+        constraints = [
+            models.CheckConstraint(check=Q(number__gte=1), name='positive_cohort_number'),
+        ]
+        verbose_name = _('기수')
+        verbose_name_plural = _('기수')
+
+
+class Campus(models.Model):
+    code = models.SlugField(max_length=20, unique=True, verbose_name=_('캠퍼스 코드'))
+    name = models.CharField(max_length=30, unique=True, verbose_name=_('캠퍼스'))
+    is_active = models.BooleanField(default=True, verbose_name=_('활성 여부'))
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = _('학교')
-        verbose_name_plural = _('학교')
+        ordering = ('name',)
+        verbose_name = _('캠퍼스')
+        verbose_name_plural = _('캠퍼스')
+
+
+class TrainingClass(models.Model):
+    cohort = models.ForeignKey(Cohort, on_delete=models.PROTECT, related_name='training_classes',
+                               verbose_name=_('기수'))
+    campus = models.ForeignKey(Campus, on_delete=models.PROTECT, related_name='training_classes',
+                               verbose_name=_('캠퍼스'))
+    number = models.PositiveIntegerField(validators=[MinValueValidator(1)], verbose_name=_('반'))
+    is_active = models.BooleanField(default=True, verbose_name=_('활성 여부'))
+
+    def __str__(self):
+        return _('%(cohort)s %(campus)s %(number)s반') % {
+            'cohort': self.cohort,
+            'campus': self.campus,
+            'number': self.number,
+        }
+
+    class Meta:
+        ordering = ('-cohort__number', 'campus__name', 'number')
+        constraints = [
+            UniqueConstraint(fields=('cohort', 'campus', 'number'), name='unique_training_class'),
+            models.CheckConstraint(check=Q(number__gte=1), name='positive_training_class_number'),
+        ]
+        verbose_name = _('반')
+        verbose_name_plural = _('반')
 
 class Profile(models.Model):
     LOGIN_FAILURE_LIMIT = 5
@@ -208,10 +232,8 @@ class Profile(models.Model):
                                   default='light')
     last_access = models.DateTimeField(verbose_name=_('last access time'), default=now)
     ip = models.GenericIPAddressField(verbose_name=_('last IP'), blank=True, null=True)
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null = True, blank=True)
-    school = models.ForeignKey('School', on_delete=models.SET_NULL,
-                               null=True, blank=True, verbose_name='학교')
-    student_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='학번')
+    training_class = models.ForeignKey(TrainingClass, on_delete=models.PROTECT, null=True, blank=True,
+                                       related_name='members', verbose_name=_('반'))
     # organizations = SortedManyToManyField(Organization, verbose_name=_('organization'), blank=True,
     #                                       related_name='members', related_query_name='member')
     display_rank = models.CharField(max_length=10, default='user', verbose_name=_('display rank'),
@@ -277,12 +299,6 @@ class Profile(models.Model):
     @cached_property
     def display_name(self):
         return self.username_display_override or self.username
-
-    @cached_property
-    def student_number_display(self):
-        if self.school and self.school.school_type in ('highschool', 'middleschool'):
-            return self.student_number or _('미등록')
-        return self.username
 
     def first_name(self):
         return self.user.first_name
@@ -428,9 +444,6 @@ class Profile(models.Model):
             ('test_site', _('Shows in-progress development stuff')),
             ('totp', _('Edit TOTP settings')),
         )
-        constraints = [
-            UniqueConstraint(fields=['school', 'student_number'], name='unique_school_student_number'),
-        ]
         verbose_name = _('user profile')
         verbose_name_plural = _('user profiles')
 

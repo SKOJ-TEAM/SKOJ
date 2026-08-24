@@ -138,6 +138,16 @@ class LicenseMarkdownPreviewView(MarkdownPreviewView):
     template_name = 'license-preview.html'
 
 
+class GuideMarkdownPreviewView(MarkdownPreviewView):
+    template_name = 'guide/preview.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['MATH_ENGINE'] = 'jax'
+        context['REQUIRE_JAX'] = True
+        return context
+
+
 class TicketMarkdownPreviewView(MarkdownPreviewView):
     template_name = 'ticket/preview.html'
 

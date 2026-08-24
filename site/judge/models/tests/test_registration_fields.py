@@ -20,10 +20,11 @@ class RegistrationFieldsTestCase(SimpleTestCase):
         self.assertIn('first_name', fields)
         self.assertIn('email', fields)
         self.assertIn('language', fields)
+        self.assertIn('cohort', fields)
+        self.assertIn('campus', fields)
+        self.assertIn('training_class', fields)
         self.assertNotIn('email_local', fields)
         self.assertNotIn('email_domain', fields)
-        self.assertNotIn('school', fields)
-        self.assertNotIn('department', fields)
 
     def test_username_accepts_normal_identifier(self):
         self.assertEqual(_validate_registration_username('skoj_user1'), [])
@@ -39,13 +40,14 @@ class RegistrationFieldsTestCase(SimpleTestCase):
     def test_registration_activates_user_without_default_email_backend(
             self, get_default_language, get_or_create, send_signal):
         user = Mock(is_active=False, first_name='')
-        profile = SimpleNamespace(timezone=None, language=None, save=Mock())
+        profile = SimpleNamespace(timezone=None, language=None, training_class=None, save=Mock())
         get_or_create.return_value = (profile, True)
         form = Mock()
         form.save.return_value = user
         form.cleaned_data = {
             'first_name': '테스트',
             'language': 'PY3',
+            'training_class': '3기 판교 1반',
         }
         view = RegistrationView()
         view.request = Mock()

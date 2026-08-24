@@ -20,8 +20,7 @@ from django.utils.translation import gettext_lazy as _, ngettext_lazy
 from django_ace import AceWidget
 # from judge.models import Contest, Language, Organization, Problem, ProblemPointsVote, Profile, Submission, \
 #     WebAuthnCredential
-from judge.models import Contest, Department, Language, Problem, ProblemPointsVote, Profile, Submission, \
-    WebAuthnCredential
+from judge.models import Contest, Language, Problem, ProblemPointsVote, Profile, Submission, WebAuthnCredential
 from judge.utils.subscription import newsletter_id
 from judge.widgets import HeavyPreviewPageDownWidget, Select2MultipleWidget, Select2Widget
 
@@ -63,13 +62,12 @@ class ProfileForm(ModelForm):
     class Meta:
         model = Profile
         # fields = ['about', 'organizations', 'timezone', 'language', 'ace_theme', 'user_script']
-        fields = ['about', 'timezone', 'language', 'site_theme', 'user_script', 'department']
+        fields = ['about', 'timezone', 'language', 'site_theme', 'user_script']
         widgets = {
             'user_script': AceWidget(theme='github'),
             'timezone': Select2Widget(attrs={'style': 'width:200px'}),
             'language': Select2Widget(attrs={'style': 'width:200px'}),
             'site_theme': Select2Widget(attrs={'style': 'width:200px'}),
-            'department': Select2Widget(attrs={'style': 'width:200px'}),
         }
 
         has_math_config = bool(settings.MATHOID_URL)
@@ -128,21 +126,6 @@ class ProfileForm(ModelForm):
         #     )
         # if not self.fields['organizations'].queryset:
         #     self.fields.pop('organizations')
-
-        # 전북대학교 소속이 명시된 기존 사용자만 학과를 수정할 수 있도록 한다.
-        # 학교 정보가 없는 신규 사용자와 비전북대 사용자는 학과 필드를 표시하지 않는다.
-        school = self.instance.school if self.instance and self.instance.pk else None
-        if school is None or not school.is_jbnu:
-            self.fields.pop('department')
-        else:
-            self.fields['department'].queryset = Department.objects.exclude(name='중/고등학생').order_by('name')
-            self.fields['department'].required = True
-            # 모델 필드가 null 허용이라 위젯이 required=False로 생성되는데,
-            # Select2가 이를 보고 clear(x) 버튼을 붙이므로 위젯에도 반영해야 함.
-            self.fields['department'].widget.is_required = True
-            self.fields['department'].empty_label = None
-            self.fields['department'].label = _('학과')
-
 
 class DownloadDataForm(Form):
     comment_download = BooleanField(required=False, label=_('Download comments?'))
@@ -569,18 +552,6 @@ class CustomPasswordResetForm(PasswordResetForm):
 
         return cleaned_data
 
-# 이메일 변경 관련 폼
-# 도메인은 회원가입 때와 동일한 기준(judge/views/register.py 참고)을 사용:
-# 전북대(is_jbnu=True) 소속이면 jbnu.ac.kr, 그 외(외부 학교)는 g.jbedu.kr
-JBNU_EMAIL_DOMAIN = '@jbnu.ac.kr'
-EXTERNAL_SCHOOL_EMAIL_DOMAIN = '@g.jbedu.kr'
-
-
-def get_email_domain_for_user(user):
-    school = getattr(getattr(user, 'profile', None), 'school', None)
-    return JBNU_EMAIL_DOMAIN if school and school.is_jbnu else EXTERNAL_SCHOOL_EMAIL_DOMAIN
-
-
 class EmailChangeForm(forms.Form):
     error_messages = {
         'invalid_login': "아이디 또는 비밀번호가 잘못되었습니다.",
@@ -588,21 +559,10 @@ class EmailChangeForm(forms.Form):
         'exists_email': "이미 사용하고 있는 이메일입니다.",
     }
 
-    email_local = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(attrs={'placeholder': _('이메일'), 'class': 'email_local'}),
-        label=_('Email')
-    )
-    email_domain = forms.CharField(
-        max_length=50,
-        initial='@jbnu.ac.kr',
-        widget=forms.HiddenInput(),
-        required=False
-    )
     email = forms.EmailField(
-        initial = '',
-        widget=forms.HiddenInput(),  
-        required=False
+        max_length=254,
+        widget=forms.EmailInput(attrs={'placeholder': _('이메일'), 'autocomplete': 'email'}),
+        label=_('Email')
     )
     
     username = forms.RegexField(
@@ -622,17 +582,8 @@ class EmailChangeForm(forms.Form):
         cleaned_data = super().clean()
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
-        email_local = self.cleaned_data.get('email_local')
-
-        # username으로 대상 계정을 찾아 소속 학교에 맞는 도메인을 결정한다.
-        # (전북대 소속이면 jbnu.ac.kr, 외부 학교면 g.jbedu.kr)
+        email = self.cleaned_data.get('email')
         target_user = User.objects.filter(username=username).first() if username else None
-        expected_domain = get_email_domain_for_user(target_user)
-
-        # 이메일 주소 재구성 (프론트에서 전달한 email_domain은 표시용일 뿐,
-        # 실제 도메인은 항상 서버에서 계정 정보 기준으로 재계산한다)
-        email = f"{email_local}{expected_domain}" if email_local else ''
-        cleaned_data['email'] = email
         cleaned_data['target_user'] = target_user
 
         if username is not None and password:
@@ -669,28 +620,6 @@ class EmailChangeForm(forms.Form):
         if user and user.check_password(password):
             return user
         return None
-
-# 중/고등학생 학번 등록/재등록 폼
-class StudentNumberRegisterForm(forms.Form):
-    student_number = forms.CharField(
-        max_length=20,
-        widget=forms.TextInput(attrs={'placeholder': _('학번을 입력해주세요')}),
-        label=_('학번'),
-    )
-
-    def __init__(self, *args, profile=None, **kwargs):
-        self.profile = profile
-        super().__init__(*args, **kwargs)
-
-    def clean_student_number(self):
-        student_number = self.cleaned_data['student_number']
-        if self.profile and self.profile.school:
-            exists = Profile.objects.filter(school=self.profile.school, student_number=student_number) \
-                                    .exclude(pk=self.profile.pk).exists()
-            if exists:
-                raise forms.ValidationError(_('같은 학교에 동일한 학번이 이미 등록되어 있습니다.'), code='duplicate_student_number')
-        return student_number
-
 
 # 활성화 메일 재전송 폼
 class ResendActivationEmailForm(forms.Form):

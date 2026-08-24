@@ -1,0 +1,27 @@
+{% extends 'guide/base.html' %}
+
+{% block title %}{{ guide.title }} - 알고리즘 학습 가이드{% endblock %}
+{% block content_title %}Guide{% endblock %}
+
+{% block body %}
+<article class="guide-page">
+    <div class="guide-actions">
+        <a class="guide-back" href="{{ url('guide_list', guide.problem_type.name) }}">← {{ guide.problem_type.full_name }}</a>
+        {% if perms.judge.change_algorithmguide %}
+            <a class="guide-admin-link" href="{{ url('admin:judge_algorithmguide_change', guide.pk) }}">관리자에서 편집</a>
+        {% endif %}
+    </div>
+    <header class="guide-heading">
+        <h1>{{ guide.title }}</h1>
+        <p>{{ guide.summary }}</p>
+    </header>
+    <div class="guide-article require-mathjax-support" data-config="{{ static('mathjax_config.js') }}">
+        {{ guide.content|markdown('guide', 'jax')|reference|str|safe }}
+    </div>
+</article>
+{% endblock %}
+
+{% block bodyend %}
+    {{ super() }}
+    {% include "mathjax-load.html" %}
+{% endblock %}

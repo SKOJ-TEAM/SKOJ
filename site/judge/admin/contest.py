@@ -118,14 +118,10 @@ class ContestForm(ModelForm):
                     Profile.objects.filter(contest_history__contest=self.instance).distinct()
             else:
                 self.fields['rate_exclude'].queryset = Profile.objects.none()
-        #학과 관련 옵션 버튼은 비활성화
+        # 과목 관련 옵션 버튼은 비활성화
         self.fields['subject'].widget.can_add_related = False
         self.fields['subject'].widget.can_change_related = False
         self.fields['subject'].widget.can_delete_related = False
-        if 'school' in self.fields:
-            self.fields['school'].widget.can_add_related = False
-            self.fields['school'].widget.can_change_related = False
-            self.fields['school'].widget.can_delete_related = False
         # curators 필드 레이블 변경
         self.fields['curators'].label = 'TA'
         self.fields['curators'].help_text = 'TA나 협업자에게 과제/대회 관리 권한을 부여합니다. 제작자와 동일한 권한을 가지지만, 제작자로 표시되지 않습니다.'
@@ -255,14 +251,14 @@ class ContestAdmin(VersionAdmin):
     fieldsets = (
         # (None, { 'classes':('collapse'),
         #     'fields': ('key', 'name' , 'authors', )}),
-        ('기본', {'fields': ('key', 'name', 'authors', 'curators', 'subject', 'school')}),
+        ('기본', {'fields': ('key', 'name', 'authors', 'curators', 'subject')}),
         (_('Settings'), {'fields': ('is_visible', 'is_practice', 'format_name', 'penalty')}),
         (_('Scheduling'), {'fields': ('start_time', 'end_time', 'late_submission_deadline')}),
         (_('Details'), {'fields': ('description', )}),
         # (_('Rating'), {'fields': ('is_rated', 'rate_all', )}),
         # (_('Access'), {'fields': ('access_code', 'organizations', 'classes',
         #                            'view_contest_submissions')}),
-        (_('Access'), {'fields': ('access_code',
+        (_('Access'), {'fields': ('access_code', 'allowed_classes',
                                    'view_contest_submissions')}),
         # (_('Justice'), {'fields': ('banned_users',)}),
     )

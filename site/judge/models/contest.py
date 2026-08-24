@@ -24,7 +24,7 @@ SUBMISSION_CLOSED = 'closed'
 from judge import contest_format
 from judge.models.problem import Problem
 # from judge.models.profile import Class, Organization, Profile
-from judge.models.profile import Profile, Subject, School
+from judge.models.profile import Profile, Subject
 
 from judge.models.submission import Submission
 from judge.ratings import rate_contest
@@ -93,9 +93,9 @@ class Contest(models.Model):
                            validators=[RegexValidator('^[a-z0-9]+$', _('Contest id must be ^[a-z0-9]+$'))])
     name = models.CharField(max_length=100, verbose_name=_('contest name'), db_index=True)
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null = True, blank=True)
-    school = models.ForeignKey('judge.School', on_delete=models.SET_NULL,
-                               null=True, blank=True, verbose_name='학교',
-                               help_text='특정 학교 전용 대회/과제. 비워두면 전체 공개')
+    allowed_classes = models.ManyToManyField('judge.TrainingClass', blank=True, related_name='contests',
+                                             verbose_name=_('허용 반'),
+                                             help_text=_('비워두면 모든 반에 공개됩니다.'))
     authors = models.ManyToManyField(Profile, verbose_name=_('authors'),
                                      help_text=_('These users will be able to edit the contest.'),
                                      related_name='authored_contests',blank=True)
@@ -439,6 +439,8 @@ class Contest(models.Model):
             #     raise self.PrivateContest()
             if self.is_private:
                 raise self.PrivateContest()
+            if self.allowed_classes.exists():
+                raise self.PrivateContest()
             return
 
         # If the user can view or edit all contests
@@ -456,6 +458,11 @@ class Contest(models.Model):
         # User is spectator for contest
         if user.profile.id in self.spectator_ids:
             return
+
+        if self.allowed_classes.exists():
+            training_class_id = getattr(user.profile, 'training_class_id', None)
+            if not training_class_id or not self.allowed_classes.filter(id=training_class_id).exists():
+                raise self.PrivateContest()
 
         # Contest is not publicly visible
         if not self.is_visible:
@@ -546,22 +553,22 @@ class Contest(models.Model):
     @classmethod
     def get_visible_contests(cls, user):
         if not user.is_authenticated:
-            return cls.objects.filter(is_visible=True, is_private=False, school__isnull=True) \
+            return cls.objects.filter(is_visible=True, is_private=False, allowed_classes__isnull=True) \
                               .defer('description').distinct()
         queryset = cls.objects.defer('description')
 
-        # 학교 필터: superuser가 아닌 경우 본인 학교 대회만 조회
-        # (단, 직접 참여 중인 author/curator/tester/spectator는 학교 무관 허용)
-        if not user.is_superuser:
-            school = getattr(getattr(user, 'profile', None), 'school', None)
-            q_school = Q(school__isnull=True)
-            if school:
-                q_school |= Q(school=school)
-            q_school |= Q(authors=user.profile)
-            q_school |= Q(curators=user.profile)
-            q_school |= Q(testers=user.profile)
-            q_school |= Q(spectators=user.profile)
-            queryset = queryset.filter(q_school)
+        # 반 제한: 운영진은 소속과 관계없이 접근할 수 있다.
+        if not (user.is_superuser or user.has_perm('judge.see_private_contest') or
+                user.has_perm('judge.edit_all_contest')):
+            training_class = getattr(getattr(user, 'profile', None), 'training_class', None)
+            q_class = Q(allowed_classes__isnull=True)
+            if training_class:
+                q_class |= Q(allowed_classes=training_class)
+            q_class |= Q(authors=user.profile)
+            q_class |= Q(curators=user.profile)
+            q_class |= Q(testers=user.profile)
+            q_class |= Q(spectators=user.profile)
+            queryset = queryset.filter(q_class)
 
         # 공개 여부 필터: 권한이 없는 경우 visible 대회만 조회
         if not (user.is_superuser or

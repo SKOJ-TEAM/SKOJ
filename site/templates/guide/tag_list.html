@@ -1,0 +1,26 @@
+{% extends 'guide/base.html' %}
+
+{% block title %}알고리즘 학습 가이드{% endblock %}
+{% block content_title %}Guide{% endblock %}
+
+{% block body %}
+<section class="guide-page">
+    <header class="guide-heading">
+        <h1>알고리즘 학습 가이드</h1>
+        <p>학습할 알고리즘 태그를 선택하세요.</p>
+    </header>
+    {% if guide_tags %}
+        <div class="guide-grid">
+            {% for guide_tag in guide_tags %}
+                <a class="guide-card" href="{{ url('guide_list', guide_tag.name) }}">
+                    <span class="guide-number">{{ '%02d'|format(loop.index) }}</span>
+                    <h2>{{ guide_tag.full_name }}</h2>
+                    <p class="guide-summary">관련 학습 문서를 확인하세요.</p>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="guide-empty">현재 게시된 학습 가이드가 없습니다.</div>
+    {% endif %}
+</section>
+{% endblock %}
