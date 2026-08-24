@@ -8,14 +8,18 @@ from django.utils.translation import gettext_lazy as _
 
 class Tier(models.TextChoices):
     BRONZE = 'bronze', _('브론즈')
+    SILVER = 'silver', _('실버')
     GOLD = 'gold', _('골드')
     DIAMOND = 'diamond', _('다이아몬드')
+    MASTER = 'master', _('마스터')
 
     @classmethod
     def next(cls, tier):
         return {
-            cls.BRONZE: cls.GOLD,
+            cls.BRONZE: cls.SILVER,
+            cls.SILVER: cls.GOLD,
             cls.GOLD: cls.DIAMOND,
+            cls.DIAMOND: cls.MASTER,
         }.get(tier)
 
 
@@ -48,8 +52,10 @@ class DifficultyCluster(models.Model):
 
 class PromotionExam(models.Model):
     SOURCE_TIER_CHOICES = (
-        (Tier.BRONZE, _('브론즈 → 골드')),
+        (Tier.BRONZE, _('브론즈 → 실버')),
+        (Tier.SILVER, _('실버 → 골드')),
         (Tier.GOLD, _('골드 → 다이아몬드')),
+        (Tier.DIAMOND, _('다이아몬드 → 마스터')),
     )
 
     title = models.CharField(max_length=100, verbose_name=_('제목'))
@@ -85,15 +91,18 @@ class ProfileGamification(models.Model):
     tier_updated_at = models.DateTimeField(default=timezone.now, verbose_name=_('티어 변경 시각'))
     weighted_score = models.PositiveIntegerField(default=0, db_index=True, verbose_name=_('가중 점수'))
     bronze_solved = models.PositiveIntegerField(default=0, verbose_name=_('브론즈 풀이 수'))
+    silver_solved = models.PositiveIntegerField(default=0, verbose_name=_('실버 풀이 수'))
     gold_solved = models.PositiveIntegerField(default=0, verbose_name=_('골드 풀이 수'))
     diamond_solved = models.PositiveIntegerField(default=0, verbose_name=_('다이아몬드 풀이 수'))
+    master_solved = models.PositiveIntegerField(default=0, verbose_name=_('마스터 풀이 수'))
     score_updated_at = models.DateTimeField(default=timezone.now, verbose_name=_('점수 갱신 시각'))
 
     def __str__(self):
         return '%s · %s' % (self.profile.username, self.get_current_tier_display())
 
     class Meta:
-        ordering = ('-weighted_score', '-diamond_solved', '-gold_solved', '-bronze_solved', 'profile_id')
+        ordering = ('-weighted_score', '-master_solved', '-diamond_solved', '-gold_solved', '-silver_solved',
+                    '-bronze_solved', 'profile_id')
         verbose_name = _('사용자 티어')
         verbose_name_plural = _('사용자 티어')
 

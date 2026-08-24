@@ -188,12 +188,12 @@ class PromotionAttemptAdmin(admin.ModelAdmin):
 
 @admin.register(ProfileGamification)
 class ProfileGamificationAdmin(admin.ModelAdmin):
-    list_display = ('profile', 'current_tier', 'weighted_score', 'diamond_solved', 'gold_solved',
-                    'bronze_solved', 'tier_updated_at')
+    list_display = ('profile', 'current_tier', 'weighted_score', 'master_solved', 'diamond_solved', 'gold_solved',
+                    'silver_solved', 'bronze_solved', 'tier_updated_at')
     list_filter = ('current_tier',)
     search_fields = ('profile__user__username',)
     readonly_fields = ('profile', 'current_tier', 'tier_updated_at', 'weighted_score', 'bronze_solved',
-                       'gold_solved', 'diamond_solved', 'score_updated_at')
+                       'silver_solved', 'gold_solved', 'diamond_solved', 'master_solved', 'score_updated_at')
 
     def has_add_permission(self, request):
         return False

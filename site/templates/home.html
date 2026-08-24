@@ -70,8 +70,10 @@
         .home-tier-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
         .home-tier-badge { display: inline-flex; padding: 6px 13px; border-radius: 999px; font-weight: 800; }
         .home-tier-bronze { color: #8a4f2d; background: #f4dfd0; }
+        .home-tier-silver { color: #4b5563; background: #e5e7eb; }
         .home-tier-gold { color: #7a5a00; background: #fff0ad; }
         .home-tier-diamond { color: #176b87; background: #d9f4ff; }
+        .home-tier-master { color: #6d28d9; background: #ede9fe; }
         .home-weighted-score { color: var(--font-grey); font-size: 14px; }
         .home-progress-list { display: grid; gap: 12px; }
         .home-progress-label { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; font-size: 13px; }
@@ -172,7 +174,7 @@
                     <span class="home-tier-badge home-tier-{{ gamification.current_tier }}">{{ gamification.get_current_tier_display() }}</span>
                     <span class="home-weighted-score">가중 점수 <strong>{{ gamification.weighted_score }}</strong></span>
                 </div>
-                {% if gamification.current_tier == 'diamond' %}
+                {% if gamification.current_tier == 'master' %}
                     <p class="home-promotion-copy">최고 티어에 도달했습니다. 더 많은 문제를 해결해 랭킹에 도전해 보세요.</p>
                 {% elif tier_progress %}
                     <div class="home-progress-list">
@@ -191,7 +193,7 @@
 
             <article class="home-dashboard-card">
                 <div class="home-card-header"><h2>승급전</h2></div>
-                {% if gamification.current_tier == 'diamond' %}
+                {% if gamification.current_tier == 'master' %}
                     <p class="home-promotion-copy">모든 승급 과정을 완료했습니다. 이제 풀이 점수로 순위를 높여보세요.</p>
                 {% elif promotion_attempt %}
                     <p class="home-promotion-copy"><strong>{{ promotion_attempt.exam.title }}</strong><br>모든 문제를 해결하면 {{ promotion_attempt.get_target_tier_display() }}로 승격됩니다.</p>

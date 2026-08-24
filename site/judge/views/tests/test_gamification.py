@@ -62,18 +62,24 @@ class RankingViewTestCase(TestCase):
         self.assertNotContains(response, '<th>Bronze</th>', html=True)
 
     def test_all_tiers_appear_in_global_ranking(self):
+        silver = User.objects.create_user(username='silver-user')
         diamond = User.objects.create_user(username='diamond-user')
+        master = User.objects.create_user(username='master-user')
+        ProfileGamification.objects.filter(profile=silver.profile).update(current_tier=Tier.SILVER)
         ProfileGamification.objects.filter(profile=diamond.profile).update(
             current_tier=Tier.DIAMOND,
             weighted_score=20,
         )
+        ProfileGamification.objects.filter(profile=master.profile).update(current_tier=Tier.MASTER)
         self.client.force_login(self.user)
         response = self.client.get(reverse('gamification_ranking'))
 
         self.assertContains(response, 'ranking-user')
         self.assertContains(response, 'diamond-user')
         self.assertContains(response, '브론즈')
+        self.assertContains(response, '실버')
         self.assertContains(response, '다이아몬드')
+        self.assertContains(response, '마스터')
 
     def test_ranking_uses_difficulty_tiebreak(self):
         gold_heavy = User.objects.create_user(username='gold-heavy')
@@ -283,7 +289,7 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
             profile=self.users['normal'].profile,
             exam=self.exam,
             source_tier=Tier.BRONZE,
-            target_tier=Tier.GOLD,
+            target_tier=Tier.SILVER,
         )
         PromotionAttemptProblem.objects.create(attempt=attempt, problem=self.first_problem, order=0)
 

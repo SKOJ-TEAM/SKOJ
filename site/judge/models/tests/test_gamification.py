@@ -21,7 +21,7 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.regular_problem = create_problem(
             code='tierregular', points=10, is_public=True, group=self.problem_group,
         )
-        self.exam = PromotionExam.objects.create(title='Gold 승급전', source_tier=Tier.BRONZE)
+        self.exam = PromotionExam.objects.create(title='Silver 승급전', source_tier=Tier.BRONZE)
         self.exam_problem = create_problem(
             code='tierexam', points=10, is_public=True, group=self.problem_group, promotion_exam=self.exam,
         )
@@ -71,14 +71,14 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         promotion_submission = self.create_full_solve(self.exam_problem)
         self.profile.gamification.refresh_from_db()
         attempt.refresh_from_db()
-        self.assertEqual(self.profile.gamification.current_tier, Tier.GOLD)
+        self.assertEqual(self.profile.gamification.current_tier, Tier.SILVER)
         self.assertIsNotNone(attempt.completed_at)
 
         promotion_submission.result = 'WA'
         promotion_submission.points = 0
         promotion_submission.save()
         self.profile.gamification.refresh_from_db()
-        self.assertEqual(self.profile.gamification.current_tier, Tier.GOLD)
+        self.assertEqual(self.profile.gamification.current_tier, Tier.SILVER)
 
     def test_every_problem_added_after_unlock_is_required_for_promotion(self):
         self.create_full_solve(self.regular_problem)
@@ -100,8 +100,15 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.profile.gamification.refresh_from_db()
         attempt.refresh_from_db()
 
-        self.assertEqual(self.profile.gamification.current_tier, Tier.GOLD)
+        self.assertEqual(self.profile.gamification.current_tier, Tier.SILVER)
         self.assertIsNotNone(attempt.completed_at)
+
+    def test_five_tier_promotion_order(self):
+        self.assertEqual(Tier.next(Tier.BRONZE), Tier.SILVER)
+        self.assertEqual(Tier.next(Tier.SILVER), Tier.GOLD)
+        self.assertEqual(Tier.next(Tier.GOLD), Tier.DIAMOND)
+        self.assertEqual(Tier.next(Tier.DIAMOND), Tier.MASTER)
+        self.assertIsNone(Tier.next(Tier.MASTER))
 
     def test_partial_and_duplicate_submissions_count_once(self):
         for points in (5, 10, 10):

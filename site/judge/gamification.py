@@ -37,8 +37,10 @@ def recalculate_profile_score(profile):
     ProfileGamification.objects.filter(pk=gamification.pk).update(
         weighted_score=weighted_score,
         bronze_solved=counts[Tier.BRONZE],
+        silver_solved=counts[Tier.SILVER],
         gold_solved=counts[Tier.GOLD],
         diamond_solved=counts[Tier.DIAMOND],
+        master_solved=counts[Tier.MASTER],
         score_updated_at=timezone.now(),
     )
     gamification.refresh_from_db()
@@ -62,7 +64,7 @@ def get_tier_progress(profile, tier=None):
 
 def is_eligible_for_promotion(profile, gamification=None):
     gamification = gamification or get_or_create_gamification(profile)
-    if gamification.current_tier == Tier.DIAMOND:
+    if gamification.current_tier == Tier.MASTER:
         return False
     progress = get_tier_progress(profile, gamification.current_tier)
     return bool(progress) and all(cluster.solved_count >= cluster.required_solve_count for cluster in progress)
@@ -87,7 +89,7 @@ def sync_promotion_attempt_problems(attempt):
 @transaction.atomic
 def unlock_promotion_attempt(profile):
     gamification = ProfileGamification.objects.select_for_update().get(profile=profile)
-    if gamification.current_tier == Tier.DIAMOND or not is_eligible_for_promotion(profile, gamification):
+    if gamification.current_tier == Tier.MASTER or not is_eligible_for_promotion(profile, gamification):
         return None
 
     existing = PromotionAttempt.objects.filter(
