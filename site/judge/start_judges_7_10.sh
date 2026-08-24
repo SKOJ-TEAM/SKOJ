@@ -8,7 +8,7 @@ tmux new-session -d -s dmoj_judge_7_10
 
 # 채점기(7-10)를 위한 창 분할 및 실행
 for i in {7..10}; do
-  judge_name="litmus-judge-$i"
+  judge_name="skoj-judge-$i"
 
   # 첫 번째 창 이후로는 새 창 생성
   if [ $i -gt 7 ]; then
@@ -24,4 +24,4 @@ done
 
 echo "채점기 7-10이 모두 시작되었습니다."
 echo "채점기 7-10 세션: tmux attach -t dmoj_judge_7_10"
-echo "상태 확인: https://litmus.jbnu.ac.kr/status/"
+echo "상태 확인: https://skoj.site/status/"

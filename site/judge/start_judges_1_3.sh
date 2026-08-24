@@ -37,4 +37,4 @@ done
 
 echo "채점기 1-3이 모두 시작되었습니다."
 echo "채점기 1-3 세션: tmux attach -t dmoj_judge_1_3"
-echo "상태 확인: https://litmus.jbnu.ac.kr/status/"
+echo "상태 확인: https://skoj.site/status/"

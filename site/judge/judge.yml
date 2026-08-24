@@ -1,4 +1,4 @@
-id: litmus-judge
+id: skoj-judge
 key: 5pNIziU5kZEjwoALxuMU7kGCxg/ThtyciQfInuDiran9L/lPO+ZPmMalUJL3OaAfGOidJ2cAJZZH4jj7zdUJ6D4ddBsgq715BBHW
 problem_storage_globs:
   - /home/ubuntu/problems/*

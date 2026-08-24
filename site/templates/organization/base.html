@@ -724,8 +724,8 @@
 
     <footer>
         <div id="footer-content">
-            <a href="https://github.com/alps-jbnu" target="_blank" rel="noopener noreferrer">이용약관</a> | <a href="https://github.com/alps-jbnu" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>
-            <br><a class="copyright" href="https://sites.google.com/view/jbnu-alps" target="_blank" rel="noopener noreferrer">Copyright @ JBNU and ALPS All rights reserved.</a><hr>
+            <a href="{{ url('term_one') }}">이용약관</a> | <a href="{{ url('term_two') }}">개인정보처리방침</a>
+            <br><a class="copyright" href="{{ url('home') }}">Copyright © SKOJ</a><hr>
             {% if i18n_config.footer %}
                 {{ i18n_config.footer|safe }} |
             {% endif %}

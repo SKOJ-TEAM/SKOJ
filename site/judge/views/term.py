@@ -1,7 +1,7 @@
 from django.shortcuts import render
 
 def render_term_view(request, template_name, title=None, title_info=None):
-    title = 'Litmus 서비스 표준약관'  # 기본 제목 설정
+    title = 'SKOJ 서비스 이용약관'
     # 공통된 로직 및 context 설정
     context = {
         'title': title,

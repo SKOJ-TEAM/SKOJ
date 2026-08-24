@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>{{ title }} - Litmus</title>
+    <title>{{ title }} - SKOJ</title>
     <script{% if csp_nonce %} nonce="{{ csp_nonce }}"{% endif %}>
         // error.html 과 동일한 테마 판정. 이 문서도 base.html 을 상속하지 않아
         // SITE_THEME 을 쓸 수 없으므로 쿠키(저장된 설정) -> OS 설정 순으로 직접 해석한다.
@@ -44,29 +44,29 @@
     <style>
         :root {
             color-scheme: light;
-            --litmus-accent: #5285c4;
-            --litmus-ink: #202124;
-            --litmus-muted: #5f6368;
-            --litmus-line: #e4e7eb;
-            --litmus-bg: #f8fafc;
-            --litmus-surface: #fff;
-            --litmus-primary-bg: #5285c4;
-            --litmus-primary-ink: #fff;
-            --litmus-shadow: rgba(20, 28, 36, 0.08);
+            --skoj-accent: #5285c4;
+            --skoj-ink: #202124;
+            --skoj-muted: #5f6368;
+            --skoj-line: #e4e7eb;
+            --skoj-bg: #f8fafc;
+            --skoj-surface: #fff;
+            --skoj-primary-bg: #5285c4;
+            --skoj-primary-ink: #fff;
+            --skoj-shadow: rgba(20, 28, 36, 0.08);
         }
 
         /* 다크 팔레트 — error.html 과 동일한 값을 쓴다. 한쪽만 고치지 말 것. */
         :root[data-theme="dark"] {
             color-scheme: dark;
-            --litmus-accent: #6BA3E8;
-            --litmus-ink: #E8E8EC;
-            --litmus-muted: #A6AFBA;
-            --litmus-line: #767681;
-            --litmus-bg: #17171B;
-            --litmus-surface: #26262B;
-            --litmus-primary-bg: #3D6FA8;
-            --litmus-primary-ink: #fff;
-            --litmus-shadow: rgba(0, 0, 0, 0.5);
+            --skoj-accent: #6BA3E8;
+            --skoj-ink: #E8E8EC;
+            --skoj-muted: #A6AFBA;
+            --skoj-line: #767681;
+            --skoj-bg: #17171B;
+            --skoj-surface: #26262B;
+            --skoj-primary-bg: #3D6FA8;
+            --skoj-primary-ink: #fff;
+            --skoj-shadow: rgba(0, 0, 0, 0.5);
         }
 
         * {
@@ -84,8 +84,8 @@
             min-height: 100vh;
             place-items: center;
             padding: 32px 20px;
-            background: var(--litmus-bg);
-            color: var(--litmus-ink);
+            background: var(--skoj-bg);
+            color: var(--skoj-ink);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
             font-size: 16px;
             line-height: 1.5;
@@ -93,17 +93,17 @@
 
         main {
             width: min(100%, 420px);
-            border: 1px solid var(--litmus-line);
-            border-top: 4px solid var(--litmus-accent);
+            border: 1px solid var(--skoj-line);
+            border-top: 4px solid var(--skoj-accent);
             border-radius: 8px;
-            background: var(--litmus-surface);
+            background: var(--skoj-surface);
             padding: 28px;
-            box-shadow: 0 8px 24px var(--litmus-shadow);
+            box-shadow: 0 8px 24px var(--skoj-shadow);
         }
 
         .brand {
             margin: 0 0 18px;
-            color: var(--litmus-ink);
+            color: var(--skoj-ink);
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0;
@@ -119,7 +119,7 @@
 
         p {
             margin: 0;
-            color: var(--litmus-muted);
+            color: var(--skoj-muted);
         }
 
         .actions {
@@ -143,15 +143,15 @@
 
         button {
             border: 0;
-            background: var(--litmus-primary-bg);
-            color: var(--litmus-primary-ink);
+            background: var(--skoj-primary-bg);
+            color: var(--skoj-primary-ink);
             font-family: inherit;
         }
 
         a {
-            border: 1px solid var(--litmus-line);
-            background: var(--litmus-surface);
-            color: var(--litmus-ink);
+            border: 1px solid var(--skoj-line);
+            background: var(--skoj-surface);
+            color: var(--skoj-ink);
         }
 
         button:focus,
@@ -163,7 +163,7 @@
 </head>
 <body>
     <main>
-        <p class="brand">Litmus</p>
+        <p class="brand">SKOJ</p>
         <h1>페이지를 찾을 수 없습니다.</h1>
         <p>{{ message }}</p>
         {% if auto_redirect_home %}

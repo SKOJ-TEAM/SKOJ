@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>{{ code }} - Litmus</title>
+    <title>{{ code }} - SKOJ</title>
     <script{% if csp_nonce %} nonce="{{ csp_nonce }}"{% endif %}>
         // 이 문서는 base.html 을 상속하지 않는 독립 문서라 SITE_THEME(컨텍스트 프로세서)을 쓸 수 없다.
         // 게다가 error500 은 DB 장애 상황에서도 떠야 하므로 서버에서 테마를 조회하면 위험하다.
@@ -39,35 +39,35 @@
     <style>
         :root {
             color-scheme: light;
-            --litmus-accent: #5285c4;
-            --litmus-ink: #202124;
-            --litmus-muted: #5f6368;
-            --litmus-line: #e4e7eb;
-            --litmus-bg: #f8fafc;
-            --litmus-surface: #fff;
-            --litmus-danger: #b42318;
-            --litmus-primary-bg: #5285c4;
-            --litmus-primary-ink: #fff;
-            --litmus-shadow: rgba(20, 28, 36, 0.08);
+            --skoj-accent: #5285c4;
+            --skoj-ink: #202124;
+            --skoj-muted: #5f6368;
+            --skoj-line: #e4e7eb;
+            --skoj-bg: #f8fafc;
+            --skoj-surface: #fff;
+            --skoj-danger: #b42318;
+            --skoj-primary-bg: #5285c4;
+            --skoj-primary-ink: #fff;
+            --skoj-shadow: rgba(20, 28, 36, 0.08);
         }
 
         /* 다크 팔레트. 위 스크립트가 <html data-theme="dark"> 를 붙였을 때만 적용된다.
            값은 WCAG 기준으로 검증했다 — 본문 12.3:1, 설명문 6.8:1, 에러코드 6.6:1,
            테두리는 카드 3.4:1 / 페이지 4.0:1, 주 버튼 흰 글자 5.2:1.
-           주 버튼 배경을 --litmus-accent 보다 어둡게 따로 둔 이유는, 밝은 파랑에
+           주 버튼 배경을 --skoj-accent 보다 어둡게 따로 둔 이유는, 밝은 파랑에
            흰 글자를 얹으면 2.6:1 까지 떨어지기 때문이다. */
         :root[data-theme="dark"] {
             color-scheme: dark;
-            --litmus-accent: #6BA3E8;
-            --litmus-ink: #E8E8EC;
-            --litmus-muted: #A6AFBA;
-            --litmus-line: #767681;
-            --litmus-bg: #17171B;
-            --litmus-surface: #26262B;
-            --litmus-danger: #FF8A80;
-            --litmus-primary-bg: #3D6FA8;
-            --litmus-primary-ink: #fff;
-            --litmus-shadow: rgba(0, 0, 0, 0.5);
+            --skoj-accent: #6BA3E8;
+            --skoj-ink: #E8E8EC;
+            --skoj-muted: #A6AFBA;
+            --skoj-line: #767681;
+            --skoj-bg: #17171B;
+            --skoj-surface: #26262B;
+            --skoj-danger: #FF8A80;
+            --skoj-primary-bg: #3D6FA8;
+            --skoj-primary-ink: #fff;
+            --skoj-shadow: rgba(0, 0, 0, 0.5);
         }
 
         * {
@@ -85,8 +85,8 @@
             min-height: 100vh;
             place-items: center;
             padding: 32px 20px;
-            background: var(--litmus-bg);
-            color: var(--litmus-ink);
+            background: var(--skoj-bg);
+            color: var(--skoj-ink);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
             font-size: 16px;
             line-height: 1.5;
@@ -94,17 +94,17 @@
 
         main {
             width: min(100%, 460px);
-            border: 1px solid var(--litmus-line);
-            border-top: 4px solid var(--litmus-accent);
+            border: 1px solid var(--skoj-line);
+            border-top: 4px solid var(--skoj-accent);
             border-radius: 8px;
-            background: var(--litmus-surface);
+            background: var(--skoj-surface);
             padding: 28px;
-            box-shadow: 0 8px 24px var(--litmus-shadow);
+            box-shadow: 0 8px 24px var(--skoj-shadow);
         }
 
         .brand {
             margin: 0 0 18px;
-            color: var(--litmus-ink);
+            color: var(--skoj-ink);
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0;
@@ -112,7 +112,7 @@
 
         .code {
             margin: 0 0 8px;
-            color: var(--litmus-danger);
+            color: var(--skoj-danger);
             font-size: 14px;
             font-weight: 700;
             letter-spacing: 0;
@@ -128,7 +128,7 @@
 
         p {
             margin: 0;
-            color: var(--litmus-muted);
+            color: var(--skoj-muted);
         }
 
         .actions {
@@ -152,15 +152,15 @@
 
         button {
             border: 0;
-            background: var(--litmus-primary-bg);
-            color: var(--litmus-primary-ink);
+            background: var(--skoj-primary-bg);
+            color: var(--skoj-primary-ink);
             font-family: inherit;
         }
 
         a {
-            border: 1px solid var(--litmus-line);
-            background: var(--litmus-surface);
-            color: var(--litmus-ink);
+            border: 1px solid var(--skoj-line);
+            background: var(--skoj-surface);
+            color: var(--skoj-ink);
         }
 
         button:focus,
@@ -172,12 +172,12 @@
 
         details {
             margin-top: 22px;
-            border-top: 1px solid var(--litmus-line);
+            border-top: 1px solid var(--skoj-line);
             padding-top: 16px;
         }
 
         summary {
-            color: var(--litmus-muted);
+            color: var(--skoj-muted);
             cursor: pointer;
             font-size: 14px;
             font-weight: 700;
@@ -200,7 +200,7 @@
 </head>
 <body>
     <main>
-        <p class="brand">Litmus</p>
+        <p class="brand">SKOJ</p>
         <p class="code">{{ code }} error</p>
         <h1>요청을 처리하지 못했습니다.</h1>
         <p>{{ description|default('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.') }}</p>

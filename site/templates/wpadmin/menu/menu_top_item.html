@@ -21,8 +21,8 @@
 	<li class="wp-menu-top{% if is_first %} wp-menu-top-first{% endif %}{% if is_last %} wp-menu-top-last{% endif %}{% if item.children %} wp-has-submenu{% endif %}{% if not item.enabled %} wp-disabled{% endif %}{% if not item.url %} wp-no-url{% endif %}{% if is_selected %} wp-menu-open{% else %} wp-menu-not-open{% endif %}{% if item.add_url %} wp-has-add-url{% endif %}" {% if item.css_styles %}style="{{ item.css_styles }}"{% endif %}>
 		<div class="wp-menu-image">
 			<a aria-label="{{ item.title }}" title="{{ item.description|default:'' }}" href="{% if item.url and item.enabled %}{{ item.url }}{% else %}javascript:;{% endif %}">
-				{% if item.title == "Litmus" %}
-                    <img src="/favicon-32x32.png" alt="Litmus" style="width:25px; height:25px; vertical-align:-3.5px;">
+				{% if item.title == "SKOJ" %}
+                    <img src="/favicon-32x32.png" alt="SKOJ" style="width:25px; height:25px; vertical-align:-3.5px;">
 				{% elif item.title == "문제" %}
 					<i class="fa fa-puzzle-piece"></i>
 				{% else %}
@@ -35,7 +35,7 @@
 			{% if item.title == "대회" %}
 				과제/대회 개설
 			{% elif item.title == "DMOJ: Modern Online Judge"%}
-				Litmus
+				SKOJ
 			{% else %}
 				{{ item.title }}
 			{% endif %}

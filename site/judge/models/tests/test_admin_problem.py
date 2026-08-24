@@ -13,7 +13,7 @@ class ProblemAdminFilterTest(CommonDataMixin, TestCase):
         cls.factory = RequestFactory()
         cls.problem_admin = ProblemAdmin(Problem, admin.site)
         cls.algorithm_problem = create_problem(code='alg001', group='algorithm')
-        cls.contest_problem = create_problem(code='jbn001', group='JBNUPC')
+        cls.contest_problem = create_problem(code='skoj001', group='SKOJ')
 
     def build_filter(self, params=None):
         request = self.factory.get('/admin/judge/problem/', params or {})

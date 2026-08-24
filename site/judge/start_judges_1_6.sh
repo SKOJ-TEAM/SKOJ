@@ -11,9 +11,9 @@ tmux new-session -d -s dmoj_judge_1_6
 # 채점기 1~6 실행
 for i in {1..6}; do
   if [ $i -eq 1 ]; then
-    judge_name="litmus-judge"
+    judge_name="skoj-judge"
   else
-    judge_name="litmus-judge-$i"
+    judge_name="skoj-judge-$i"
   fi
 
   if [ $i -gt 1 ]; then
@@ -28,4 +28,4 @@ done
 
 echo "채점기 1-6이 모두 시작되었습니다."
 echo "채점기 1-6 세션: tmux attach -t dmoj_judge_1_6"
-echo "상태 확인: https://litmus.jbnu.ac.kr/status/"
+echo "상태 확인: https://skoj.site/status/"
