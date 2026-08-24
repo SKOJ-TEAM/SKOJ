@@ -55,6 +55,8 @@ class ProblemGroupNavigationTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.basic_problem.name)
         self.assertContains(response, self.practice_problem.name)
+        self.assertContains(response, 'class="problem-group-card"', html=False)
+        self.assertContains(response, 'class="problem-group-all active"', html=False)
         self.assertContains(response, '기초')
         self.assertContains(response, '연습')
         self.assertContains(response, reverse('problem_group_list', args=('basic',)))
