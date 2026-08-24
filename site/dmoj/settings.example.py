@@ -243,10 +243,10 @@ else:
                     ],
                 },
                 {
+                    'model': 'judge.ProfileGamification',
                     'title': '랭킹',
                     'icon': 'fa-trophy',
                     'children': [
-                        'judge.ProfileGamification',
                         'judge.DifficultyCluster',
                         'judge.PromotionExam',
                         'judge.PromotionAttempt',

@@ -112,8 +112,8 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
                             if isinstance(item, dict) and item.get('title') == '랭킹')
 
         self.assertEqual(ranking_menu['icon'], 'fa-trophy')
+        self.assertEqual(ranking_menu['model'], 'judge.ProfileGamification')
         self.assertEqual(ranking_menu['children'], [
-            'judge.ProfileGamification',
             'judge.DifficultyCluster',
             'judge.PromotionExam',
             'judge.PromotionAttempt',
@@ -124,7 +124,7 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
         response = self.client.get(reverse('admin:index'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '랭킹')
-        self.assertContains(response, '사용자 티어')
+        self.assertContains(response, reverse('admin:judge_profilegamification_changelist'))
         self.assertContains(response, '난이도 클러스터')
         self.assertContains(response, '승급전')
         self.assertContains(response, '승급 기록')
