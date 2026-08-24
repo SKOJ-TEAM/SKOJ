@@ -140,7 +140,6 @@ class PromotionExamAdmin(admin.ModelAdmin):
             exam.problems.exclude(pk__in=ordered_ids).update(promotion_exam=None, promotion_order=0)
             for order, problem_id in enumerate(ordered_ids):
                 Problem.objects.filter(pk=problem_id).update(
-                    gamification_cluster=None,
                     promotion_exam=exam,
                     promotion_order=order,
                 )

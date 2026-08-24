@@ -38,7 +38,7 @@ class DifficultyCluster(models.Model):
     class Meta:
         ordering = ('tier', 'order', 'problem_group__full_name')
         constraints = [
-            models.UniqueConstraint(fields=('tier', 'problem_group'), name='unique_tier_problem_group_cluster'),
+            models.UniqueConstraint(fields=('problem_group',), name='unique_gamification_problem_group_cluster'),
             models.CheckConstraint(check=Q(required_solve_count__gte=1), name='positive_cluster_required_solves'),
             models.CheckConstraint(check=Q(ranking_weight__gte=1), name='positive_cluster_ranking_weight'),
         ]

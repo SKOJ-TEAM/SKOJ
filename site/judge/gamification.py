@@ -15,22 +15,22 @@ def solved_cluster_problems(profile):
     return Problem.objects.filter(
         is_public=True,
         is_contest_problem=False,
-        gamification_cluster__isnull=False,
-        gamification_cluster__is_active=True,
+        promotion_exam__isnull=True,
+        group__difficulty_clusters__is_active=True,
         submission__user=profile,
         submission__result='AC',
         submission__points__gte=F('points'),
-    ).select_related('gamification_cluster').distinct()
+    ).distinct()
 
 
 def recalculate_profile_score(profile):
     gamification = get_or_create_gamification(profile)
     solved = list(solved_cluster_problems(profile).values_list(
-        'gamification_cluster__tier', 'gamification_cluster__ranking_weight',
+        'id', 'group__difficulty_clusters__tier', 'group__difficulty_clusters__ranking_weight',
     ))
     counts = {tier: 0 for tier in Tier.values}
     weighted_score = 0
-    for tier, weight in solved:
+    for _problem_id, tier, weight in solved:
         counts[tier] += 1
         weighted_score += weight
 
@@ -49,12 +49,13 @@ def get_tier_progress(profile, tier=None):
     gamification = get_or_create_gamification(profile)
     tier = tier or gamification.current_tier
     return list(DifficultyCluster.objects.filter(tier=tier, is_active=True).select_related('problem_group').annotate(
-        solved_count=Count('problems', filter=Q(
-            problems__is_public=True,
-            problems__is_contest_problem=False,
-            problems__submission__user=profile,
-            problems__submission__result='AC',
-            problems__submission__points__gte=F('problems__points'),
+        solved_count=Count('problem_group__problem', filter=Q(
+            problem_group__problem__is_public=True,
+            problem_group__problem__is_contest_problem=False,
+            problem_group__problem__promotion_exam__isnull=True,
+            problem_group__problem__submission__user=profile,
+            problem_group__problem__submission__result='AC',
+            problem_group__problem__submission__points__gte=F('problem_group__problem__points'),
         ), distinct=True),
     ).order_by('order', 'problem_group__full_name'))
 

@@ -148,10 +148,6 @@ class Problem(models.Model):
                                          'These users will be able to view the private problem, but not edit it.'))
     group = models.ForeignKey(ProblemGroup, verbose_name=_('문제 그룹'), on_delete=CASCADE,
                               help_text=_('문제 목록의 분류와 URL에 사용됩니다.'))
-    gamification_cluster = models.ForeignKey(
-        'DifficultyCluster', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
-        verbose_name=_('난이도 클러스터'),
-    )
     promotion_exam = models.ForeignKey(
         'PromotionExam', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
         verbose_name=_('승급전'),
@@ -536,19 +532,9 @@ class Problem(models.Model):
         if not (settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT <= memory_limit_kb <= settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT):
             raise ValidationError({'memory_limit': _('Memory limit must be between {min} and {max} KB.').format(
                 min=settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT, max=settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT)})
-        if self.gamification_cluster_id and self.promotion_exam_id:
+        if self.is_contest_problem and self.promotion_exam_id:
             raise ValidationError({
-                'gamification_cluster': _('일반 티어 문제와 승급전 문제로 동시에 지정할 수 없습니다.'),
-                'promotion_exam': _('일반 티어 문제와 승급전 문제로 동시에 지정할 수 없습니다.'),
-            })
-        if self.gamification_cluster_id and self.group_id \
-                and self.gamification_cluster.problem_group_id != self.group_id:
-            raise ValidationError({
-                'gamification_cluster': _('문제와 난이도 클러스터의 문제 그룹이 같아야 합니다.'),
-            })
-        if self.is_contest_problem and (self.gamification_cluster_id or self.promotion_exam_id):
-            raise ValidationError({
-                'is_contest_problem': _('대회 전용 문제는 랭킹·승급에 사용할 수 없습니다.'),
+                'is_contest_problem': _('대회 전용 문제는 승급전에 사용할 수 없습니다.'),
             })
             
     def save(self, *args, **kwargs):
@@ -646,12 +632,6 @@ class Problem(models.Model):
         return VotePermission.VOTE
 
     class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=Q(gamification_cluster__isnull=True) | Q(promotion_exam__isnull=True),
-                name='exclusive_problem_gamification_role',
-            ),
-        ]
         permissions = (
             ('see_private_problem', _('See hidden problems')),
             ('edit_own_problem', _('Edit own problems')),

@@ -20,11 +20,10 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         )
         self.regular_problem = create_problem(
             code='tierregular', points=10, is_public=True, group=self.problem_group,
-            gamification_cluster=self.cluster,
         )
         self.exam = PromotionExam.objects.create(title='Gold 승급전', source_tier=Tier.BRONZE)
         self.exam_problem = create_problem(
-            code='tierexam', points=10, is_public=True, promotion_exam=self.exam,
+            code='tierexam', points=10, is_public=True, group=self.problem_group, promotion_exam=self.exam,
         )
 
     def create_full_solve(self, problem):
@@ -98,21 +97,35 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.assertEqual(gamification.weighted_score, 3)
         self.assertEqual(gamification.bronze_solved, 1)
 
-    def test_problem_cannot_have_regular_and_promotion_roles(self):
-        self.exam_problem.gamification_cluster = self.cluster
-        with self.assertRaises(ValidationError):
-            self.exam_problem.full_clean()
+    def test_multiple_group_problems_are_counted_individually(self):
+        second_problem = create_problem(
+            code='tierregular2', points=10, is_public=True, group=self.problem_group,
+        )
+        self.create_full_solve(self.regular_problem)
+        self.create_full_solve(second_problem)
 
-    def test_problem_and_cluster_must_use_same_group(self):
-        other_group = ProblemGroup.objects.create(name='other-group', full_name='다른 그룹')
-        self.regular_problem.group = other_group
-        with self.assertRaises(ValidationError):
-            self.regular_problem.full_clean()
+        gamification = sync_profile_gamification(self.profile)
+        self.assertEqual(gamification.weighted_score, 6)
+        self.assertEqual(gamification.bronze_solved, 2)
 
-    def test_contest_problem_cannot_have_gamification_role(self):
+    def test_contest_problem_in_cluster_group_is_not_counted(self):
         self.regular_problem.is_contest_problem = True
+        self.regular_problem.save(update_fields=('is_contest_problem',))
+        self.create_full_solve(self.regular_problem)
+
+        gamification = sync_profile_gamification(self.profile)
+        self.assertEqual(gamification.weighted_score, 0)
+        self.assertEqual(gamification.bronze_solved, 0)
+
+    def test_problem_group_can_belong_to_only_one_cluster(self):
+        duplicate = DifficultyCluster(
+            tier=Tier.GOLD,
+            problem_group=self.problem_group,
+            required_solve_count=1,
+            ranking_weight=5,
+        )
         with self.assertRaises(ValidationError):
-            self.regular_problem.full_clean()
+            duplicate.full_clean()
 
     def test_all_active_cluster_requirements_are_required(self):
         second_group = ProblemGroup.objects.create(name='tier-stack', full_name='스택')

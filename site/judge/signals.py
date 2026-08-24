@@ -189,7 +189,8 @@ def submission_delete(sender, instance, **kwargs):
     affects_attempt = PromotionAttemptProblem.objects.filter(
         attempt__profile=instance.user, attempt__completed_at__isnull=True, problem=instance.problem,
     ).exists()
-    if instance.problem.gamification_cluster_id or instance.problem.promotion_exam_id or affects_attempt:
+    affects_cluster = instance.problem.group.difficulty_clusters.filter(is_active=True).exists()
+    if affects_cluster or instance.problem.promotion_exam_id or affects_attempt:
         from judge.gamification import sync_profile_gamification
         sync_profile_gamification(instance.user)
 
@@ -295,7 +296,8 @@ def update_gamification_from_submission(sender, instance, **kwargs):
     affects_attempt = PromotionAttemptProblem.objects.filter(
         attempt__profile=instance.user, attempt__completed_at__isnull=True, problem=instance.problem,
     ).exists()
-    if not (instance.problem.gamification_cluster_id or instance.problem.promotion_exam_id or affects_attempt):
+    affects_cluster = instance.problem.group.difficulty_clusters.filter(is_active=True).exists()
+    if not (affects_cluster or instance.problem.promotion_exam_id or affects_attempt):
         return
     from judge.gamification import sync_profile_gamification
     sync_profile_gamification(instance.user)
