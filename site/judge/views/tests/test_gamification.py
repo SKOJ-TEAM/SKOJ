@@ -1,8 +1,11 @@
+import json
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import ProfileGamification, Tier
+from judge.models import ProfileGamification, PromotionExam, Tier
+from judge.models.tests.util import CommonDataMixin, create_problem
 
 
 User = get_user_model()
@@ -58,3 +61,71 @@ class RankingViewTestCase(TestCase):
             response.content.index(b'diamond-heavy'),
             response.content.index(b'gold-heavy'),
         )
+
+
+@override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
+class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
+    def setUp(self):
+        self.exam = PromotionExam.objects.create(title='Gold 승급전', source_tier=Tier.BRONZE)
+        self.first_problem = create_problem(code='promotion-one', name='첫 번째 문제', is_public=True)
+        self.second_problem = create_problem(code='promotion-two', name='두 번째 문제', is_public=True)
+        self.contest_problem = create_problem(
+            code='promotion-contest', name='대회 문제', is_public=True, is_contest_problem=True,
+        )
+        self.client.force_login(self.users['superuser'])
+
+    def test_change_page_links_to_problem_manager(self):
+        response = self.client.get(reverse('admin:judge_promotionexam_change', args=(self.exam.pk,)))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse('admin:judge_promotionexam_problem_manager', args=(self.exam.pk,)),
+        )
+        self.assertNotContains(response, 'name="problems"')
+
+    def test_problem_manager_lists_general_problems_and_excludes_contest_problems(self):
+        response = self.client.get(reverse(
+            'admin:judge_promotionexam_problem_manager', args=(self.exam.pk,),
+        ))
+
+        self.assertEqual(response.status_code, 200)
+        problem_tree = json.loads(response.context['problems'])
+        nodes = [problem_tree]
+        problem_ids = []
+        while nodes:
+            node = nodes.pop()
+            nodes.extend(node.get('children', []))
+            if not node.get('is_dir', False):
+                problem_ids.append(node['id'])
+        self.assertIn(self.first_problem.pk, problem_ids)
+        self.assertIn(self.second_problem.pk, problem_ids)
+        self.assertNotIn(self.contest_problem.pk, problem_ids)
+
+    def test_problem_manager_updates_exam_assignments(self):
+        update_url = reverse('admin:judge_promotionexam_problem_manager_update', args=(self.exam.pk,))
+        response = self.client.post(update_url, {
+            'selected_items': json.dumps({
+                str(self.first_problem.pk): True,
+                str(self.second_problem.pk): False,
+            }),
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.first_problem.refresh_from_db()
+        self.second_problem.refresh_from_db()
+        self.assertEqual(self.first_problem.promotion_exam, self.exam)
+        self.assertIsNone(self.second_problem.promotion_exam)
+
+        response = self.client.post(update_url, {
+            'selected_items': json.dumps({
+                str(self.first_problem.pk): False,
+                str(self.second_problem.pk): True,
+            }),
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.first_problem.refresh_from_db()
+        self.second_problem.refresh_from_db()
+        self.assertIsNone(self.first_problem.promotion_exam)
+        self.assertEqual(self.second_problem.promotion_exam, self.exam)

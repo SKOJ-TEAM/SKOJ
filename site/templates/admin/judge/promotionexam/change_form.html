@@ -1,0 +1,43 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    {% if original and original.pk %}
+        <li>
+            <a href="{% url 'admin:judge_promotionexam_problem_manager' original.pk %}"
+               id="promotion-problem-manager">문제 관리</a>
+        </li>
+    {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    {% if original and original.pk %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const managerLink = document.getElementById('promotion-problem-manager');
+                if (!managerLink) return;
+                managerLink.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const width = 1000;
+                    const height = 700;
+                    const left = (screen.width - width) / 2;
+                    const top = (screen.height - height) / 2;
+                    const popup = window.open(
+                        managerLink.href,
+                        'PromotionProblemManager',
+                        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes,status=no,menubar=no,toolbar=no`
+                    );
+                    if (!popup) return;
+                    const popupCheck = setInterval(function() {
+                        if (popup.closed) {
+                            clearInterval(popupCheck);
+                            location.reload();
+                        }
+                    }, 500);
+                });
+            });
+        </script>
+    {% endif %}
+{% endblock %}

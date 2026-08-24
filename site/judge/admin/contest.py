@@ -508,6 +508,9 @@ class ContestAdmin(VersionAdmin):
             context = {
                 'problems': json.dumps(user_problems),
                 'contest_id': contest_id,
+                'page_title': '문제 관리',
+                'page_description': '대회에 포함할 문제를 선택하세요',
+                'update_url': reverse('admin:update_contest_inline', args=(contest_id,)),
             }
 
             template_name = 'admin/judge/contest/problem_tree_manager.html'
