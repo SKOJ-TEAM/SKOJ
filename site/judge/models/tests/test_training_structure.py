@@ -2,6 +2,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from judge.models import Campus, Cohort, Contest, Language, TrainingClass
@@ -88,6 +89,23 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.', form.non_field_errors())
+
+    def test_registration_page_does_not_render_non_field_errors_method(self):
+        response = self.client.get(reverse('registration_register'), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'bound method BaseForm.non_field_errors')
+
+    def test_registration_page_renders_non_field_errors(self):
+        response = self.client.post(
+            reverse('registration_register'),
+            self.form_data(campus=self.gwangju.pk),
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.')
+        self.assertNotContains(response, 'bound method BaseForm.non_field_errors')
 
     def test_inactive_class_is_not_selectable(self):
         self.training_class.is_active = False

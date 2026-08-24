@@ -535,8 +535,8 @@
             <span class="fullwidth">{{ form.cohort }}</span>
             <span class="fullwidth">{{ form.campus }}</span>
             <span class="fullwidth">{{ form.training_class }}</span>
-            {% if form.non_field_errors %}
-                <div class="form-field-error">{{ form.non_field_errors }}</div>
+            {% if form.non_field_errors() %}
+                <div class="form-field-error">{{ form.non_field_errors() }}</div>
             {% endif %}
             <!-- 조직선택 -->
             {#
