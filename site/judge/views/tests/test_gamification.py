@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import ProfileGamification, PromotionAttempt, PromotionAttemptProblem, PromotionExam, Tier
+from judge.models import Campus, Cohort, ProfileGamification, PromotionAttempt, PromotionAttemptProblem, \
+    PromotionExam, Tier, TrainingClass
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -43,6 +44,22 @@ class RankingViewTestCase(TestCase):
 
         self.assertContains(response, '>홍길동</a>')
         self.assertNotContains(response, '>ranking-user</a>')
+
+    def test_ranking_displays_affiliation_and_hides_tier_solve_columns(self):
+        cohort = Cohort.objects.create(number=99)
+        campus = Campus.objects.create(code='ranking-campus', name='랭킹캠퍼스')
+        training_class = TrainingClass.objects.create(cohort=cohort, campus=campus, number=2)
+        self.user.profile.training_class = training_class
+        self.user.profile.save(update_fields=('training_class',))
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('gamification_ranking'))
+
+        self.assertContains(response, '<th class="ranking-affiliation">소속반</th>', html=True)
+        self.assertContains(response, '99기 랭킹캠퍼스 2반')
+        self.assertNotContains(response, '<th>Diamond</th>', html=True)
+        self.assertNotContains(response, '<th>Gold</th>', html=True)
+        self.assertNotContains(response, '<th>Bronze</th>', html=True)
 
     def test_all_tiers_appear_in_global_ranking(self):
         diamond = User.objects.create_user(username='diamond-user')
