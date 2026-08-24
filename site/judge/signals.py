@@ -114,6 +114,8 @@ def profile_update(sender, instance, **kwargs):
         [make_template_fragment_key('user_about_text', (instance.id, engine))
          for engine in EFFECTIVE_MATH_ENGINES]
     )
+    from judge.models import ProfileGamification
+    ProfileGamification.objects.get_or_create(profile=instance)
 
 
 @receiver(post_save, sender=User)
@@ -121,7 +123,9 @@ def ensure_user_profile(sender, instance, created, **kwargs):
     if not created:
         return
 
-    Profile.objects.get_or_create(user=instance)
+    profile, _ = Profile.objects.get_or_create(user=instance)
+    from judge.models import ProfileGamification
+    ProfileGamification.objects.get_or_create(profile=profile)
 
 
 @receiver(post_delete, sender=WebAuthnCredential)
@@ -181,6 +185,13 @@ def submission_delete(sender, instance, **kwargs):
     instance.user.calculate_points()
     instance.problem._updating_stats_only = True
     instance.problem.update_stats()
+    from judge.models import PromotionAttemptProblem
+    affects_attempt = PromotionAttemptProblem.objects.filter(
+        attempt__profile=instance.user, attempt__completed_at__isnull=True, problem=instance.problem,
+    ).exists()
+    if instance.problem.gamification_cluster_id or instance.problem.promotion_exam_id or affects_attempt:
+        from judge.gamification import sync_profile_gamification
+        sync_profile_gamification(instance.user)
 
 
 @receiver(post_delete, sender=ContestSubmission)
@@ -274,3 +285,17 @@ def update_latest_submission(sender, instance, created, **kwargs):
             latest.source = source
             latest.language = instance.language
             latest.save()
+
+
+@receiver(post_save, sender=Submission)
+def update_gamification_from_submission(sender, instance, **kwargs):
+    if not instance.is_graded:
+        return
+    from judge.models import PromotionAttemptProblem
+    affects_attempt = PromotionAttemptProblem.objects.filter(
+        attempt__profile=instance.user, attempt__completed_at__isnull=True, problem=instance.problem,
+    ).exists()
+    if not (instance.problem.gamification_cluster_id or instance.problem.promotion_exam_id or affects_attempt):
+        return
+    from judge.gamification import sync_profile_gamification
+    sync_profile_gamification(instance.user)

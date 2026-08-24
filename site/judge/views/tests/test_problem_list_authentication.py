@@ -97,16 +97,16 @@ class ProblemGroupNavigationTestCase(TestCase):
                 is_public=True,
             )
 
-        response = self.client.get(reverse('problem_list'))
-        self.assertEqual(response.status_code, 200)
+        catalog_response = self.client.get(reverse('problem_list'))
+        self.assertEqual(catalog_response.status_code, 200)
         for slug, group_name in self.expected_group_catalog:
             with self.subTest(group=group_name, page='catalog'):
-                self.assertContains(response, reverse('problem_group_list', args=(slug,)))
+                self.assertContains(catalog_response, reverse('problem_group_list', args=(slug,)))
 
-            response = self.client.get(reverse('problem_group_list', args=(slug,)))
+            group_response = self.client.get(reverse('problem_group_list', args=(slug,)))
             with self.subTest(group=group_name, page='filtered-list'):
-                self.assertEqual(response.status_code, 200)
-                self.assertContains(response, problems[group_name].name)
+                self.assertEqual(group_response.status_code, 200)
+                self.assertContains(group_response, problems[group_name].name)
 
     def test_group_page_only_shows_problems_in_selected_group(self):
         response = self.client.get(reverse('problem_group_list', args=('basic',)))

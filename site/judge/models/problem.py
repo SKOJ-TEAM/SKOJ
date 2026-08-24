@@ -155,6 +155,15 @@ class Problem(models.Model):
                                    help_text=_("The type of problem, as shown on the problem's page."))
     group = models.ForeignKey(ProblemGroup, verbose_name=_('problem group'), on_delete=CASCADE,
                               help_text=_('The group of problem, shown under Category in the problem list.'))
+    gamification_cluster = models.ForeignKey(
+        'DifficultyCluster', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
+        verbose_name=_('gamification cluster'),
+    )
+    promotion_exam = models.ForeignKey(
+        'PromotionExam', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
+        verbose_name=_('promotion exam'),
+    )
+    promotion_order = models.PositiveIntegerField(default=0, verbose_name=_('promotion problem order'))
     time_limit = models.FloatField(verbose_name=_('time limit'),
                                    help_text=_('The time limit for this problem, in seconds. '
                                                'Fractional seconds (e.g. 1.5) are supported.'),
@@ -254,6 +263,22 @@ class Problem(models.Model):
         return False
 
     def is_accessible_by(self, user, skip_contest_problem_check=False):
+        if self.promotion_exam_id:
+            if user.is_authenticated and (
+                    user.has_perm('judge.manage_contest_problem') or
+                    user.has_perm('judge.see_private_problem') or
+                    user.has_perm('judge.view_all_problem')):
+                return True
+            if not user.is_authenticated:
+                return False
+            from judge.gamification import can_access_promotion_problem
+            return can_access_promotion_problem(user.profile, self)
+
+        if user.is_authenticated:
+            from judge.gamification import can_access_promotion_problem
+            if can_access_promotion_problem(user.profile, self):
+                return True
+
         # If we don't want to check if the user is in a contest containing that problem.
         if not skip_contest_problem_check and user.is_authenticated:
             # If user is currently in a contest containing that problem.
@@ -329,6 +354,10 @@ class Problem(models.Model):
         view_all_problem = user.has_perm('judge.view_all_problem')
         edit_public_problem = edit_own_problem and user.has_perm('judge.edit_public_problem')
         edit_all_problem = edit_own_problem and user.has_perm('judge.edit_all_problem')
+        from judge.models.gamification import PromotionAttemptProblem
+        promotion_ids = PromotionAttemptProblem.objects.filter(
+            attempt__profile=user.profile,
+        ).values('problem_id')
 
         if not (user.has_perm('judge.see_private_problem') or edit_all_problem or view_all_problem):
             q = Q(is_public=True)
@@ -346,6 +375,7 @@ class Problem(models.Model):
             q |= Q(authors=user.profile)
             q |= Q(curators=user.profile)
             q |= Q(testers=user.profile)
+            q |= Q(id__in=promotion_ids)
             if user.has_perm('judge.manage_contest_problem'):
                 q |= Q(is_contest_problem=True)
             queryset = queryset.filter(q)
@@ -353,12 +383,17 @@ class Problem(models.Model):
         if not user.has_perm('judge.manage_contest_problem'):
             queryset = queryset.filter(is_contest_problem=False)
 
+        if not (user.has_perm('judge.manage_contest_problem') or user.has_perm('judge.see_private_problem') or
+                user.has_perm('judge.view_all_problem')):
+            queryset = queryset.filter(Q(promotion_exam__isnull=True) | Q(id__in=promotion_ids))
         return queryset
 
     @classmethod
     def get_public_problems(cls):
         # return cls.objects.filter(is_public=True, is_organization_private=False).defer('description')
-        return cls.objects.filter(is_public=True, is_contest_problem=False).defer('description')
+        return cls.objects.filter(is_public=True, is_contest_problem=False, promotion_exam__isnull=True).defer(
+            'description',
+        )
 
     @classmethod
     def get_editable_problems(cls, user):
@@ -512,6 +547,15 @@ class Problem(models.Model):
         if not (settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT <= memory_limit_kb <= settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT):
             raise ValidationError({'memory_limit': _('Memory limit must be between {min} and {max} KB.').format(
                 min=settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT, max=settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT)})
+        if self.gamification_cluster_id and self.promotion_exam_id:
+            raise ValidationError({
+                'gamification_cluster': _('A problem cannot be both a regular tier problem and a promotion problem.'),
+                'promotion_exam': _('A problem cannot be both a regular tier problem and a promotion problem.'),
+            })
+        if self.is_contest_problem and (self.gamification_cluster_id or self.promotion_exam_id):
+            raise ValidationError({
+                'is_contest_problem': _('Contest-only problems cannot participate in gamification.'),
+            })
             
     def save(self, *args, **kwargs):
         is_new = self._state.adding
@@ -608,6 +652,12 @@ class Problem(models.Model):
         return VotePermission.VOTE
 
     class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=Q(gamification_cluster__isnull=True) | Q(promotion_exam__isnull=True),
+                name='exclusive_problem_gamification_role',
+            ),
+        ]
         permissions = (
             ('see_private_problem', _('See hidden problems')),
             ('edit_own_problem', _('Edit own problems')),

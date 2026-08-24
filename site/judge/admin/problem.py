@@ -543,7 +543,7 @@ class ProblemAdmin(VersionAdmin):
             'fields': ('sample_input', 'sample_output'),
         }),
         # (_('Social Media'), {'classes': ('collapse',), 'fields': ('og_image', 'summary')}),
-        (_('Taxonomy'), {'fields': ('group',)}),
+        (_('Taxonomy'), {'fields': ('group', 'gamification_cluster', 'promotion_exam', 'promotion_order')}),
         (_('Points'), {'fields': ('points', )}),
         (_('Limits'), {'fields': ('time_limit', ('memory_limit','memory_limit_1','memory_unit'),'allowed_languages',)}),
         # (_('Language'), {'fields': ('allowed_languages',)}),
@@ -805,6 +805,10 @@ class ProblemAdmin(VersionAdmin):
                 obj.code = str(10000) #10000번부터 문제 시작          
         
         super(ProblemAdmin, self).save_model(request, obj, form, change)
+        if form.changed_data and any(field in form.changed_data for field in (
+                'gamification_cluster', 'promotion_exam', 'promotion_order')):
+            from judge.tasks import rebuild_all_gamification
+            transaction.on_commit(rebuild_all_gamification.delay)
         if (
             form.changed_data and
             # any(f in form.changed_data for f in ('is_public', 'organizations', 'points', 'partial'))

@@ -577,7 +577,7 @@ def get_visible_problem_filter(user, profile=None):
         problem_filter |= Q(authors=profile)
         problem_filter |= Q(curators=profile)
         problem_filter |= Q(testers=profile)
-    return problem_filter
+    return problem_filter & Q(promotion_exam__isnull=True)
 
 
 class ProblemCategoryList(LoginRequiredMixin, TitleMixin, ListView):

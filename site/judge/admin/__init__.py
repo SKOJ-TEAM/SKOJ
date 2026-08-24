@@ -16,6 +16,7 @@ from judge.admin.submission import SubmissionAdmin
 from judge.admin.taxon import ProblemGroupAdmin, ProblemTypeAdmin
 from judge.admin.patch_note import PatchNoteAdmin
 from judge.admin.guide import AlgorithmGuideAdmin
+from judge.admin import gamification  # noqa: F401
 # from judge.models import BlogPost, Class, Comment, CommentLock, Contest, ContestParticipation, \
 #     ContestTag, Judge, Language, License, MiscConfig, NavigationBar, Organization, \
 #     OrganizationRequest, Problem, ProblemGroup, ProblemPointsVote, ProblemType, Profile, Submission, Ticket
