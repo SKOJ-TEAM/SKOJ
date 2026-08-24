@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -28,7 +29,7 @@ class RankingViewTestCase(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse('gamification_ranking'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Bronze')
+        self.assertContains(response, '브론즈')
 
     def test_only_diamond_profiles_appear_in_ranking(self):
         diamond = User.objects.create_user(username='diamond-user')
@@ -83,6 +84,28 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
             reverse('admin:judge_promotionexam_problem_manager', args=(self.exam.pk,)),
         )
         self.assertNotContains(response, 'name="problems"')
+
+    def test_admin_sidebar_groups_gamification_under_korean_ranking_menu(self):
+        ranking_menu = next(item for item in settings.WPADMIN['admin']['custom_menu']
+                            if isinstance(item, dict) and item.get('title') == '랭킹')
+
+        self.assertEqual(ranking_menu['icon'], 'fa-trophy')
+        self.assertEqual(ranking_menu['children'], [
+            'judge.ProfileGamification',
+            'judge.DifficultyCluster',
+            'judge.PromotionExam',
+            'judge.PromotionAttempt',
+        ])
+        self.assertEqual(ProfileGamification._meta.verbose_name_plural, '사용자 티어')
+        self.assertEqual(PromotionExam._meta.verbose_name_plural, '승급전')
+
+        response = self.client.get(reverse('admin:index'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '랭킹')
+        self.assertContains(response, '사용자 티어')
+        self.assertContains(response, '난이도 클러스터')
+        self.assertContains(response, '승급전')
+        self.assertContains(response, '승급 기록')
 
     def test_problem_manager_lists_general_problems_and_excludes_contest_problems(self):
         response = self.client.get(reverse(

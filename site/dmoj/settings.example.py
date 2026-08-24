@@ -237,13 +237,19 @@ else:
                         'judge.Cohort',
                         'judge.Campus',
                         'judge.TrainingClass',
-                        'judge.DifficultyCluster',
-                        'judge.PromotionExam',
-                        'judge.ProfileGamification',
-                        'judge.PromotionAttempt',
                         'auth.Group',
                         # 'registration.RegistrationProfile',
                         'judge.Subject',
+                    ],
+                },
+                {
+                    'title': '랭킹',
+                    'icon': 'fa-trophy',
+                    'children': [
+                        'judge.ProfileGamification',
+                        'judge.DifficultyCluster',
+                        'judge.PromotionExam',
+                        'judge.PromotionAttempt',
                     ],
                 },
                 {

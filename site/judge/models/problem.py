@@ -157,13 +157,13 @@ class Problem(models.Model):
                               help_text=_('The group of problem, shown under Category in the problem list.'))
     gamification_cluster = models.ForeignKey(
         'DifficultyCluster', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
-        verbose_name=_('gamification cluster'),
+        verbose_name=_('난이도 클러스터'),
     )
     promotion_exam = models.ForeignKey(
         'PromotionExam', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
-        verbose_name=_('promotion exam'),
+        verbose_name=_('승급전'),
     )
-    promotion_order = models.PositiveIntegerField(default=0, verbose_name=_('promotion problem order'))
+    promotion_order = models.PositiveIntegerField(default=0, verbose_name=_('승급전 문제 순서'))
     time_limit = models.FloatField(verbose_name=_('time limit'),
                                    help_text=_('The time limit for this problem, in seconds. '
                                                'Fractional seconds (e.g. 1.5) are supported.'),
@@ -549,12 +549,12 @@ class Problem(models.Model):
                 min=settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT, max=settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT)})
         if self.gamification_cluster_id and self.promotion_exam_id:
             raise ValidationError({
-                'gamification_cluster': _('A problem cannot be both a regular tier problem and a promotion problem.'),
-                'promotion_exam': _('A problem cannot be both a regular tier problem and a promotion problem.'),
+                'gamification_cluster': _('일반 티어 문제와 승급전 문제로 동시에 지정할 수 없습니다.'),
+                'promotion_exam': _('일반 티어 문제와 승급전 문제로 동시에 지정할 수 없습니다.'),
             })
         if self.is_contest_problem and (self.gamification_cluster_id or self.promotion_exam_id):
             raise ValidationError({
-                'is_contest_problem': _('Contest-only problems cannot participate in gamification.'),
+                'is_contest_problem': _('대회 전용 문제는 랭킹·승급에 사용할 수 없습니다.'),
             })
             
     def save(self, *args, **kwargs):

@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 
 from judge.models import DifficultyCluster, Problem, ProfileGamification, PromotionAttempt, \
-    PromotionAttemptProblem, PromotionExam
+    PromotionAttemptProblem, PromotionExam, Tier
 
 
 @admin.register(DifficultyCluster)
@@ -56,10 +56,12 @@ class PromotionExamAdmin(admin.ModelAdmin):
         ] + super().get_urls()
 
     def target_tier_display(self, obj):
-        return obj.target_tier
+        return dict(Tier.choices).get(obj.target_tier, obj.target_tier)
+    target_tier_display.short_description = '승급 티어'
 
     def problem_count(self, obj):
         return obj.problems.count()
+    problem_count.short_description = '문제 수'
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

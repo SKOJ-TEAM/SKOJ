@@ -7,9 +7,9 @@ from django.utils.translation import gettext_lazy as _
 
 
 class Tier(models.TextChoices):
-    BRONZE = 'bronze', _('Bronze')
-    GOLD = 'gold', _('Gold')
-    DIAMOND = 'diamond', _('Diamond')
+    BRONZE = 'bronze', _('브론즈')
+    GOLD = 'gold', _('골드')
+    DIAMOND = 'diamond', _('다이아몬드')
 
     @classmethod
     def next(cls, tier):
@@ -20,17 +20,17 @@ class Tier(models.TextChoices):
 
 
 class DifficultyCluster(models.Model):
-    tier = models.CharField(max_length=10, choices=Tier.choices, db_index=True, verbose_name=_('tier'))
+    tier = models.CharField(max_length=10, choices=Tier.choices, db_index=True, verbose_name=_('티어'))
     problem_type = models.ForeignKey('ProblemType', on_delete=models.PROTECT, related_name='difficulty_clusters',
-                                     verbose_name=_('problem type'))
+                                     verbose_name=_('문제 유형'))
     required_solve_count = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)], verbose_name=_('required solve count'),
+        validators=[MinValueValidator(1)], verbose_name=_('승급 기준 풀이 수'),
     )
     ranking_weight = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)], verbose_name=_('ranking weight'),
+        validators=[MinValueValidator(1)], verbose_name=_('랭킹 가중치'),
     )
-    order = models.PositiveIntegerField(default=0, verbose_name=_('display order'))
-    is_active = models.BooleanField(default=True, verbose_name=_('active'))
+    order = models.PositiveIntegerField(default=0, verbose_name=_('표시 순서'))
+    is_active = models.BooleanField(default=True, verbose_name=_('활성화'))
 
     def __str__(self):
         return '%s · %s' % (self.get_tier_display(), self.problem_type.full_name)
@@ -42,21 +42,21 @@ class DifficultyCluster(models.Model):
             models.CheckConstraint(check=Q(required_solve_count__gte=1), name='positive_cluster_required_solves'),
             models.CheckConstraint(check=Q(ranking_weight__gte=1), name='positive_cluster_ranking_weight'),
         ]
-        verbose_name = _('difficulty cluster')
-        verbose_name_plural = _('difficulty clusters')
+        verbose_name = _('난이도 클러스터')
+        verbose_name_plural = _('난이도 클러스터')
 
 
 class PromotionExam(models.Model):
     SOURCE_TIER_CHOICES = (
-        (Tier.BRONZE, _('Bronze to Gold')),
-        (Tier.GOLD, _('Gold to Diamond')),
+        (Tier.BRONZE, _('브론즈 → 골드')),
+        (Tier.GOLD, _('골드 → 다이아몬드')),
     )
 
-    title = models.CharField(max_length=100, verbose_name=_('title'))
+    title = models.CharField(max_length=100, verbose_name=_('제목'))
     source_tier = models.CharField(max_length=10, choices=SOURCE_TIER_CHOICES, db_index=True,
-                                   verbose_name=_('source tier'))
-    is_active = models.BooleanField(default=True, verbose_name=_('active'))
-    created_at = models.DateTimeField(auto_now_add=True)
+                                   verbose_name=_('출발 티어'))
+    is_active = models.BooleanField(default=True, verbose_name=_('활성화'))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('생성 시각'))
 
     @property
     def target_tier(self):
@@ -66,47 +66,47 @@ class PromotionExam(models.Model):
         super().clean()
         if self.is_active and PromotionExam.objects.exclude(pk=self.pk).filter(
                 source_tier=self.source_tier, is_active=True).exists():
-            raise ValidationError({'is_active': _('Only one active promotion exam is allowed per source tier.')})
+            raise ValidationError({'is_active': _('출발 티어별로 하나의 승급전만 활성화할 수 있습니다.')})
 
     def __str__(self):
         return '%s (%s)' % (self.title, self.get_source_tier_display())
 
     class Meta:
         ordering = ('source_tier', '-is_active', '-created_at')
-        verbose_name = _('promotion exam')
-        verbose_name_plural = _('promotion exams')
+        verbose_name = _('승급전')
+        verbose_name_plural = _('승급전')
 
 
 class ProfileGamification(models.Model):
     profile = models.OneToOneField('Profile', on_delete=models.CASCADE, related_name='gamification',
-                                   verbose_name=_('profile'))
+                                   verbose_name=_('사용자 프로필'))
     current_tier = models.CharField(max_length=10, choices=Tier.choices, default=Tier.BRONZE,
-                                    db_index=True, verbose_name=_('current tier'))
-    tier_updated_at = models.DateTimeField(default=timezone.now, verbose_name=_('tier updated at'))
-    weighted_score = models.PositiveIntegerField(default=0, db_index=True, verbose_name=_('weighted solve score'))
-    bronze_solved = models.PositiveIntegerField(default=0, verbose_name=_('bronze solved'))
-    gold_solved = models.PositiveIntegerField(default=0, verbose_name=_('gold solved'))
-    diamond_solved = models.PositiveIntegerField(default=0, verbose_name=_('diamond solved'))
-    score_updated_at = models.DateTimeField(default=timezone.now, verbose_name=_('score updated at'))
+                                    db_index=True, verbose_name=_('현재 티어'))
+    tier_updated_at = models.DateTimeField(default=timezone.now, verbose_name=_('티어 변경 시각'))
+    weighted_score = models.PositiveIntegerField(default=0, db_index=True, verbose_name=_('가중 점수'))
+    bronze_solved = models.PositiveIntegerField(default=0, verbose_name=_('브론즈 풀이 수'))
+    gold_solved = models.PositiveIntegerField(default=0, verbose_name=_('골드 풀이 수'))
+    diamond_solved = models.PositiveIntegerField(default=0, verbose_name=_('다이아몬드 풀이 수'))
+    score_updated_at = models.DateTimeField(default=timezone.now, verbose_name=_('점수 갱신 시각'))
 
     def __str__(self):
         return '%s · %s' % (self.profile.username, self.get_current_tier_display())
 
     class Meta:
         ordering = ('-weighted_score', '-diamond_solved', '-gold_solved', '-bronze_solved', 'profile_id')
-        verbose_name = _('profile gamification')
-        verbose_name_plural = _('profile gamification')
+        verbose_name = _('사용자 티어')
+        verbose_name_plural = _('사용자 티어')
 
 
 class PromotionAttempt(models.Model):
     profile = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='promotion_attempts',
-                                verbose_name=_('profile'))
+                                verbose_name=_('사용자 프로필'))
     exam = models.ForeignKey(PromotionExam, on_delete=models.PROTECT, related_name='attempts',
-                             verbose_name=_('promotion exam'))
-    source_tier = models.CharField(max_length=10, choices=Tier.choices, verbose_name=_('source tier'))
-    target_tier = models.CharField(max_length=10, choices=Tier.choices, verbose_name=_('target tier'))
-    unlocked_at = models.DateTimeField(default=timezone.now, verbose_name=_('unlocked at'))
-    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_('completed at'))
+                             verbose_name=_('승급전'))
+    source_tier = models.CharField(max_length=10, choices=Tier.choices, verbose_name=_('출발 티어'))
+    target_tier = models.CharField(max_length=10, choices=Tier.choices, verbose_name=_('목표 티어'))
+    unlocked_at = models.DateTimeField(default=timezone.now, verbose_name=_('해금 시각'))
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_('완료 시각'))
     problems = models.ManyToManyField('Problem', through='PromotionAttemptProblem', related_name='+')
 
     @property
@@ -121,19 +121,21 @@ class PromotionAttempt(models.Model):
         constraints = [
             models.UniqueConstraint(fields=('profile', 'source_tier'), name='unique_profile_source_tier_attempt'),
         ]
-        verbose_name = _('promotion attempt')
-        verbose_name_plural = _('promotion attempts')
+        verbose_name = _('승급 기록')
+        verbose_name_plural = _('승급 기록')
 
 
 class PromotionAttemptProblem(models.Model):
-    attempt = models.ForeignKey(PromotionAttempt, on_delete=models.CASCADE, related_name='snapshot_problems')
-    problem = models.ForeignKey('Problem', on_delete=models.PROTECT, related_name='+')
-    order = models.PositiveIntegerField(default=0)
+    attempt = models.ForeignKey(
+        PromotionAttempt, on_delete=models.CASCADE, related_name='snapshot_problems', verbose_name=_('승급 기록'),
+    )
+    problem = models.ForeignKey('Problem', on_delete=models.PROTECT, related_name='+', verbose_name=_('문제'))
+    order = models.PositiveIntegerField(default=0, verbose_name=_('표시 순서'))
 
     class Meta:
         ordering = ('order', 'id')
         constraints = [
             models.UniqueConstraint(fields=('attempt', 'problem'), name='unique_attempt_snapshot_problem'),
         ]
-        verbose_name = _('promotion attempt problem')
-        verbose_name_plural = _('promotion attempt problems')
+        verbose_name = _('승급전 문제 스냅샷')
+        verbose_name_plural = _('승급전 문제 스냅샷')
