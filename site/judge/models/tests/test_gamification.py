@@ -1,10 +1,12 @@
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.utils import timezone
 
 from judge.gamification import get_attempt_solved_problem_ids, get_tier_progress, sync_profile_gamification
-from judge.models import DifficultyCluster, Language, ProblemGroup, PromotionAttempt, PromotionExam, Submission, Tier
+from judge.models import DifficultyCluster, Language, ProblemGroup, Profile, ProfileGamification, PromotionAttempt, \
+    PromotionExam, Submission, Tier
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -109,6 +111,17 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.assertEqual(Tier.next(Tier.GOLD), Tier.DIAMOND)
         self.assertEqual(Tier.next(Tier.DIAMOND), Tier.MASTER)
         self.assertIsNone(Tier.next(Tier.MASTER))
+
+    def test_user_deletion_does_not_recreate_gamification(self):
+        self.create_full_solve(self.regular_problem)
+        user_id = self.users['normal'].id
+        profile_id = self.profile.id
+
+        User.objects.filter(pk=user_id).delete()
+
+        self.assertFalse(User.objects.filter(pk=user_id).exists())
+        self.assertFalse(Profile.objects.filter(pk=profile_id).exists())
+        self.assertFalse(ProfileGamification.objects.filter(profile_id=profile_id).exists())
 
     def test_partial_and_duplicate_submissions_count_once(self):
         for points in (5, 10, 10):

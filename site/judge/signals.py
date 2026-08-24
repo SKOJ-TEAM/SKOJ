@@ -185,12 +185,16 @@ def submission_delete(sender, instance, **kwargs):
     instance.user.calculate_points()
     instance.problem._updating_stats_only = True
     instance.problem.update_stats()
-    from judge.models import PromotionAttemptProblem
+    from judge.models import ProfileGamification, PromotionAttemptProblem
     affects_attempt = PromotionAttemptProblem.objects.filter(
         attempt__profile=instance.user, attempt__completed_at__isnull=True, problem=instance.problem,
     ).exists()
     affects_cluster = instance.problem.group.difficulty_clusters.filter(is_active=True).exists()
     if affects_cluster or instance.problem.promotion_exam_id or affects_attempt:
+        # User/Profile cascade deletion fast-deletes gamification before submission post-delete signals run.
+        # Do not recreate it while its parent profile is being removed.
+        if not ProfileGamification.objects.filter(profile_id=instance.user_id).exists():
+            return
         from judge.gamification import sync_profile_gamification
         sync_profile_gamification(instance.user)
 
