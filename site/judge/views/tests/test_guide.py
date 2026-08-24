@@ -182,12 +182,15 @@ class GuideViewTest(CommonDataMixin, TestCase):
         self.assertEqual(hidden_response.status_code, 404)
         self.assertEqual(mismatched_response.status_code, 404)
 
-    def test_navigation_places_guide_after_problems(self):
+    def test_authenticated_navigation_uses_requested_order_without_contests(self):
         response = self.client.get('/')
         content = response.content.decode()
 
-        self.assertLess(content.index('>PROBLEMS</a>'), content.index('>GUIDE</a>'))
-        self.assertLess(content.index('>GUIDE</a>'), content.index('>CONTESTS</a>'))
+        labels = ('GUIDE', 'PROBLEMS', 'RANKING', 'USERS', 'STATUS', 'ABOUT')
+        positions = [content.index('>%s</a>' % label) for label in labels]
+
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn('>CONTESTS</a>', content)
 
     def test_anonymous_navigation_hides_guide(self):
         self.client.logout()

@@ -556,6 +556,21 @@ def get_visible_problem_filter(user, profile=None):
     return problem_filter & Q(promotion_exam__isnull=True)
 
 
+def get_visible_problem_groups(user, profile=None):
+    return [
+        {
+            'slug': row['group__name'],
+            'display_name': row['group__full_name'],
+            'problem_count': row['problem_count'],
+        }
+        for row in Problem.objects.filter(
+            get_visible_problem_filter(user, profile),
+        ).values('group__name', 'group__full_name').annotate(
+            problem_count=Count('id', distinct=True),
+        ).order_by('group__full_name', 'group__name')
+    ]
+
+
 class ProblemCategoryList(LoginRequiredMixin, TitleMixin, ListView):
     title = gettext_lazy('Problems')
     template_name = 'problem/group-list.html'
@@ -575,19 +590,7 @@ class ProblemCategoryList(LoginRequiredMixin, TitleMixin, ListView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        return [
-            {
-                'slug': row['group__name'],
-                'name': row['group__name'],
-                'display_name': row['group__full_name'],
-                'problem_count': row['problem_count'],
-            }
-            for row in Problem.objects.filter(
-                get_visible_problem_filter(self.request.user, self.request.profile),
-            ).values('group__name', 'group__full_name').annotate(
-                problem_count=Count('id', distinct=True),
-            ).order_by('group__full_name', 'group__name')
-        ]
+        return get_visible_problem_groups(self.request.user, self.request.profile)
 
 
 class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedProblemMixin, ListView):
@@ -739,6 +742,8 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         context['full_text'] = 0 if self.in_contest else int(self.full_text)
         context['category'] = self.category
         context['categories'] = ProblemGroup.objects.all()
+        context['problem_groups'] = get_visible_problem_groups(self.request.user, self.profile)
+        context['all_problem_count'] = sum(group['problem_count'] for group in context['problem_groups'])
         context['has_fts'] = settings.ENABLE_FTS
         context['search_query'] = self.search_query
         context['completed_problem_ids'] = self.get_completed_problems()
@@ -808,6 +813,17 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         self.point_end = safe_float_or_none(request.GET.get('point_end'))
 
     def get(self, request, *args, **kwargs):
+        if 'problem_group' not in kwargs:
+            category_id = safe_int_or_none(request.GET.get('category'))
+            if category_id is not None:
+                problem_group = ProblemGroup.objects.filter(pk=category_id).first()
+                if problem_group is not None:
+                    query = request.GET.copy()
+                    query.pop('category', None)
+                    target = reverse('problem_group_list', args=(problem_group.name,))
+                    if query:
+                        target += '?' + query.urlencode()
+                    return HttpResponseRedirect(target)
         self.setup_problem_list(request)
 
         try:

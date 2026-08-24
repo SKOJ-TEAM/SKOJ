@@ -39,11 +39,12 @@ class HomePageTestCase(TestCase):
 
     def test_primary_navigation_order_excludes_assignments(self):
         content = self.response.content.decode()
-        labels = ('PROBLEMS', 'CONTESTS', 'USERS', 'STATUS', 'ABOUT')
+        labels = ('PROBLEMS', 'USERS', 'STATUS', 'ABOUT')
         positions = [content.index('>%s</a>' % label) for label in labels]
 
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn('>ASSIGNMENTS</a>', content)
+        self.assertNotIn('>CONTESTS</a>', content)
 
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)

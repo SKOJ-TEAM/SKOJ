@@ -49,10 +49,12 @@ class ProblemGroupNavigationTestCase(TestCase):
             is_public=True,
         )
 
-    def test_problem_root_shows_group_cards(self):
+    def test_problem_root_shows_all_problems_and_group_navigation(self):
         response = self.client.get(reverse('problem_list'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.basic_problem.name)
+        self.assertContains(response, self.practice_problem.name)
         self.assertContains(response, '기초')
         self.assertContains(response, '연습')
         self.assertContains(response, reverse('problem_group_list', args=('basic',)))
@@ -79,7 +81,7 @@ class ProblemGroupNavigationTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.basic_problem.name)
         self.assertNotContains(response, self.practice_problem.name)
-        self.assertContains(response, '← 전체 문제 분류')
+        self.assertContains(response, '전체 문제')
         self.assertNotContains(response, 'id="problem-group"')
 
     def test_legacy_group_id_does_not_override_path_group(self):
