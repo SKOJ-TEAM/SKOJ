@@ -78,7 +78,21 @@
         .home-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--background-second); }
         .home-progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-red), var(--brand-orange)); }
         .home-promotion-copy { margin: 0 0 16px; color: var(--font-grey); line-height: 1.65; }
-        .home-promotion-list { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+        .home-promotion-list {
+            display: grid;
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 0 6px 0 0;
+            margin: 0;
+            list-style: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+        .home-promotion-list::-webkit-scrollbar { width: 7px; }
+        .home-promotion-list::-webkit-scrollbar-track { background: transparent; }
+        .home-promotion-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--border-color); }
         .home-promotion-list a { display: flex; justify-content: space-between; gap: 14px; padding: 11px 13px; border-radius: 10px; background: var(--background-second); }
         .home-promotion-state { color: var(--brand-red); font-size: 13px; font-weight: 800; white-space: nowrap; }
         @media (max-width: 760px) {
@@ -87,6 +101,7 @@
             #home-hero { padding: 32px 20px; }
             .home-dashboard { grid-template-columns: 1fr; width: min(100% - 28px, 560px); }
             .home-dashboard-card { min-height: 0; padding: 22px; }
+            .home-promotion-list { max-height: 240px; }
         }
     </style>
 {% endblock %}
