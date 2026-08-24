@@ -143,6 +143,9 @@ class PromotionExamAdmin(admin.ModelAdmin):
                     promotion_exam=exam,
                     promotion_order=order,
                 )
+            from judge.gamification import sync_promotion_attempt_problems
+            for attempt in exam.attempts.filter(completed_at__isnull=True).select_related('exam'):
+                sync_promotion_attempt_problems(attempt)
             transaction.on_commit(schedule_gamification_rebuild)
 
         return JsonResponse({'message': '승급전 문제를 저장했습니다.', 'selected_count': len(ordered_ids)})

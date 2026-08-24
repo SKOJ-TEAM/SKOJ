@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import ProfileGamification, PromotionExam, Tier
+from judge.models import ProfileGamification, PromotionAttempt, PromotionAttemptProblem, PromotionExam, Tier
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -248,3 +248,25 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
         self.second_problem.refresh_from_db()
         self.assertIsNone(self.first_problem.promotion_exam)
         self.assertEqual(self.second_problem.promotion_exam, self.exam)
+
+    def test_problem_manager_syncs_unfinished_attempt_problem_list(self):
+        self.first_problem.promotion_exam = self.exam
+        self.first_problem.save(update_fields=('promotion_exam',))
+        attempt = PromotionAttempt.objects.create(
+            profile=self.users['normal'].profile,
+            exam=self.exam,
+            source_tier=Tier.BRONZE,
+            target_tier=Tier.GOLD,
+        )
+        PromotionAttemptProblem.objects.create(attempt=attempt, problem=self.first_problem, order=0)
+
+        response = self.client.post(
+            reverse('admin:judge_promotionexam_problem_manager_update', args=(self.exam.pk,)),
+            {'selected_items': json.dumps({
+                str(self.first_problem.pk): True,
+                str(self.second_problem.pk): True,
+            })},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertSetEqual(set(attempt.problems.all()), {self.first_problem, self.second_problem})

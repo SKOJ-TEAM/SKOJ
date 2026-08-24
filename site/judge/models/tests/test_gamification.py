@@ -80,6 +80,29 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.profile.gamification.refresh_from_db()
         self.assertEqual(self.profile.gamification.current_tier, Tier.GOLD)
 
+    def test_every_problem_added_after_unlock_is_required_for_promotion(self):
+        self.create_full_solve(self.regular_problem)
+        attempt = PromotionAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
+        added_problem = create_problem(
+            code='tierexamadded', points=10, is_public=True, group=self.problem_group,
+            promotion_exam=self.exam, promotion_order=1,
+        )
+
+        self.create_full_solve(self.exam_problem)
+        self.profile.gamification.refresh_from_db()
+        attempt.refresh_from_db()
+
+        self.assertEqual(self.profile.gamification.current_tier, Tier.BRONZE)
+        self.assertIsNone(attempt.completed_at)
+        self.assertSetEqual(set(attempt.problems.all()), {self.exam_problem, added_problem})
+
+        self.create_full_solve(added_problem)
+        self.profile.gamification.refresh_from_db()
+        attempt.refresh_from_db()
+
+        self.assertEqual(self.profile.gamification.current_tier, Tier.GOLD)
+        self.assertIsNotNone(attempt.completed_at)
+
     def test_partial_and_duplicate_submissions_count_once(self):
         for points in (5, 10, 10):
             Submission.objects.create(
