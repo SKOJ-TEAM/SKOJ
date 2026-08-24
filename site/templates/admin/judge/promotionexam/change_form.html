@@ -11,33 +11,20 @@
     {% endif %}
 {% endblock %}
 
-{% block extrahead %}
+{% block after_field_sets %}
     {{ block.super }}
-    {% if original and original.pk %}
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const managerLink = document.getElementById('promotion-problem-manager');
-                if (!managerLink) return;
-                managerLink.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    const width = 1000;
-                    const height = 700;
-                    const left = (screen.width - width) / 2;
-                    const top = (screen.height - height) / 2;
-                    const popup = window.open(
-                        managerLink.href,
-                        'PromotionProblemManager',
-                        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes,status=no,menubar=no,toolbar=no`
-                    );
-                    if (!popup) return;
-                    const popupCheck = setInterval(function() {
-                        if (popup.closed) {
-                            clearInterval(popupCheck);
-                            location.reload();
-                        }
-                    }, 500);
-                });
-            });
-        </script>
-    {% endif %}
+    <div class="module aligned" style="padding: 16px; margin-bottom: 20px;">
+        <h2 style="margin-top: 0;">승급전 문제</h2>
+        {% if original and original.pk %}
+            <p>현재 선택된 문제: {{ original.problems.count }}개</p>
+            <a class="button" href="{% url 'admin:judge_promotionexam_problem_manager' original.pk %}">
+                문제 관리
+            </a>
+        {% else %}
+            <p>승급전 정보를 저장한 다음 바로 문제를 선택할 수 있습니다.</p>
+            <button class="button" type="submit" name="_manage_problems" value="1">
+                저장 후 문제 관리
+            </button>
+        {% endif %}
+    </div>
 {% endblock %}

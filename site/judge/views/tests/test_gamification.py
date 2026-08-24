@@ -83,7 +83,29 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
             response,
             reverse('admin:judge_promotionexam_problem_manager', args=(self.exam.pk,)),
         )
+        self.assertContains(response, '현재 선택된 문제: 0개')
         self.assertNotContains(response, 'name="problems"')
+
+    def test_add_page_saves_exam_then_redirects_to_problem_manager(self):
+        add_url = reverse('admin:judge_promotionexam_add')
+        add_response = self.client.get(add_url)
+
+        self.assertEqual(add_response.status_code, 200)
+        self.assertContains(add_response, '저장 후 문제 관리')
+
+        response = self.client.post(add_url, {
+            'title': 'Diamond 승급전',
+            'source_tier': Tier.GOLD,
+            'is_active': 'on',
+            '_manage_problems': '1',
+        })
+
+        created_exam = PromotionExam.objects.get(title='Diamond 승급전')
+        self.assertRedirects(
+            response,
+            reverse('admin:judge_promotionexam_problem_manager', args=(created_exam.pk,)),
+            fetch_redirect_response=False,
+        )
 
     def test_admin_sidebar_groups_gamification_under_korean_ranking_menu(self):
         ranking_menu = next(item for item in settings.WPADMIN['admin']['custom_menu']

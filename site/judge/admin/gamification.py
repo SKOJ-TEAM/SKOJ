@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 
@@ -67,6 +67,11 @@ class PromotionExamAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         transaction.on_commit(schedule_gamification_rebuild)
 
+    def response_add(self, request, obj, post_url_continue=None):
+        if '_manage_problems' in request.POST:
+            return HttpResponseRedirect(reverse('admin:judge_promotionexam_problem_manager', args=(obj.pk,)))
+        return super().response_add(request, obj, post_url_continue)
+
     def problem_manager_view(self, request, exam_id):
         exam = get_object_or_404(PromotionExam, pk=exam_id)
         if not self.has_change_permission(request, exam):
@@ -106,6 +111,7 @@ class PromotionExamAdmin(admin.ModelAdmin):
             'page_title': f'{exam.title} 문제 관리',
             'page_description': '승급전에 포함할 문제를 선택하세요',
             'update_url': reverse('admin:judge_promotionexam_problem_manager_update', args=(exam.pk,)),
+            'return_url': reverse('admin:judge_promotionexam_change', args=(exam.pk,)),
         })
 
     def update_problems_view(self, request, exam_id):
