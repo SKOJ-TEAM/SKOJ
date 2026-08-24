@@ -6,10 +6,10 @@
         .home-dashboard {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-            width: min(1100px, calc(100% - 40px));
+            gap: 16px;
+            width: min(900px, calc(100% - 40px));
             margin: 0 auto;
-            padding: 0 0 36px;
+            padding: 0 0 30px;
         }
         .home-theme-toggle {
             position: absolute;
@@ -42,8 +42,8 @@
         .home-dashboard-card {
             position: relative;
             overflow: hidden;
-            min-height: 220px;
-            padding: 26px;
+            min-height: 200px;
+            padding: 22px;
             border: 1px solid var(--border-color);
             border-radius: 18px;
             background: var(--page-bg);
@@ -63,7 +63,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .home-card-header h2 { margin: 0; color: var(--font-black); font-size: 20px; }
         .home-card-link { font-size: 13px; font-weight: 700; white-space: nowrap; }
@@ -83,7 +83,7 @@
         .home-promotion-list {
             display: grid;
             gap: 8px;
-            max-height: 280px;
+            max-height: 240px;
             overflow-y: auto;
             overscroll-behavior: contain;
             padding: 0 6px 0 0;
@@ -101,8 +101,8 @@
             .home-theme-toggle { top: 12px; right: 14px; padding-right: 8px; }
             .home-theme-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
             #home-hero { padding: 32px 20px; }
-            .home-dashboard { grid-template-columns: 1fr; width: min(100% - 28px, 560px); }
-            .home-dashboard-card { min-height: 0; padding: 22px; }
+            .home-dashboard { grid-template-columns: 1fr; width: min(100% - 28px, 520px); }
+            .home-dashboard-card { min-height: 0; padding: 20px; }
             .home-promotion-list { max-height: 240px; }
         }
     </style>
