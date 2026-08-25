@@ -1,4 +1,7 @@
+import warnings
+
 from django.contrib.auth import get_user_model
+from django.core.paginator import UnorderedObjectListWarning
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -19,7 +22,9 @@ class ProblemListAuthenticationTestCase(TestCase):
         user = User.objects.create_user(username='problem-list-user', password='test-password')
         self.client.force_login(user)
 
-        response = self.client.get('/problems/')
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', UnorderedObjectListWarning)
+            response = self.client.get('/problems/')
 
         self.assertEqual(response.status_code, 200)
 
@@ -61,6 +66,27 @@ class ProblemGroupNavigationTestCase(TestCase):
         self.assertContains(response, '연습')
         self.assertContains(response, reverse('problem_group_list', args=('basic',)))
         self.assertContains(response, reverse('problem_group_list', args=('practice',)))
+
+    def test_problem_list_default_sort_is_stable_across_pages(self):
+        created_codes = [self.basic_problem.code, self.practice_problem.code]
+        for index in reversed(range(21)):
+            code = 'page-%02d' % index
+            create_problem(
+                code=code,
+                name='페이지 문제 %02d' % index,
+                group=self.basic_group,
+                is_public=True,
+            )
+            created_codes.append(code)
+
+        first_response = self.client.get(reverse('problem_list'))
+        second_response = self.client.get(reverse('problem_list'), {'page': 2})
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        actual_codes = [problem.code for problem in first_response.context['problems']]
+        actual_codes += [problem.code for problem in second_response.context['problems']]
+        self.assertEqual(actual_codes, sorted(created_codes))
 
     def test_group_slug_is_used_in_url_and_korean_name_is_displayed(self):
         stack_group = create_problem_group(name='stack', full_name='스택')

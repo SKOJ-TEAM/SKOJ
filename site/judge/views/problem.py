@@ -608,6 +608,8 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
 
     def get_paginator(self, queryset, per_page, orphans=0,
                       allow_empty_first_page=True, **kwargs):
+        if not getattr(queryset, 'ordered', True):
+            queryset = queryset.order_by('id')
         paginator = DiggPaginator(queryset, per_page, body=6, padding=2, orphans=orphans,
                                   allow_empty_first_page=allow_empty_first_page, **kwargs)
         if not self.in_contest:
