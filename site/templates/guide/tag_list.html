@@ -15,7 +15,6 @@
                 <a class="guide-card" href="{{ url('guide_list', guide_group.name) }}">
                     <span class="guide-number">{{ '%02d'|format(loop.index) }}</span>
                     <h2>{{ guide_group.full_name }}</h2>
-                    <p class="guide-summary">관련 학습 문서를 확인하세요.</p>
                 </a>
             {% endfor %}
         </div>

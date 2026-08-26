@@ -7,8 +7,9 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
             width: min(900px, calc(100% - 40px));
-            margin: 0 auto;
-            padding: 0 0 30px;
+            margin: 32px auto 0;
+            padding: 0;
+            text-align: left;
         }
         .home-dashboard-card {
             position: relative;
@@ -91,7 +92,7 @@
                 </div>
                 <div class="home-tier-summary">
                     <span class="home-tier-badge home-tier-{{ gamification.current_tier }}">{{ gamification.get_current_tier_display() }}</span>
-                    <span class="home-weighted-score">가중 점수 <strong>{{ gamification.weighted_score }}</strong></span>
+                    <span class="home-weighted-score">점수 <strong>{{ gamification.weighted_score }}</strong></span>
                 </div>
                 {% if gamification.current_tier == 'master' %}
                     <p class="home-promotion-copy">최고 티어에 도달했습니다. 더 많은 문제를 해결해 랭킹에 도전해 보세요.</p>
