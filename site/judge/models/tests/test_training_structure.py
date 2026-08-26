@@ -48,11 +48,11 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.cohort = Cohort.objects.create(number=3)
-        cls.pangyo = Campus.objects.create(code='pangyo-registration', name='판교 가입')
-        cls.gwangju = Campus.objects.create(code='gwangju-registration', name='광주 가입')
+        cls.pangyo = Campus.objects.get(code='pangyo')
+        cls.gwangju = Campus.objects.get(code='gwangju')
         cls.training_class = TrainingClass.objects.create(
             cohort=cls.cohort,
-            campus=cls.pangyo,
+            campus=cls.gwangju,
             number=1,
         )
 
@@ -65,8 +65,8 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
             'password2': 'N7!qZ4@vL9#sK2',
             'language': Language.objects.first().pk,
             'cohort': self.cohort.pk,
-            'campus': self.pangyo.pk,
-            'training_class': self.training_class.pk,
+            'campus': self.gwangju.pk,
+            'training_class': self.training_class.number,
         }
         data.update(overrides)
         return data
@@ -79,16 +79,20 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
 
     def test_training_class_options_include_filter_metadata(self):
         form = CustomRegistrationForm()
-        rendered = str(form['training_class'])
+        rendered_campuses = str(form['campus'])
+        rendered_classes = str(form['training_class'])
 
-        self.assertIn('data-cohort="%s"' % self.cohort.pk, rendered)
-        self.assertIn('data-campus="%s"' % self.pangyo.pk, rendered)
+        self.assertIn('data-campus-code="pangyo"', rendered_campuses)
+        self.assertIn('value="6"', rendered_classes)
+        self.assertIn('캠퍼스를 먼저 선택해 주세요', rendered_classes)
+        self.assertNotIn('django-select2', rendered_classes)
 
     def test_mismatched_campus_is_rejected(self):
-        form = CustomRegistrationForm(data=self.form_data(campus=self.gwangju.pk))
+        form = CustomRegistrationForm(data=self.form_data(campus=self.pangyo.pk))
 
         self.assertFalse(form.is_valid())
-        self.assertIn('선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.', form.non_field_errors())
+        self.assertIn('판교 캠퍼스는 아직 회원가입을 지원하지 않습니다. 관리자에게 문의해 주세요.',
+                      form.non_field_errors())
 
     def test_registration_page_does_not_render_non_field_errors_method(self):
         response = self.client.get(reverse('registration_register'), secure=True)
@@ -99,12 +103,12 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
     def test_registration_page_renders_non_field_errors(self):
         response = self.client.post(
             reverse('registration_register'),
-            self.form_data(campus=self.gwangju.pk),
+            self.form_data(campus=self.pangyo.pk),
             secure=True,
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.')
+        self.assertContains(response, '판교 캠퍼스는 아직 회원가입을 지원하지 않습니다.')
         self.assertNotContains(response, 'bound method BaseForm.non_field_errors')
 
     def test_inactive_class_is_not_selectable(self):
@@ -113,7 +117,22 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
         form = CustomRegistrationForm(data=self.form_data())
 
         self.assertFalse(form.is_valid())
-        self.assertIn('training_class', form.errors)
+        self.assertIn('선택한 반을 등록할 수 없습니다. 관리자에게 문의해 주세요.',
+                      form.non_field_errors())
+
+    def test_gwangju_fifth_class_is_rejected(self):
+        form = CustomRegistrationForm(data=self.form_data(training_class=5))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('선택한 캠퍼스에서 운영하지 않는 반입니다.', form.non_field_errors())
+
+    def test_ulsan_registration_is_rejected_with_admin_guidance(self):
+        ulsan = Campus.objects.get(code='ulsan')
+        form = CustomRegistrationForm(data=self.form_data(campus=ulsan.pk, training_class=4))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('울산 캠퍼스는 아직 회원가입을 지원하지 않습니다. 관리자에게 문의해 주세요.',
+                      form.non_field_errors())
 
 
 class ClassRestrictedContestTest(CommonDataMixin, TestCase):

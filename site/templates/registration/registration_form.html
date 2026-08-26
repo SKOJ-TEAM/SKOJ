@@ -73,6 +73,19 @@
             color: var(--font-basic-black);
         }
 
+        .form-area select:not(.select2-hidden-accessible) {
+            width: 100%;
+            height: 46px;
+            padding: 10px 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: "Pretendard";
+            font-size: 14px;
+            background-color: var(--page-bg);
+            color: var(--font-basic-black);
+        }
+
 
         .select2-hidden-accessible {
             border: 1px solid var(--border-color)!important;
@@ -478,21 +491,32 @@
             var trainingClass = document.querySelector('#id_training_class');
 
             function filterTrainingClasses() {
-                var cohortId = cohort.value;
-                var campusId = campus.value;
-                Array.prototype.forEach.call(trainingClass.options, function (option) {
-                    if (!option.value) return;
-                    var matches = (!cohortId || option.dataset.cohort === cohortId) &&
-                                  (!campusId || option.dataset.campus === campusId);
-                    option.disabled = !matches;
-                    option.hidden = !matches;
-                    if (!matches && option.selected) trainingClass.value = '';
-                });
-                $(trainingClass).trigger('change.select2');
+                var campusCode = $(campus).find('option:selected').attr('data-campus-code') || '';
+                var maximumByCampus = {
+                    gwangju: 4,
+                    pangyo: 6,
+                    ulsan: 4
+                };
+                var maximum = maximumByCampus[campusCode] || 0;
+                var previousValue = Number(trainingClass.value);
+
+                trainingClass.innerHTML = '';
+                trainingClass.add(new Option(
+                    maximum ? '반 선택' : '캠퍼스를 먼저 선택해 주세요',
+                    ''
+                ));
+                for (var number = 1; number <= maximum; number += 1) {
+                    trainingClass.add(new Option(number + '반', String(number)));
+                }
+
+                if (previousValue && previousValue <= maximum) {
+                    trainingClass.value = String(previousValue);
+                }
+                trainingClass.disabled = maximum === 0;
             }
 
-            cohort.addEventListener('change', filterTrainingClasses);
-            campus.addEventListener('change', filterTrainingClasses);
+            $(cohort).on('change select2:select select2:clear', filterTrainingClasses);
+            $(campus).on('change select2:select select2:clear', filterTrainingClasses);
             filterTrainingClasses();
         });
     </script>

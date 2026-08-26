@@ -27,13 +27,20 @@ from judge.widgets import Select2Widget
 bad_mail_regex = list(map(re.compile, settings.BAD_MAIL_PROVIDER_REGEX))
 
 
-class TrainingClassSelect2Widget(Select2Widget):
+TRAINING_CLASS_RANGES = {
+    'gwangju': range(1, 5),
+    'pangyo': range(1, 7),
+    'ulsan': range(1, 5),
+}
+ENABLED_REGISTRATION_CAMPUSES = {'gwangju'}
+
+
+class CampusSelect2Widget(Select2Widget):
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
         instance = getattr(value, 'instance', None)
         if instance is not None:
-            option['attrs']['data-cohort'] = instance.cohort_id
-            option['attrs']['data-campus'] = instance.campus_id
+            option['attrs']['data-campus-code'] = instance.code
         return option
 
 def _validate_registration_username(username):
@@ -184,9 +191,14 @@ class CustomRegistrationForm(RegistrationForm):
     cohort = ModelChoiceField(queryset=Cohort.objects.none(), label=_('기수'), empty_label=_('기수 선택'),
                               widget=Select2Widget(attrs={'style': 'width:100%'}))
     campus = ModelChoiceField(queryset=Campus.objects.none(), label=_('캠퍼스'), empty_label=_('캠퍼스 선택'),
-                              widget=Select2Widget(attrs={'style': 'width:100%'}))
-    training_class = ModelChoiceField(queryset=TrainingClass.objects.none(), label=_('반'), empty_label=_('반 선택'),
-                                      widget=TrainingClassSelect2Widget(attrs={'style': 'width:100%'}))
+                              widget=CampusSelect2Widget(attrs={'style': 'width:100%'}))
+    training_class = forms.TypedChoiceField(
+        choices=(('', _('캠퍼스를 먼저 선택해 주세요')),),
+        coerce=int,
+        empty_value=None,
+        label=_('반'),
+        widget=forms.Select(attrs={'style': 'width:100%'}),
+    )
     # organizations = SortedMultipleChoiceField(queryset=Organization.objects.filter(is_open=True),
     #                                           label=_('Organizations'), required=False,
     #                                           widget=Select2MultipleWidget(attrs={'style': 'width:100%'}))
@@ -201,20 +213,39 @@ class CustomRegistrationForm(RegistrationForm):
         super().__init__(*args, **kwargs)
         self.fields['cohort'].queryset = Cohort.objects.filter(is_active=True).order_by('-number')
         self.fields['campus'].queryset = Campus.objects.filter(is_active=True).order_by('name')
-        self.fields['training_class'].queryset = TrainingClass.objects.filter(
-            is_active=True,
-            cohort__is_active=True,
-            campus__is_active=True,
-        ).select_related('cohort', 'campus')
+        class_numbers = sorted({number for numbers in TRAINING_CLASS_RANGES.values() for number in numbers})
+        self.fields['training_class'].choices = [('', _('캠퍼스를 먼저 선택해 주세요'))] + [
+            (number, _('%(number)s반') % {'number': number}) for number in class_numbers
+        ]
 
     def clean(self):
         cleaned_data = super().clean()
         cohort = cleaned_data.get('cohort')
         campus = cleaned_data.get('campus')
-        training_class = cleaned_data.get('training_class')
-        if training_class and (training_class.cohort_id != getattr(cohort, 'id', None) or
-                               training_class.campus_id != getattr(campus, 'id', None)):
-            raise forms.ValidationError(_('선택한 기수, 캠퍼스와 반 정보가 일치하지 않습니다.'))
+        class_number = cleaned_data.get('training_class')
+        if not cohort or not campus or class_number is None:
+            return cleaned_data
+
+        allowed_numbers = TRAINING_CLASS_RANGES.get(campus.code, ())
+        if class_number not in allowed_numbers:
+            raise forms.ValidationError(_('선택한 캠퍼스에서 운영하지 않는 반입니다.'))
+
+        if campus.code not in ENABLED_REGISTRATION_CAMPUSES:
+            raise forms.ValidationError(
+                _('%(campus)s 캠퍼스는 아직 회원가입을 지원하지 않습니다. 관리자에게 문의해 주세요.') % {
+                    'campus': campus.name,
+                },
+            )
+
+        try:
+            cleaned_data['training_class'] = TrainingClass.objects.get(
+                cohort=cohort,
+                campus=campus,
+                number=class_number,
+                is_active=True,
+            )
+        except TrainingClass.DoesNotExist:
+            raise forms.ValidationError(_('선택한 반을 등록할 수 없습니다. 관리자에게 문의해 주세요.'))
         return cleaned_data
 
     def clean_email(self):
