@@ -12,6 +12,10 @@ class MartorWidget(OldMartorWidget):
 
 
 class AdminMartorWidget(OldAdminMartorWidget):
+    UPLOADS_ENABLED = False
+
     class Media:
-        css = MartorWidget.Media.css
-        js = ['admin/js/jquery.init.js', 'martor-mathjax.js']
+        css = {
+            'all': MartorWidget.Media.css['all'] + ['guide-image-library.css'],
+        }
+        js = ['admin/js/jquery.init.js', 'martor-mathjax.js', 'guide-image-library.js']

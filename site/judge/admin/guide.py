@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.forms import ModelForm
-from django.urls import reverse_lazy
+from django.http import JsonResponse
+from django.urls import path, reverse_lazy
+from django.utils.html import format_html
 
-from judge.models import AlgorithmGuide
+from judge.models import AlgorithmGuide, GuideImage
 from judge.widgets import AdminMartorWidget
 
 
@@ -29,4 +31,47 @@ class AlgorithmGuideAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if obj.created_by_id is None:
             obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(GuideImage)
+class GuideImageAdmin(admin.ModelAdmin):
+    fields = ('title', 'alt_text', 'image', 'preview', 'uploaded_by', 'created_at')
+    readonly_fields = ('preview', 'uploaded_by', 'created_at')
+    list_display = ('thumbnail', 'title', 'alt_text', 'uploaded_by', 'created_at')
+    search_fields = ('title', 'alt_text', 'uploaded_by__username')
+    ordering = ('-created_at',)
+
+    def get_urls(self):
+        return [
+            path('library/', self.admin_site.admin_view(self.library), name='judge_guideimage_library'),
+        ] + super().get_urls()
+
+    def library(self, request):
+        query = request.GET.get('q', '').strip()
+        images = self.get_queryset(request)
+        if query:
+            images = images.filter(title__icontains=query)
+        return JsonResponse({'images': [
+            {
+                'title': item.title,
+                'alt': item.markdown_alt,
+                'url': item.image.url,
+            }
+            for item in images[:100]
+        ]})
+
+    @admin.display(description='미리보기')
+    def preview(self, obj):
+        if not obj or not obj.image:
+            return '-'
+        return format_html('<img src="{}" alt="" style="max-width:600px;max-height:400px">', obj.image.url)
+
+    @admin.display(description='이미지')
+    def thumbnail(self, obj):
+        return format_html('<img src="{}" alt="" style="width:72px;height:48px;object-fit:cover">', obj.image.url)
+
+    def save_model(self, request, obj, form, change):
+        if obj.uploaded_by_id is None:
+            obj.uploaded_by = request.user
         super().save_model(request, obj, form, change)

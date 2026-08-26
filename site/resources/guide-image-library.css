@@ -1,0 +1,12 @@
+.guide-image-library-button { margin: 4px 8px; padding: 5px 10px; cursor: pointer; }
+.guide-image-library-overlay { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
+.guide-image-library-dialog { width: min(900px, 92vw); max-height: 84vh; overflow: hidden; padding: 18px; border-radius: 8px; background: #fff; color: #222; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+.guide-image-library-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 18px; }
+.guide-image-library-close { border: 0; background: transparent; font-size: 28px; cursor: pointer; }
+.guide-image-library-search { box-sizing: border-box; width: 100%; margin-bottom: 12px; padding: 9px; }
+.guide-image-library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; max-height: 58vh; overflow: auto; }
+.guide-image-library-item { display: flex; min-width: 0; flex-direction: column; gap: 6px; padding: 7px; border: 1px solid #ddd; border-radius: 5px; background: #fff; cursor: pointer; }
+.guide-image-library-item:hover { border-color: #417690; background: #f3f7f9; }
+.guide-image-library-item img { width: 100%; height: 105px; object-fit: contain; background: #f5f5f5; }
+.guide-image-library-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guide-image-library-footer { margin-top: 14px; text-align: right; }

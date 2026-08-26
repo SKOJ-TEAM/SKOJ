@@ -211,6 +211,7 @@ else:
                     ],
                 },
                 ('judge.AlgorithmGuide', 'fa-book'),
+                ('judge.GuideImage', 'fa-picture-o'),
                 ('judge.Submission', 'fa-check-square-o'),
                 {
                     'model': 'judge.Language',

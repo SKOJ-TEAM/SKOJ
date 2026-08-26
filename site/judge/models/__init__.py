@@ -20,7 +20,7 @@ from judge.models.runtime import Judge, Language, RuntimeVersion
 from judge.models.submission import SUBMISSION_RESULT, Submission, SubmissionSource, SubmissionTestCase
 from judge.models.ticket import Ticket, TicketMessage
 from judge.models.patch_note import PatchNote
-from judge.models.guide import AlgorithmGuide
+from judge.models.guide import AlgorithmGuide, GuideImage
 from judge.models.gamification import DifficultyCluster, ProfileGamification, PromotionAttempt, \
     PromotionAttemptProblem, PromotionExam, Tier
 
