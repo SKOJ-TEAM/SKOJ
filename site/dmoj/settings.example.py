@@ -535,8 +535,11 @@ MARTOR_UPLOAD_URL = '/widgets/martor/upload-image'
 MARTOR_MARKDOWN_BASE_MENTION_URL = '/user/'
 
 # Directory under MEDIA_ROOT to use to store image uploaded through martor.
+MEDIA_ROOT = os.path.join(BASE_DIR, 'tmp', 'media')
+MEDIA_URL = '/media/'
 MARTOR_UPLOAD_MEDIA_DIR = 'martor'
-MARTOR_UPLOAD_SAFE_EXTS = {'.jpg', '.png', '.gif'}
+MARTOR_UPLOAD_SAFE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+MARTOR_UPLOAD_MAX_SIZE = 5 * 1024 * 1024
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases

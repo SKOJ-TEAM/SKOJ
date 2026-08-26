@@ -38,6 +38,8 @@ BRIDGED_DJANGO_CONNECT = ('bridge', 9998)
 
 DMOJ_PROBLEM_DATA_ROOT = '/problems'
 STATIC_ROOT = '/app/site/tmp/static'
+MEDIA_ROOT = '/app/site/tmp/media'
+MEDIA_URL = '/media/'
 STATICFILES_DIRS = [DMOJ_RESOURCES]
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',

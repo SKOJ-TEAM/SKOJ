@@ -92,6 +92,7 @@ hcpark_log_temp/
 /ex_files/
 
 site/resources/icons/problems_images/
+/site/martor/
 
 site/resources/jplag/*
 !site/resources/jplag/.gitkeep

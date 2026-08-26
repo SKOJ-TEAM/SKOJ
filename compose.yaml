@@ -21,6 +21,7 @@ x-app: &app
     - ./site/dmoj/settings.example.py:/app/site/dmoj/settings.py:ro
     - ./docker/django/local_settings.py:/app/site/dmoj/local_settings.py:ro
     - ${STATIC_DIR:-./data/static}:/app/site/tmp/static
+    - ${MEDIA_DIR:-./data/media}:/app/site/tmp/media
     - ${LOGS_DIR:-./logs}:/app/site/tmp/logs
     - ${PROBLEMS_DIR:-./problems}:/problems
   depends_on:
