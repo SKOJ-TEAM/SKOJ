@@ -132,7 +132,11 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '<section class="home-dashboard"')
         self.assertNotContains(response, '내 티어')
-        self.assertContains(response, 'id="home-theme-toggle"')
+        self.assertContains(response, 'id="nav-theme-toggle"')
+        self.assertContains(response, 'class="nav-theme-switch"')
+        self.assertContains(response, 'role="switch"')
+        self.assertContains(response, 'nav-theme-switch-thumb')
+        self.assertNotContains(response, 'home-theme-label')
 
     def test_anonymous_home_uses_theme_cookie(self):
         self.client.cookies['site_theme'] = 'dark'
