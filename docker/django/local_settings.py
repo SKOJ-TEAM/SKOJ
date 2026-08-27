@@ -59,7 +59,20 @@ TIME_ZONE = 'Asia/Seoul'
 DEFAULT_USER_TIME_ZONE = 'Asia/Seoul'
 
 MOSS_API_KEY = env('MOSS_API_KEY', default='')
-EMAIL_ACTIVATION_BLOCKED = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = ''.join(env('EMAIL_HOST_PASSWORD', default='').split())
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='SKOJ <skojteam@gmail.com>')
+SERVER_EMAIL = env('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
+EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=10)
+
+DMOJ_EMAIL_RATE_LIMIT_WINDOW = env.int('DMOJ_EMAIL_RATE_LIMIT_WINDOW', default=3600)
+DMOJ_EMAIL_RATE_LIMIT_COUNT = env.int('DMOJ_EMAIL_RATE_LIMIT_COUNT', default=5)
 
 LOGGING_ROOT = env('LOGGING_ROOT', default=os.path.join(BASE_DIR, 'tmp', 'logs'))
 os.makedirs(LOGGING_ROOT, exist_ok=True)

@@ -30,6 +30,9 @@
 
 {% block body %}
     <div class="message-continer">
-        <p class="message-text">{{ _('계정이 성공적으로 생성되었습니다.') }}</p>
+        <p class="message-text">
+            {{ _('이메일 인증이 완료되었습니다. 이제 로그인할 수 있습니다.') }}<br><br>
+            <a href="{{ url('auth_login') }}">{{ _('로그인하기') }}</a>
+        </p>
     </div>
 {% endblock %}

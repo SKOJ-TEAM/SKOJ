@@ -1,13 +1,16 @@
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.sites.models import Site
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from judge.models import Campus, Cohort, Contest, Language, TrainingClass
 from judge.models.tests.util import CommonDataMixin
 from judge.views.register import CustomRegistrationForm
+from registration.models import RegistrationProfile
 
 
 class TrainingStructureModelTest(TestCase):
@@ -55,6 +58,7 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
             campus=cls.gwangju,
             number=1,
         )
+        Site.objects.update_or_create(pk=1, defaults={'domain': 'skoj.site', 'name': 'SKOJ'})
 
     def form_data(self, **overrides):
         data = {
@@ -76,6 +80,29 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data['training_class'], self.training_class)
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        DEFAULT_FROM_EMAIL='SKOJ <skojteam@gmail.com>',
+    )
+    def test_registration_creates_inactive_account_and_sends_activation_email(self):
+        response = self.client.post(
+            reverse('registration_register'),
+            self.form_data(),
+            secure=True,
+        )
+
+        self.assertRedirects(response, reverse('registration_complete'), fetch_redirect_response=False)
+        user = User.objects.get(username='new_skala_user')
+        self.assertFalse(user.is_active)
+        self.assertEqual(user.profile.training_class, self.training_class)
+        registration_profile = RegistrationProfile.objects.get(user=user)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['new-skala@example.com'])
+        self.assertIn(
+            f'https://skoj.site/accounts/activate/{registration_profile.activation_key}/',
+            mail.outbox[0].body,
+        )
 
     def test_training_class_options_include_filter_metadata(self):
         form = CustomRegistrationForm()

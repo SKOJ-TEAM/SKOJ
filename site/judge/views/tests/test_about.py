@@ -16,7 +16,7 @@ class AboutPageTestCase(TestCase):
 
     def test_project_information_uses_skoj_links(self):
         self.assertContains(self.response, 'https://github.com/SKOJ-TEAM/SKOJ')
-        self.assertContains(self.response, 'mailto:songg9572@gmail.com')
+        self.assertContains(self.response, 'mailto:skojteam@gmail.com')
         self.assertNotContains(self.response, '>Docs<')
 
     def test_development_team_only_lists_current_members(self):

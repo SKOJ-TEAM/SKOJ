@@ -36,6 +36,8 @@ mkdir -p data/mariadb data/static logs problems
 docker compose --env-file .env.docker up -d --build
 ```
 
+회원가입 인증과 계정 복구 메일을 사용하려면 `.env.docker`에 Gmail 앱 비밀번호를 설정해야 합니다. 자세한 SMTP 설정과 점검 절차는 `DOCKER.md`를 참고하세요.
+
 `.env.docker`에는 데이터베이스 비밀번호, Django Secret Key와 Judge 인증 키 등 실제 운영 값을 설정해야 합니다. 이 파일은 Git에 커밋하지 않습니다.
 
 ## 프로젝트 구조

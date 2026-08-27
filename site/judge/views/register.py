@@ -1,21 +1,28 @@
 # coding=utf-8
-import re
 import json
+import logging
+import re
+import smtplib
+
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import get_default_password_validators, validate_password
+from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import ModelChoiceField
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.translation import gettext, gettext_lazy as _
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import TemplateView
 from registration import signals
 from registration.backends.default.views import (ActivationView as OldActivationView,
                                                  RegistrationView as OldRegistrationView)
 from registration.forms import RegistrationForm
+from registration.models import RegistrationProfile
 from judge.models import Campus, Cohort, Language, Profile, TrainingClass
 
 from judge.utils.recaptcha import ReCaptchaField, ReCaptchaWidget
@@ -25,6 +32,7 @@ from judge.widgets import Select2Widget
 
 
 bad_mail_regex = list(map(re.compile, settings.BAD_MAIL_PROVIDER_REGEX))
+logger = logging.getLogger(__name__)
 
 
 TRAINING_CLASS_RANGES = {
@@ -287,10 +295,24 @@ class RegistrationView(OldRegistrationView):
         return super(RegistrationView, self).get_context_data(**kwargs)
 
     def register(self, form):
-        user = form.save()
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=['is_active'])
+        cleaned_data = form.cleaned_data
+        with transaction.atomic():
+            user = form.save(commit=False)
+            user.first_name = cleaned_data['first_name']
+            user.is_active = False
+            user.save()
+
+            registration_profile = RegistrationProfile.objects.create_profile(user)
+            profile, _ = Profile.objects.get_or_create(user=user, defaults={
+                'language': Language.get_default_language(),
+            })
+            profile.timezone = settings.DEFAULT_USER_TIME_ZONE
+            profile.language = cleaned_data['language']
+            profile.training_class = cleaned_data['training_class']
+            profile.save()
+
+            if newsletter_id is not None and cleaned_data['newsletter']:
+                Subscription(user=user, newsletter_id=newsletter_id, subscribed=True).save()
 
         signals.user_registered.send(
             sender=self.__class__,
@@ -298,21 +320,16 @@ class RegistrationView(OldRegistrationView):
             request=self.request,
         )
 
-        profile, _ = Profile.objects.get_or_create(user=user, defaults={
-            'language': Language.get_default_language(),
-        })
-
-        cleaned_data = form.cleaned_data
-        user.first_name = cleaned_data['first_name']
-        user.save()
-
-        profile.timezone = settings.DEFAULT_USER_TIME_ZONE
-        profile.language = cleaned_data['language']
-        profile.training_class = cleaned_data['training_class']
-        profile.save()
-
-        if newsletter_id is not None and cleaned_data['newsletter']:
-            Subscription(user=user, newsletter_id=newsletter_id, subscribed=True).save()
+        try:
+            registration_profile.send_activation_email(
+                site=get_current_site(self.request),
+                request=self.request,
+            )
+        except (OSError, smtplib.SMTPException):
+            logger.exception('Failed to send registration activation email for user %s', user.pk)
+            self.request.session['registration_email_sent'] = False
+        else:
+            self.request.session['registration_email_sent'] = True
         return user
 
 
@@ -331,6 +348,17 @@ class ActivationView(OldActivationView):
         if 'title' not in kwargs:
             kwargs['title'] = self.title
         return super(ActivationView, self).get_context_data(**kwargs)
+
+
+class RegistrationCompleteView(TemplateView):
+    template_name = 'registration/registration_complete.html'
+    title = _('회원가입 완료')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = self.title
+        context['registration_email_sent'] = self.request.session.pop('registration_email_sent', None)
+        return context
 
 
 def social_auth_error(request):

@@ -18,5 +18,5 @@ SKOJ(SKALA Online Judge)는 SKALA 교육생을 위한 알고리즘 학습·연�
 
 ## 문의
 
-- 이메일: songg9572@gmail.com
+- 이메일: skojteam@gmail.com
 - 웹사이트: [skoj.site](https://skoj.site)

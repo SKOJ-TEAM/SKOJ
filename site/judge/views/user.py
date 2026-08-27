@@ -1,6 +1,9 @@
 import itertools
 import json
+import hashlib
+import logging
 import os
+import smtplib
 from datetime import datetime
 from operator import itemgetter
 
@@ -62,12 +65,25 @@ from django.db import IntegrityError
 from judge.keycloak import keycloak_logout
 import requests
 
+logger = logging.getLogger(__name__)
+
 __all__ = ['UserPage', 'UserAboutPage', 'UserProblemsPage', 'UserDownloadData', 'UserPrepareData',
            'users', 'edit_profile']
 
 
 def remap_keys(iterable, mapping):
     return [dict((mapping.get(k, k), v) for k, v in item.items()) for item in iterable]
+
+
+def _email_rate_limited(scope, target):
+    digest = hashlib.sha256(target.strip().lower().encode('utf-8')).hexdigest()
+    key = f'email!{scope}!{digest}'
+    cache.add(key, 0, timeout=settings.DMOJ_EMAIL_RATE_LIMIT_WINDOW)
+    return cache.incr(key) > settings.DMOJ_EMAIL_RATE_LIMIT_COUNT
+
+
+def _add_mail_delivery_error(form):
+    form.add_error(None, _('메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.'))
 
 
 
@@ -636,6 +652,19 @@ class CustomPasswordResetView(PasswordResetView):
     email_template_name = 'registration/password_reset_email.txt'
     extra_email_context = {'site_admin_email': settings.SITE_ADMIN_EMAIL}
     form_class = CustomPasswordResetForm # 사용자 정의 폼 지정
+    use_https = True
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email']
+        if _email_rate_limited('password-reset', email):
+            form.add_error(None, _('메일 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'))
+            return self.form_invalid(form)
+        try:
+            return super().form_valid(form)
+        except (OSError, smtplib.SMTPException):
+            logger.exception('Failed to send password reset email')
+            _add_mail_delivery_error(form)
+            return self.form_invalid(form)
 
     def post(self, request, *args, **kwargs):
         try:
@@ -664,19 +693,27 @@ class IdFindView(FormView):
     
     def form_valid(self, form):
         email = form.cleaned_data['email']
+        if _email_rate_limited('id-find', email):
+            form.add_error(None, _('메일 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'))
+            return self.form_invalid(form)
         try:
             user = Profile.objects.get(user__email=email)
         except Profile.DoesNotExist:
             form.add_error('email', _('해당 정보로 등록된 사용자가 없습니다.'))
             return self.form_invalid(form)
         
-        send_mail(
-            subject=_('SKOJ 아이디 찾기'),
-            message=_('아이디: %s' % user.user.username),
-            from_email=self.email_context,
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        try:
+            send_mail(
+                subject=_('SKOJ 아이디 찾기'),
+                message=_('아이디: %s' % user.user.username),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except (OSError, smtplib.SMTPException):
+            logger.exception('Failed to send username reminder email')
+            _add_mail_delivery_error(form)
+            return self.form_invalid(form)
 
         return super().form_valid(form)
 
@@ -735,7 +772,12 @@ class EmailChangeView(AdminOnlyMixin, FormView):
         registration_profile.create_new_activation_key(save=True)
 
         site = get_current_site(self.request)
-        registration_profile.send_activation_email(site=site, request=self.request)
+        try:
+            registration_profile.send_activation_email(site=site, request=self.request)
+        except (OSError, smtplib.SMTPException):
+            logger.exception('Failed to send email change activation email for user %s', user.pk)
+            _add_mail_delivery_error(form)
+            return self.form_invalid(form)
 
         return super().form_valid(form)
 
@@ -765,6 +807,9 @@ class ResendActivationEmailView(FormView):
     def form_valid(self, form):
         try:
             username = form.cleaned_data['username']
+            if _email_rate_limited('activation-resend', username):
+                form.add_error(None, _('메일 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'))
+                return self.form_invalid(form)
             user = User.objects.get(username=username)
 
             # 이미 프로필이 있는지 확인
@@ -774,7 +819,12 @@ class ResendActivationEmailView(FormView):
             profile.create_new_activation_key(save=True)
 
             site = get_current_site(self.request)
-            profile.send_activation_email(site=site, request=self.request)
+            try:
+                profile.send_activation_email(site=site, request=self.request)
+            except (OSError, smtplib.SMTPException):
+                logger.exception('Failed to resend activation email for user %s', user.pk)
+                _add_mail_delivery_error(form)
+                return self.form_invalid(form)
 
         except User.DoesNotExist:
             form.add_error('username', _('아이디 또는 비밀번호가 잘못되었습니다.'))
