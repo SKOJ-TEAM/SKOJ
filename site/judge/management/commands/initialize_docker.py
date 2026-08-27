@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
-from judge.models import Judge, Language
+from judge.models import Judge, Language, LanguageLimit, Problem, Profile
 
 
 DEFAULT_LANGUAGES = {
@@ -12,18 +12,23 @@ DEFAULT_LANGUAGES = {
         'name': 'C', 'short_name': None, 'common_name': 'C',
         'ace': 'c_cpp', 'pygments': 'c', 'extension': 'c',
     },
-    'CPP14': {
-        'name': 'C++14', 'short_name': 'C++14', 'common_name': 'C++',
+    'CPP17': {
+        'name': 'C++17', 'short_name': 'C++17', 'common_name': 'C++',
         'ace': 'c_cpp', 'pygments': 'cpp', 'extension': 'cpp',
     },
-    'JAVA8': {
-        'name': 'Java 8', 'short_name': None, 'common_name': 'Java',
+    'JAVA': {
+        'name': 'Java 17', 'short_name': 'Java 17', 'common_name': 'Java',
         'ace': 'java', 'pygments': 'java', 'extension': 'java',
     },
     'PY3': {
         'name': 'Python 3', 'short_name': None, 'common_name': 'Python',
         'ace': 'python', 'pygments': 'python3', 'extension': 'py',
     },
+}
+
+LEGACY_LANGUAGE_REPLACEMENTS = {
+    'CPP14': 'CPP17',
+    'JAVA8': 'JAVA',
 }
 
 
@@ -50,6 +55,7 @@ class Command(BaseCommand):
 
         for key, defaults in DEFAULT_LANGUAGES.items():
             Language.objects.update_or_create(key=key, defaults=defaults)
+        self._replace_legacy_languages()
         self.stdout.write(self.style.SUCCESS('Default languages registered'))
 
         User = get_user_model()
@@ -82,3 +88,32 @@ class Command(BaseCommand):
         )
         action = 'registered' if created else 'updated'
         self.stdout.write(self.style.SUCCESS(f'Judge {judge.name} {action}'))
+
+    def _replace_legacy_languages(self):
+        allowed_languages = Problem.allowed_languages.through
+        for legacy_key, replacement_key in LEGACY_LANGUAGE_REPLACEMENTS.items():
+            legacy = Language.objects.filter(key=legacy_key).first()
+            if legacy is None:
+                continue
+            replacement = Language.objects.get(key=replacement_key)
+
+            problem_ids = list(allowed_languages.objects.filter(
+                language_id=legacy.id,
+            ).values_list('problem_id', flat=True))
+            allowed_languages.objects.bulk_create([
+                allowed_languages(problem_id=problem_id, language_id=replacement.id)
+                for problem_id in problem_ids
+            ], ignore_conflicts=True)
+            allowed_languages.objects.filter(language_id=legacy.id).delete()
+
+            for limit in LanguageLimit.objects.filter(language=legacy):
+                LanguageLimit.objects.update_or_create(
+                    problem=limit.problem,
+                    language=replacement,
+                    defaults={
+                        'time_limit': limit.time_limit,
+                        'memory_limit': limit.memory_limit,
+                    },
+                )
+            LanguageLimit.objects.filter(language=legacy).delete()
+            Profile.objects.filter(language=legacy).update(language=replacement)

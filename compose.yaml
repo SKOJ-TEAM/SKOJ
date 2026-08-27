@@ -100,6 +100,7 @@ services:
       args:
         DMOJ_RUNTIMES_IMAGE: ${DMOJ_RUNTIMES_IMAGE:-dmoj/runtimes-tier1:latest}
         DMOJ_JUDGE_COMMIT: ${DMOJ_JUDGE_COMMIT:-5ef74c5d6cad9efb2e86a5bb8ff2c90aaa6e435c}
+        JAVA17_IMAGE: ${JAVA17_IMAGE:-eclipse-temurin:17-jdk}
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE

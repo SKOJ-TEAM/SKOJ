@@ -79,7 +79,29 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
     def test_example_environment_contains_no_real_secret(self):
         example = (ROOT / '.env.docker.example').read_text()
         self.assertIn('JUDGE_KEY=change-me', example)
+        self.assertIn('EMAIL_HOST_PASSWORD=change-me', example)
         self.assertNotIn('/Users/', example)
+
+    def test_gmail_smtp_configuration_is_environment_driven(self):
+        settings = (ROOT / 'docker/django/local_settings.py').read_text()
+        example = (ROOT / '.env.docker.example').read_text()
+
+        for value in (
+            "EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')",
+            "EMAIL_PORT = env.int('EMAIL_PORT', default=587)",
+            "EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)",
+            "EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)",
+            "EMAIL_HOST_PASSWORD = ''.join(env('EMAIL_HOST_PASSWORD', default='').split())",
+            "EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=10)",
+        ):
+            with self.subTest(value=value):
+                self.assertIn(value, settings)
+
+        self.assertNotIn('EMAIL_ACTIVATION_BLOCKED', settings)
+        self.assertIn('EMAIL_HOST=smtp.gmail.com', example)
+        self.assertIn('EMAIL_PORT=587', example)
+        self.assertIn('EMAIL_USE_TLS=True', example)
+        self.assertIn('EMAIL_USE_SSL=False', example)
 
     def test_compose_defines_application_services(self):
         config = self.compose_config()
@@ -154,10 +176,14 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertIn("call_command('collectstatic', interactive=False", command)
         self.assertLess(command.index("call_command('compilemessages'"), command.index("call_command('compilejsi18n'"))
         self.assertLess(command.index("call_command('compilejsi18n'"), command.index("call_command('collectstatic'"))
-        for key in ('C', 'CPP14', 'JAVA8', 'PY3'):
+        for key in ('C', 'CPP17', 'JAVA', 'PY3'):
             with self.subTest(language=key):
                 self.assertIn(f"'{key}':", command)
         self.assertIn('Language.objects.update_or_create(key=key, defaults=defaults)', command)
+        self.assertIn("'CPP14': 'CPP17'", command)
+        self.assertIn("'JAVA8': 'JAVA'", command)
+        self.assertIn('Profile.objects.filter(language=legacy).update(language=replacement)', command)
+        self.assertIn('allowed_languages.objects.filter(language_id=legacy.id).delete()', command)
         self.assertIn('User.objects.filter(is_superuser=True).exists()', command)
         self.assertIn("DJANGO_SUPERUSER_USERNAME", command)
         self.assertIn("DJANGO_SUPERUSER_PASSWORD", command)
@@ -223,6 +249,20 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         config = (ROOT / 'docker/judge/judge.yml').read_text()
         self.assertIn('ARG DMOJ_RUNTIMES_IMAGE=dmoj/runtimes-tier1:latest', dockerfile)
         self.assertIn('FROM ${DMOJ_RUNTIMES_IMAGE}', dockerfile)
+        self.assertIn('ARG JAVA17_IMAGE=eclipse-temurin:17-jdk', dockerfile)
+        self.assertIn('FROM ${JAVA17_IMAGE} AS java17', dockerfile)
+        self.assertIn(
+            'COPY --from=java17 /opt/java/openjdk /usr/lib/jvm/java-17-openjdk-amd64',
+            dockerfile,
+        )
+        self.assertIn(
+            'ln -sf /usr/lib/jvm/java-17-openjdk-amd64/bin/java /usr/local/bin/java',
+            dockerfile,
+        )
+        self.assertIn(
+            'ln -sf /usr/lib/jvm/java-17-openjdk-amd64/bin/javac /usr/local/bin/javac',
+            dockerfile,
+        )
         self.assertIn("-name '*.sources'", dockerfile)
         self.assertIn("sed -i 's|http://|https://|g' {} +", dockerfile)
         self.assertIn('Acquire::Retries=5', dockerfile)
@@ -238,6 +278,10 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertEqual(
             'dmoj/runtimes-tier1:latest',
             judge_build['args']['DMOJ_RUNTIMES_IMAGE'],
+        )
+        self.assertEqual(
+            'eclipse-temurin:17-jdk',
+            judge_build['args']['JAVA17_IMAGE'],
         )
         overridden_build = self.compose_config({
             'DMOJ_RUNTIMES_IMAGE': 'example.invalid/dmoj-runtimes:custom',

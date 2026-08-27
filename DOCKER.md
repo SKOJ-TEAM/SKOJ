@@ -32,12 +32,41 @@ mkdir -p data/mariadb data/static logs problems
 - `DJANGO_SUPERUSER_USERNAME`
 - `DJANGO_SUPERUSER_PASSWORD`
 - `DJANGO_SUPERUSER_EMAIL`
+- `EMAIL_HOST_PASSWORD`
 
 `JUDGE_KEY`는 자동 초기화와 Judge 컨테이너가 동일하게 사용합니다. 기본값 `change-me`로는 초기화가 실패합니다. `.env.docker`는 Git에서 제외되므로 커밋하지 않습니다.
 
 `init`은 Django superuser가 없는 최초 실행에만 위 관리자 정보로 계정을 생성합니다. 이미 superuser가 하나라도 있으면 기존 계정과 비밀번호를 변경하지 않습니다. 최초 생성 후에는 `.env.docker`에서 `DJANGO_SUPERUSER_PASSWORD`를 제거해도 이후 초기화가 정상적으로 건너뜁니다.
 
-Judge는 기본적으로 AMD64와 ARM64를 모두 제공하는 `dmoj/runtimes-tier1:latest` 이미지를 사용합니다. 특정 런타임 이미지를 사용해야 하면 `.env.docker`의 `DMOJ_RUNTIMES_IMAGE`를 변경할 수 있습니다.
+### Gmail 메일 발송 설정
+
+회원가입 인증, 활성화 메일 재전송, 비밀번호 재설정과 아이디 찾기는 Gmail SMTP를 사용합니다. 발송 계정에서 2단계 인증을 활성화하고 SKOJ 전용 앱 비밀번호를 만든 뒤 `.env.docker`의 다음 값을 설정합니다.
+
+```dotenv
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+EMAIL_HOST_USER=skojteam@gmail.com
+EMAIL_HOST_PASSWORD=16자리-앱-비밀번호
+DEFAULT_FROM_EMAIL="SKOJ <skojteam@gmail.com>"
+SERVER_EMAIL="SKOJ <skojteam@gmail.com>"
+EMAIL_TIMEOUT=10
+```
+
+실제 앱 비밀번호는 `.env.docker.example`이나 Git에 기록하지 않습니다. Google이 앱 비밀번호를 네 글자씩 띄어 표시하더라도 설정에서 공백을 자동으로 제거합니다. Google 계정 비밀번호를 변경하면 기존 앱 비밀번호가 폐기될 수 있으므로 새 앱 비밀번호를 발급해 Web 컨테이너를 재생성합니다.
+
+설정 변경 후 통제된 수신 주소로 SMTP 연결을 점검합니다.
+
+```sh
+docker compose --env-file .env.docker up -d --no-deps --force-recreate web
+docker compose --env-file .env.docker exec web python manage.py shell -c \
+  "from django.core.mail import send_mail; print(send_mail('SKOJ 메일 점검', 'SMTP 연결 점검입니다.', None, ['수신주소@example.com']))"
+```
+
+출력이 `1`인지 확인한 뒤 테스트 계정으로 회원가입, 인증 링크, 로그인, 비밀번호 재설정을 순서대로 점검합니다. 신규 가입자는 인증 전까지 로그인할 수 없지만 기존 활성 계정은 영향을 받지 않습니다.
+
+Judge는 기본적으로 AMD64와 ARM64를 모두 제공하는 `dmoj/runtimes-tier1:latest` 이미지에 Temurin Java 17을 결합해 사용합니다. 특정 런타임 또는 Java 17 이미지를 사용해야 하면 `.env.docker`의 `DMOJ_RUNTIMES_IMAGE` 또는 `JAVA17_IMAGE`를 변경할 수 있습니다.
 
 ## 2. 전체 서비스 시작 및 자동 초기화
 
@@ -54,7 +83,7 @@ Compose의 `init` 서비스는 MariaDB와 Redis가 정상 상태가 될 때까�
 - 데이터베이스 마이그레이션
 - Django 번역 및 JavaScript 번역 파일 컴파일
 - 정적 파일 수집
-- 기본 언어(Python 3, C, C++14, Java 8) 등록
+- 기본 언어(Python 3, C, C++17, Java 17) 등록 및 기존 C++14/Java 8 설정 전환
 - 최초 Django 관리자 계정 생성
 - `.env.docker`의 이름과 키를 사용한 Judge 등록 또는 인증 키 갱신
 
