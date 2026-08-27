@@ -43,6 +43,19 @@ class ProfileAboutFormTestCase(CommonDataMixin, TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data['about'], 'body{color:red}hello')
 
+    def test_about_can_be_saved_as_blank(self):
+        form = self.make_form('')
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['about'], '')
+
+    def test_blank_about_widget_is_not_required(self):
+        rendered = str(self.make_form('')['about'])
+        textarea = '<textarea' + rendered.split('<textarea', 1)[1].split('</textarea>', 1)[0]
+
+        self.assertNotIn(' required', textarea)
+        self.assertIn('<textarea', rendered)
+
     def test_profile_form_does_not_allow_training_class_changes(self):
         form = self.make_form('hello')
 

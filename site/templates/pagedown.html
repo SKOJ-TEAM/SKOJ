@@ -1,9 +1,9 @@
 <div id="{{ id|safe }}-wmd-wrapper" class="wmd-wrapper">
-    <div class="wmd-panel" required style="width: 700px">
+    <div class="wmd-panel" style="width: 700px">
         {#
         <!-- <div id="{{ id|safe }}_wmd_button_bar"></div> -->
          #}
-        <textarea required style="resize: none;"{{ attrs|safe }}>{{ body }} </textarea>
+        <textarea style="resize: none;"{{ attrs|safe }}>{{ body }}</textarea>
     </div>
 
     {% if show_preview %}

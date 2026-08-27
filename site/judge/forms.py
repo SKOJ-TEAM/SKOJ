@@ -92,7 +92,7 @@ class ProfileForm(ModelForm):
         if not True:
             raise ValidationError(_('You must solve at least one problem before you can update your profile.'))
 
-        about = self.cleaned_data['about']
+        about = self.cleaned_data.get('about') or ''
         if len(about) > 1000:
             raise ValidationError(_('자기소개는 1000자 이내로 작성해주세요.'))
 
