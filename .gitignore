@@ -107,3 +107,4 @@ site/dmoj/local_settings.py
 .agent/
 DEVELOPER_GUIDELINES.md
 status_report/
+체크리스트.md
