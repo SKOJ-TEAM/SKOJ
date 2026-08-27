@@ -5,6 +5,7 @@ from django.core.paginator import UnorderedObjectListWarning
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from judge.models import Language, Submission
 from judge.models.tests.util import create_problem, create_problem_group
 
 
@@ -53,6 +54,7 @@ class ProblemGroupNavigationTestCase(TestCase):
             group=self.practice_group,
             is_public=True,
         )
+        self.language = Language.objects.get(key='PY3')
 
     def test_problem_root_shows_all_problems_and_group_navigation(self):
         response = self.client.get(reverse('problem_list'))
@@ -66,6 +68,9 @@ class ProblemGroupNavigationTestCase(TestCase):
         self.assertContains(response, '연습')
         self.assertContains(response, reverse('problem_group_list', args=('basic',)))
         self.assertContains(response, reverse('problem_group_list', args=('practice',)))
+        self.assertLess(response.content.index('전체 문제'.encode()), response.content.index('내가 푼 문제'.encode()))
+        self.assertLess(response.content.index('내가 푼 문제'.encode()), response.content.index('내가 안 푼 문제'.encode()))
+        self.assertLess(response.content.index('내가 안 푼 문제'.encode()), response.content.index('기초'.encode()))
 
     def test_problem_list_default_sort_is_stable_across_pages(self):
         created_codes = [self.basic_problem.code, self.practice_problem.code]
@@ -84,8 +89,8 @@ class ProblemGroupNavigationTestCase(TestCase):
 
         self.assertEqual(first_response.status_code, 200)
         self.assertEqual(second_response.status_code, 200)
-        actual_codes = [problem.code for problem in first_response.context['problems']]
-        actual_codes += [problem.code for problem in second_response.context['problems']]
+        actual_codes = [problem.code for problem in first_response.context_data['problems']]
+        actual_codes += [problem.code for problem in second_response.context_data['problems']]
         self.assertEqual(actual_codes, sorted(created_codes))
 
     def test_group_slug_is_used_in_url_and_korean_name_is_displayed(self):
@@ -138,3 +143,64 @@ class ProblemGroupNavigationTestCase(TestCase):
         response = self.client.get('/problems/not-a-group/')
 
         self.assertEqual(response.status_code, 404)
+
+    def test_solved_filter_only_shows_fully_accepted_problems(self):
+        Submission.objects.create(
+            user=self.user.profile,
+            problem=self.basic_problem,
+            language=self.language,
+            status='D',
+            result='AC',
+            points=self.basic_problem.points,
+        )
+
+        response = self.client.get(reverse('problem_list'), {'status': 'solved'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.basic_problem.name)
+        self.assertNotContains(response, self.practice_problem.name)
+        self.assertEqual(response.context_data['problem_status'], 'solved')
+
+    def test_unsolved_filter_excludes_fully_accepted_problems(self):
+        Submission.objects.create(
+            user=self.user.profile,
+            problem=self.basic_problem,
+            language=self.language,
+            status='D',
+            result='AC',
+            points=self.basic_problem.points,
+        )
+
+        response = self.client.get(reverse('problem_list'), {'status': 'unsolved'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.basic_problem.name)
+        self.assertContains(response, self.practice_problem.name)
+        self.assertEqual(response.context_data['problem_status'], 'unsolved')
+
+    def test_partial_or_failed_submission_remains_unsolved(self):
+        Submission.objects.create(
+            user=self.user.profile,
+            problem=self.basic_problem,
+            language=self.language,
+            status='D',
+            result='AC',
+            points=self.basic_problem.points / 2,
+        )
+
+        response = self.client.get(reverse('problem_list'), {'status': 'unsolved'})
+
+        self.assertContains(response, self.basic_problem.name)
+
+    def test_status_filter_is_preserved_in_search_and_group_links(self):
+        response = self.client.get(reverse('problem_list'), {
+            'status': 'unsolved',
+            'search': '탐색',
+        })
+
+        self.assertContains(response, 'name="status" value="unsolved"', html=False)
+        self.assertContains(
+            response,
+            reverse('problem_group_list', args=('basic',)) + '?status=unsolved&amp;search=',
+            html=False,
+        )

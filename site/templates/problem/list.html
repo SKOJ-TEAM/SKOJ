@@ -17,6 +17,9 @@
         .problem-group-card {
             position: sticky;
             top: 82px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 100px);
             overflow: hidden;
             border: 1px solid var(--border-color);
             border-radius: 14px;
@@ -40,10 +43,15 @@
         }
         .problem-group-card-list {
             display: grid;
+            flex: 1 1 auto;
             gap: 5px;
-            max-height: calc(100vh - 190px);
+            min-height: 0;
             overflow-y: auto;
             padding: 10px;
+        }
+        .problem-status-link.problem-status-unsolved {
+            margin-bottom: 5px;
+            border-bottom-color: var(--border-color);
         }
         .problem-group-card a {
             display: flex;
@@ -68,8 +76,7 @@
             font-weight: 700;
         }
         .problem-group-card a.problem-group-all {
-            margin-bottom: 5px;
-            border-bottom-color: var(--border-color);
+            margin-bottom: 0;
         }
         .problem-group-card a.problem-group-all.active { border-color: var(--primary-color); }
         .problem-group-count {
@@ -174,10 +181,10 @@
         }
         @media (max-width: 820px) {
             .problem-catalog-layout { grid-template-columns: 1fr; }
-            .problem-group-card { position: static; }
+            .problem-group-card { position: static; max-height: none; }
             .problem-group-card-list {
+                flex: none;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                max-height: none;
             }
             .problem-group-card a.problem-group-all { grid-column: 1 / -1; }
             .problem-catalog-heading { align-items: stretch; flex-direction: column; }
@@ -205,12 +212,18 @@
                 <p>학습할 그룹을 선택하세요.</p>
             </div>
             <div class="problem-group-card-list">
-                <a class="problem-group-all{% if not selected_problem_group %} active{% endif %}" href="{{ url('problem_list') }}"{% if not selected_problem_group %} aria-current="page"{% endif %}>
+                <a class="problem-group-all{% if not selected_problem_group and problem_status == 'all' %} active{% endif %}" href="{{ url('problem_list') }}"{% if not selected_problem_group and problem_status == 'all' %} aria-current="page"{% endif %}>
                     <span>전체 문제</span>
                     <span class="problem-group-count">{{ all_problem_count }}</span>
                 </a>
+                <a class="problem-status-link{% if problem_status == 'solved' %} active{% endif %}" href="{{ problem_status_urls.solved }}"{% if problem_status == 'solved' %} aria-current="true"{% endif %}>
+                    <span>내가 푼 문제</span>
+                </a>
+                <a class="problem-status-link problem-status-unsolved{% if problem_status == 'unsolved' %} active{% endif %}" href="{{ problem_status_urls.unsolved }}"{% if problem_status == 'unsolved' %} aria-current="true"{% endif %}>
+                    <span>내가 안 푼 문제</span>
+                </a>
                 {% for problem_group in problem_groups %}
-                    <a href="{{ url('problem_group_list', problem_group.slug) }}"{% if selected_problem_group and selected_problem_group.slug == problem_group.slug %} class="active" aria-current="page"{% endif %}>
+                    <a href="{{ url('problem_group_list', problem_group.slug) }}{{ problem_filter_suffix }}"{% if selected_problem_group and selected_problem_group.slug == problem_group.slug %} class="active" aria-current="page"{% endif %}>
                         <span>{{ problem_group.display_name }}</span>
                         <span class="problem-group-count">{{ problem_group.problem_count }}</span>
                     </a>
@@ -225,6 +238,7 @@
                     <p>{{ title_info }}</p>
                 </div>
                 <form class="problem-search" action="{{ request.path }}" method="get">
+                    {% if problem_status != 'all' %}<input type="hidden" name="status" value="{{ problem_status }}">{% endif %}
                     <div class="problem-search-field">
                         <input type="text" name="search" value="{{ search_query or '' }}" placeholder="문제 검색" aria-label="문제 검색">
                         <i class="fa fa-search"></i>

@@ -695,9 +695,16 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         queryset = Problem.objects.filter(problem_filter).select_related('group').prefetch_related('authors').defer(
             'description', 'summary',
         )
-        if self.profile is not None and self.hide_solved:
-            queryset = queryset.exclude(id__in=Submission.objects.filter(user=self.profile, points=F('problem__points'))
-                                        .values_list('problem__id', flat=True))
+        if self.profile is not None and self.problem_status != 'all':
+            solved_problem_ids = Submission.objects.filter(
+                user=self.profile,
+                result='AC',
+                points=F('problem__points'),
+            ).values_list('problem_id', flat=True)
+            if self.problem_status == 'solved':
+                queryset = queryset.filter(id__in=solved_problem_ids)
+            else:
+                queryset = queryset.exclude(id__in=solved_problem_ids)
         queryset = queryset.annotate(has_public_editorial=Case(
             When(solution__is_public=True, solution__publish_on__lte=timezone.now(), then=True),
             default=False,
@@ -740,6 +747,17 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
         context['title_info'] = self.title_info
 
         context['hide_solved'] = 0 if self.in_contest else int(self.hide_solved)
+        context['problem_status'] = self.problem_status
+        context['problem_status_urls'] = self.get_problem_status_urls()
+        filter_query = self.request.GET.copy()
+        filter_query.pop('page', None)
+        filter_query.pop('category', None)
+        filter_query.pop('hide_solved', None)
+        if self.problem_status == 'all':
+            filter_query.pop('status', None)
+        else:
+            filter_query['status'] = self.problem_status
+        context['problem_filter_suffix'] = '?' + filter_query.urlencode() if filter_query else ''
         context['has_public_editorial'] = 0 if self.in_contest else int(self.has_public_editorial)
         context['full_text'] = 0 if self.in_contest else int(self.full_text)
         context['category'] = self.category
@@ -799,8 +817,25 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
             return request.session.get(key, False)
         return request.GET.get(key, None) == '1'
 
+    def get_problem_status_urls(self):
+        urls = {}
+        for status in ('all', 'solved', 'unsolved'):
+            query = self.request.GET.copy()
+            query.pop('page', None)
+            query.pop('hide_solved', None)
+            if status == 'all':
+                query.pop('status', None)
+            else:
+                query['status'] = status
+            urls[status] = self.request.path + ('?' + query.urlencode() if query else '')
+        return urls
+
     def setup_problem_list(self, request):
-        self.hide_solved = self.GET_with_session(request, 'hide_solved')
+        requested_status = request.GET.get('status')
+        if requested_status not in ('all', 'solved', 'unsolved'):
+            requested_status = 'unsolved' if request.GET.get('hide_solved') == '1' else 'all'
+        self.problem_status = requested_status
+        self.hide_solved = requested_status == 'unsolved'
         self.full_text = self.GET_with_session(request, 'full_text')
         self.has_public_editorial = self.GET_with_session(request, 'has_public_editorial')
 
