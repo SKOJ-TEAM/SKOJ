@@ -47,7 +47,21 @@
         .home-tier-diamond { color: #176b87; background: #d9f4ff; }
         .home-tier-master { color: #6d28d9; background: #ede9fe; }
         .home-weighted-score { color: var(--font-grey); font-size: 14px; }
-        .home-progress-list { display: grid; gap: 12px; }
+        .home-progress-list {
+            display: grid;
+            gap: 12px;
+            height: clamp(120px, 18vh, 140px);
+            overflow-y: scroll;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-gutter: stable;
+            padding: 0 6px 0 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) var(--background-second);
+        }
+        .home-progress-list::-webkit-scrollbar { width: 7px; }
+        .home-progress-list::-webkit-scrollbar-track { border-radius: 999px; background: var(--background-second); }
+        .home-progress-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--border-color); }
         .home-progress-label { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; font-size: 13px; }
         .home-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--background-second); }
         .home-progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-red), var(--brand-orange)); }
@@ -55,9 +69,10 @@
         .home-promotion-list {
             display: grid;
             gap: 8px;
-            max-height: 240px;
+            max-height: clamp(160px, 30vh, 240px);
             overflow-y: auto;
             overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
             padding: 0 6px 0 0;
             margin: 0;
             list-style: none;
@@ -69,11 +84,48 @@
         .home-promotion-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--border-color); }
         .home-promotion-list a { display: flex; justify-content: space-between; gap: 14px; padding: 11px 13px; border-radius: 10px; background: var(--background-second); }
         .home-promotion-state { color: var(--brand-red); font-size: 13px; font-weight: 800; white-space: nowrap; }
+        .home-recommendation-card {
+            grid-column: 1 / -1;
+            min-height: 0;
+        }
+        .home-recommendation-body {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+        .home-recommendation-label {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: var(--brand-red);
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .home-recommendation-title {
+            margin: 0 0 8px;
+            color: var(--font-black);
+            font-size: 22px;
+        }
+        .home-recommendation-meta { margin: 0; color: var(--font-grey); font-size: 14px; }
+        .home-recommendation-action {
+            flex: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .home-recommendation-action:hover { color: #fff; filter: brightness(.94); }
         @media (max-width: 760px) {
             #home-hero { padding: 32px 20px; }
             .home-dashboard { grid-template-columns: 1fr; width: min(100% - 28px, 520px); }
             .home-dashboard-card { min-height: 0; padding: 20px; }
-            .home-promotion-list { max-height: 240px; }
+            .home-progress-list { height: clamp(110px, 22vh, 140px); }
+            .home-promotion-list { max-height: clamp(150px, 38vh, 220px); }
+            .home-recommendation-body { align-items: stretch; flex-direction: column; gap: 18px; }
+            .home-recommendation-action { text-align: center; }
         }
     </style>
 {% endblock %}
@@ -126,6 +178,27 @@
                     <p class="home-promotion-copy">승급 조건을 모두 충족했습니다. 활성 승급전이 준비되면 자동으로 열립니다.</p>
                 {% else %}
                     <p class="home-promotion-copy">현재 티어의 모든 문제 그룹에서 기준 풀이 수를 채우면 승급전이 자동으로 열립니다.</p>
+                {% endif %}
+            </article>
+
+            <article id="recommended-problem" class="home-dashboard-card home-recommendation-card">
+                <div class="home-card-header">
+                    <h2>랜덤 추천 문제</h2>
+                    {% if recommended_problem %}
+                        <a class="home-card-link" href="{{ url('home') }}?recommend={{ recommendation_nonce }}#recommended-problem">다른 문제 추천 ↻</a>
+                    {% endif %}
+                </div>
+                {% if recommended_problem %}
+                    <div class="home-recommendation-body">
+                        <div>
+                            <span class="home-recommendation-label">아직 풀지 않은 문제</span>
+                            <h3 class="home-recommendation-title">{{ recommended_problem.name }}</h3>
+                            <p class="home-recommendation-meta">{{ recommended_problem.group.full_name }} · {{ recommended_problem.points|floatformat }}점 · {{ recommended_problem.code }}</p>
+                        </div>
+                        <a class="home-recommendation-action" href="{{ url('problem_detail', recommended_problem.code) }}">문제 풀러 가기 →</a>
+                    </div>
+                {% else %}
+                    <p class="home-promotion-copy">추천할 문제가 없습니다. 공개된 모든 문제를 해결했어요!</p>
                 {% endif %}
             </article>
         </section>

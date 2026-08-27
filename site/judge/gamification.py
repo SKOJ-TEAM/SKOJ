@@ -1,3 +1,6 @@
+import random
+import secrets
+
 from django.db import transaction
 from django.db.models import Count, F, Q
 from django.utils import timezone
@@ -184,7 +187,26 @@ def get_profile_dashboard_context(profile):
         'promotion_eligible': is_eligible_for_promotion(profile, gamification),
         'promotion_attempt': attempt,
         'promotion_problems': attempt_problems,
+        'recommended_problem': get_random_unsolved_problem(profile),
+        'recommendation_nonce': secrets.token_urlsafe(8),
     }
+
+
+def get_random_unsolved_problem(profile):
+    solved_problem_ids = Submission.objects.filter(
+        user=profile,
+        result='AC',
+        points=F('problem__points'),
+    ).values_list('problem_id', flat=True)
+    candidates = Problem.objects.filter(
+        is_public=True,
+        is_contest_problem=False,
+        promotion_exam__isnull=True,
+    ).exclude(id__in=solved_problem_ids)
+    candidate_ids = list(candidates.values_list('id', flat=True))
+    if not candidate_ids:
+        return None
+    return candidates.select_related('group').get(pk=random.choice(candidate_ids))
 
 
 def can_access_promotion_problem(profile, problem):

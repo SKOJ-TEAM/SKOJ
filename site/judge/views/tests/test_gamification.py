@@ -5,8 +5,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import Campus, Cohort, ProfileGamification, PromotionAttempt, PromotionAttemptProblem, \
-    PromotionExam, Tier, TrainingClass
+from judge.models import Campus, Cohort, Language, ProfileGamification, PromotionAttempt, PromotionAttemptProblem, \
+    PromotionExam, Submission, Tier, TrainingClass
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -137,6 +137,7 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, 'role="switch"')
         self.assertContains(response, 'nav-theme-switch-thumb')
         self.assertNotContains(response, 'home-theme-label')
+        self.assertNotContains(response, '랜덤 추천 문제')
 
     def test_anonymous_home_uses_theme_cookie(self):
         self.client.cookies['site_theme'] = 'dark'
@@ -154,6 +155,47 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, '내 티어')
         self.assertContains(response, '<h2>승급전</h2>', html=True)
         self.assertContains(response, reverse('gamification_ranking'))
+        self.assertContains(response, '랜덤 추천 문제')
+
+    def test_home_recommends_only_an_unsolved_public_problem(self):
+        solved = create_problem(code='home-solved', name='이미 푼 문제', is_public=True)
+        unsolved = create_problem(code='home-unsolved', name='추천할 문제', is_public=True)
+        create_problem(code='home-contest', name='대회 전용 문제', is_public=True, is_contest_problem=True)
+        Submission.objects.create(
+            user=self.user.profile,
+            problem=solved,
+            language=Language.get_python3(),
+            status='D',
+            result='AC',
+            points=solved.points,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, unsolved.name)
+        self.assertContains(response, reverse('problem_detail', args=(unsolved.code,)))
+        self.assertContains(response, '?recommend=', html=False)
+        self.assertNotContains(response, 'onclick="window.location.reload()"', html=False)
+        self.assertNotContains(response, solved.name)
+        self.assertNotContains(response, '대회 전용 문제')
+
+    def test_home_shows_completion_message_when_no_unsolved_problem_exists(self):
+        solved = create_problem(code='home-only-problem', name='마지막 문제', is_public=True)
+        Submission.objects.create(
+            user=self.user.profile,
+            problem=solved,
+            language=Language.get_python3(),
+            status='D',
+            result='AC',
+            points=solved.points,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, '공개된 모든 문제를 해결했어요!')
+        self.assertNotContains(response, '문제 풀러 가기')
 
     def test_authenticated_home_prefers_profile_theme_over_cookie(self):
         self.user.profile.site_theme = 'dark'
