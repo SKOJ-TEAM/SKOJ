@@ -317,9 +317,6 @@
                         <li class="{{ 'active' if active_tab == 'info' else '' }}">
                             <a href="{{ url('user_page', user.user.username) }}" class="{{ 'active' if active_tab == 'info' else '' }}">정보</a>
                         </li>
-                        <li class="{{ 'active' if active_tab == 'contests' else '' }}">
-                            <a href="{{ url('user_contests', user.user.username) }}" class="{{ 'active' if active_tab == 'contests' else '' }}">과제/대회</a>
-                        </li>
                         {% if request.user.is_staff %}
                             <li class="{{ 'active' if active_tab == 'problems' else '' }}">
                                 <a href="{{ url('user_problems', user.user.username) }}" class="{{ 'active' if active_tab == 'problems' else '' }}">해결한 문제</a>

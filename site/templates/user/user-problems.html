@@ -25,9 +25,17 @@
                 if (!data['has_more']) {
                     $("#pp-load-link-wrapper").hide();
                 }
+            }).always(function () {
                 window.currently_requesting_pp = false;
             });
         };
+
+        $(function () {
+            $('#pp-load-more-link').on('click', function (event) {
+                event.preventDefault();
+                window.load_more_pp();
+            });
+        });
     </script>
 {% endblock %}
 
@@ -171,7 +179,7 @@
         <div id="total-point">총점<b>{{ "%.0f"|format(user.performance_points) }}pp</b></div>
         {% if pp_has_more %}
             <div id="pp-load-link-wrapper">
-                <a id="pp-load-more-link" href="javascript:load_more_pp()">{{ _('Load more...') }}</a>
+                <a id="pp-load-more-link" href="#">{{ _('Load more...') }}</a>
             </div>
         {% endif %}
 

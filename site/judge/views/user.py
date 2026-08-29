@@ -32,7 +32,7 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView, V
 from reversion import revisions
 
 from judge.forms import CustomAuthenticationForm, DownloadDataForm, ProfileForm, newsletter_id, IdFindForm, CustomPasswordResetForm, EmailChangeForm, ResendActivationEmailForm
-from judge.models import Profile, Submission, ContestParticipation
+from judge.models import Profile, Submission
 from judge.performance_points import get_pp_breakdown
 from judge.ratings import rating_class, rating_progress
 from judge.tasks import prepare_user_data
@@ -844,29 +844,4 @@ class ResendActivationEmailCompleteView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = self.title
-        return context
-
-
-# 사용자 과제/대회 목록 뷰
-class UserContestView(TitleMixin, DetailView):
-    model = Profile
-    context_object_name = 'user'
-    template_name = 'user/user-contests.html'
-    slug_field = 'user__username'
-    slug_url_kwarg = 'user'
-
-    def get_title(self):
-        return _('%(username)s님의 과제/대회') % {'username': self.object.username}
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_tab'] = 'contests'
-        
-        # 사용자가 참가한 대회 목록 가져오기 (실제 참가만, LIVE=0)
-        participations = ContestParticipation.objects.filter(
-            user=self.object,
-            virtual=ContestParticipation.LIVE
-        ).select_related('contest').order_by('-contest__end_time')
-        
-        context['participations'] = participations
         return context
