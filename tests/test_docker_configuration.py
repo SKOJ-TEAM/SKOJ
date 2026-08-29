@@ -79,6 +79,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
     def test_example_environment_contains_no_real_secret(self):
         example = (ROOT / '.env.docker.example').read_text()
         self.assertIn('JUDGE_KEY=change-me', example)
+        self.assertIn('JUDGE_KEY_2=change-me', example)
         self.assertIn('EMAIL_HOST_PASSWORD=change-me', example)
         self.assertNotIn('/Users/', example)
 
@@ -105,7 +106,10 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
 
     def test_compose_defines_application_services(self):
         config = self.compose_config()
-        self.assertEqual({'db', 'redis', 'init', 'web', 'celery', 'bridge', 'judge'}, set(config['services']))
+        self.assertEqual(
+            {'db', 'redis', 'init', 'web', 'celery', 'bridge', 'judge', 'judge-02'},
+            set(config['services']),
+        )
 
         for service in config['services'].values():
             self.assertNotIn('platform', service)
@@ -292,13 +296,34 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         )
 
     def test_compose_judge_is_internal_and_has_only_ptrace_capability(self):
-        judge = self.compose_config()['services']['judge']
-        self.assertEqual(['SYS_PTRACE'], judge['cap_add'])
-        self.assertNotIn('ports', judge)
-        self.assertEqual('run', judge['command'][0])
-        self.assertNotIn('--no-watchdog', judge['command'])
-        self.assertNotIn('-p15001', judge['command'])
-        self.assertNotIn('-s', judge['command'])
+        services = self.compose_config()['services']
+
+        for service_name in ('judge', 'judge-02'):
+            with self.subTest(service=service_name):
+                judge = services[service_name]
+                self.assertEqual(['SYS_PTRACE'], judge['cap_add'])
+                self.assertNotIn('ports', judge)
+                self.assertEqual('run', judge['command'][0])
+                self.assertNotIn('--no-watchdog', judge['command'])
+                self.assertNotIn('-p15001', judge['command'])
+                self.assertNotIn('-s', judge['command'])
+
+                problems = next(volume for volume in judge['volumes'] if volume['target'] == '/problems')
+                self.assertTrue(problems['read_only'])
+
+        self.assertEqual('skoj-judge-01', services['judge']['command'][-2])
+        self.assertEqual('skoj-judge-02', services['judge-02']['command'][-2])
+
+    def test_compose_judges_use_independent_configurable_credentials(self):
+        services = self.compose_config({
+            'JUDGE_NAME': 'custom-judge-01',
+            'JUDGE_KEY': 'custom-key-01',
+            'JUDGE_NAME_2': 'custom-judge-02',
+            'JUDGE_KEY_2': 'custom-key-02',
+        })['services']
+
+        self.assertEqual(['custom-judge-01', 'custom-key-01'], services['judge']['command'][-2:])
+        self.assertEqual(['custom-judge-02', 'custom-key-02'], services['judge-02']['command'][-2:])
 
     def test_docker_guide_contains_complete_local_setup_sequence(self):
         guide = (ROOT / 'DOCKER.md').read_text()

@@ -31,22 +31,49 @@ LEGACY_LANGUAGE_REPLACEMENTS = {
     'JAVA8': 'JAVA',
 }
 
+JUDGE_ENVIRONMENT_PAIRS = (
+    ('JUDGE_NAME', 'JUDGE_KEY'),
+    ('JUDGE_NAME_2', 'JUDGE_KEY_2'),
+)
+
+
+def get_judge_credentials(environ=None):
+    environ = os.environ if environ is None else environ
+    credentials = []
+    name_max_length = Judge._meta.get_field('name').max_length
+    key_max_length = Judge._meta.get_field('auth_key').max_length
+
+    for name_variable, key_variable in JUDGE_ENVIRONMENT_PAIRS:
+        judge_name = environ.get(name_variable, '').strip()
+        judge_key = environ.get(key_variable, '').strip()
+
+        if not judge_name:
+            raise CommandError(f'{name_variable} must be set')
+        if not judge_key or judge_key == 'change-me':
+            raise CommandError(f'{key_variable} must be set to a non-default value')
+        if len(judge_name) > name_max_length:
+            raise CommandError(f'{name_variable} must be at most {name_max_length} characters')
+        if len(judge_key) > key_max_length:
+            raise CommandError(f'{key_variable} must be at most {key_max_length} characters')
+
+        credentials.append((judge_name, judge_key))
+
+    judge_names = [name for name, _key in credentials]
+    if len(judge_names) != len(set(judge_names)):
+        raise CommandError('Judge names must be unique')
+
+    judge_keys = [key for _name, key in credentials]
+    if len(judge_keys) != len(set(judge_keys)):
+        raise CommandError('Judge authentication keys must be unique')
+
+    return credentials
+
 
 class Command(BaseCommand):
     help = 'initialize the database, static files, and Docker judge registration'
 
     def handle(self, *args, **options):
-        judge_name = os.environ.get('JUDGE_NAME', '').strip()
-        judge_key = os.environ.get('JUDGE_KEY', '').strip()
-
-        if not judge_name:
-            raise CommandError('JUDGE_NAME must be set')
-        if not judge_key or judge_key == 'change-me':
-            raise CommandError('JUDGE_KEY must be set to a non-default value')
-        if len(judge_name) > Judge._meta.get_field('name').max_length:
-            raise CommandError('JUDGE_NAME must be at most 50 characters')
-        if len(judge_key) > Judge._meta.get_field('auth_key').max_length:
-            raise CommandError('JUDGE_KEY must be at most 100 characters')
+        judge_credentials = get_judge_credentials()
 
         call_command('migrate', interactive=False)
         call_command('compilemessages', verbosity=0)
@@ -82,12 +109,16 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS(f'Django superuser {username} created'))
 
-        judge, created = Judge.objects.update_or_create(
-            name=judge_name,
-            defaults={'auth_key': judge_key},
-        )
-        action = 'registered' if created else 'updated'
-        self.stdout.write(self.style.SUCCESS(f'Judge {judge.name} {action}'))
+        self._register_judges(judge_credentials)
+
+    def _register_judges(self, judge_credentials):
+        for judge_name, judge_key in judge_credentials:
+            judge, created = Judge.objects.update_or_create(
+                name=judge_name,
+                defaults={'auth_key': judge_key},
+            )
+            action = 'registered' if created else 'updated'
+            self.stdout.write(self.style.SUCCESS(f'Judge {judge.name} {action}'))
 
     def _replace_legacy_languages(self):
         allowed_languages = Problem.allowed_languages.through

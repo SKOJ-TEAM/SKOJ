@@ -30,6 +30,24 @@ x-app: &app
     redis:
       condition: service_healthy
 
+x-judge: &judge
+  build:
+    context: .
+    dockerfile: docker/judge/Dockerfile
+    args:
+      DMOJ_RUNTIMES_IMAGE: ${DMOJ_RUNTIMES_IMAGE:-dmoj/runtimes-tier1:latest}
+      DMOJ_JUDGE_COMMIT: ${DMOJ_JUDGE_COMMIT:-5ef74c5d6cad9efb2e86a5bb8ff2c90aaa6e435c}
+      JAVA17_IMAGE: ${JAVA17_IMAGE:-eclipse-temurin:17-jdk}
+  restart: unless-stopped
+  cap_add:
+    - SYS_PTRACE
+  volumes:
+    - ${PROBLEMS_DIR:-./problems}:/problems:ro
+    - ./docker/judge/judge.yml:/judge.yml:ro
+  depends_on:
+    bridge:
+      condition: service_started
+
 services:
   db:
     image: mariadb:10.11.16-jammy
@@ -94,29 +112,24 @@ services:
       - "9999"
 
   judge:
-    build:
-      context: .
-      dockerfile: docker/judge/Dockerfile
-      args:
-        DMOJ_RUNTIMES_IMAGE: ${DMOJ_RUNTIMES_IMAGE:-dmoj/runtimes-tier1:latest}
-        DMOJ_JUDGE_COMMIT: ${DMOJ_JUDGE_COMMIT:-5ef74c5d6cad9efb2e86a5bb8ff2c90aaa6e435c}
-        JAVA17_IMAGE: ${JAVA17_IMAGE:-eclipse-temurin:17-jdk}
-    restart: unless-stopped
-    cap_add:
-      - SYS_PTRACE
-    volumes:
-      - ${PROBLEMS_DIR:-./problems}:/problems:ro
-      - ./docker/judge/judge.yml:/judge.yml:ro
-    depends_on:
-      bridge:
-        condition: service_started
+    <<: *judge
     command:
       - run
       - -c
       - /judge.yml
       - bridge
-      - ${JUDGE_NAME:-skoj-judge}
+      - ${JUDGE_NAME:-skoj-judge-01}
       - ${JUDGE_KEY:-change-me}
+
+  judge-02:
+    <<: *judge
+    command:
+      - run
+      - -c
+      - /judge.yml
+      - bridge
+      - ${JUDGE_NAME_2:-skoj-judge-02}
+      - ${JUDGE_KEY_2:-change-me}
 
 volumes:
   redis_data:
