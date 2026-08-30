@@ -2,37 +2,178 @@
 
 {% block media %}
 <style>
-    #content .title {
-        text-align: center;
-        padding-top: 35px;
+    .title-div {
+        display: none;
     }
-    #page-container {
-        background: var(--page-bg) !important;
-    }
+    #page-container,
     footer {
-        background: var(--page-bg) !important;
+        background: var(--background-second) !important;
     }
-    .message-container {
-        height: 200px;
-        background-color: var(--light-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 5px;
-        margin: 20px;
+    #content-body {
+        width: 100%;
     }
-    .message-text {
-        font-size: 18px;
-        color: var(--font-basic-black);
+    .activation-complete-page {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 540px;
+        padding: 64px 20px 80px;
+    }
+    .activation-complete-card {
+        box-sizing: border-box;
+        width: min(100%, 620px);
+        padding: 48px 44px 42px;
+        border: 1px solid var(--border-secondary);
+        border-radius: 18px;
+        background: var(--page-bg);
+        box-shadow: var(--standard-box-shadow);
         text-align: center;
+    }
+    .activation-complete-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 22px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--brand-red) 12%, transparent);
+        color: var(--brand-red);
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .activation-complete-label {
+        margin: 0 0 10px;
+        color: var(--brand-red);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+    }
+    .activation-complete-title {
+        margin: 0;
+        color: var(--font-black);
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+    .activation-complete-message {
+        margin: 18px auto 0;
+        color: var(--font-dark-grey);
+        font-size: 16px;
+        line-height: 1.75;
+        word-break: keep-all;
+    }
+    .activation-complete-message strong {
+        color: var(--font-basic-black);
+        font-weight: 700;
+    }
+    .activation-complete-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        max-width: 360px;
+        margin: 30px auto 0;
+    }
+    .activation-complete-actions a {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 12px 20px;
+        border-radius: 9px;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.4;
+        text-decoration: none;
+        transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+    .activation-complete-actions a:hover {
+        transform: translateY(-1px);
+    }
+    .activation-complete-actions a:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--brand-red) 30%, transparent);
+        outline-offset: 2px;
+    }
+    .activation-complete-guide {
+        border: 1px solid var(--brand-red);
+        background: var(--brand-red);
+        color: #fff !important;
+    }
+    .activation-complete-guide:hover {
+        border-color: var(--primary-hover-color);
+        background: var(--primary-hover-color);
+    }
+    .activation-complete-login {
+        border: 1px solid var(--border-secondary);
+        background: transparent;
+        color: var(--font-basic-black) !important;
+    }
+    .activation-complete-login:hover {
+        background: var(--light-bg);
+    }
+    .activation-complete-note {
+        margin: 18px 0 0;
+        color: var(--font-grey);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    @supports not (background: color-mix(in srgb, red 10%, transparent)) {
+        .activation-complete-icon {
+            background: var(--light-bg);
+        }
+        .activation-complete-actions a:focus-visible {
+            outline-color: var(--brand-red);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .activation-complete-page {
+            min-height: 480px;
+            padding: 36px 16px 56px;
+        }
+        .activation-complete-card {
+            padding: 38px 22px 34px;
+            border-radius: 14px;
+        }
+        .activation-complete-title {
+            font-size: 24px;
+        }
+        .activation-complete-message {
+            font-size: 15px;
+        }
     }
 </style>
-
 {% endblock %}
 
 {% block body %}
-    <div class="message-continer">
-        <p class="message-text">
-            {{ _('이메일 인증이 완료되었습니다. 이제 로그인할 수 있습니다.') }}<br><br>
-            <a href="{{ url('auth_login') }}">{{ _('로그인하기') }}</a>
-        </p>
-    </div>
+    <section class="activation-complete-page" aria-labelledby="activation-complete-title">
+        <div class="activation-complete-card">
+            <div class="activation-complete-icon" aria-hidden="true">&#10003;</div>
+            <p class="activation-complete-label">{{ _('EMAIL VERIFIED') }}</p>
+            <h1 id="activation-complete-title" class="activation-complete-title">
+                {{ _('이메일 인증이 완료됐어요!') }}
+            </h1>
+            <p class="activation-complete-message">
+                {{ _('SKOJ를 이용하기 전에 문제 찾기, 코드 제출, 채점 결과 확인 등') }}<br>
+                {{ _('사이트 사용 방법이 정리된') }} <strong>{{ _('SKOJ Intro 가이드') }}</strong>{{ _('를 반드시 확인해 주세요.') }}<br>
+                {{ _('가이드를 읽은 뒤 문제 풀이를 시작하면 SKOJ를 더 편리하게 이용할 수 있습니다.') }}
+            </p>
+            <div class="activation-complete-actions">
+                <a class="activation-complete-guide" href="{{ url('guide_list', 'intro') }}">
+                    {{ _('필수 사용 가이드 읽기') }}
+                </a>
+                <a class="activation-complete-login" href="{{ url('auth_login') }}">
+                    {{ _('로그인하기') }}
+                </a>
+            </div>
+            <p class="activation-complete-note">
+                {{ _('가이드 버튼을 누르면 로그인 후 SKOJ Intro 페이지로 이동합니다.') }}
+            </p>
+        </div>
+    </section>
 {% endblock %}
