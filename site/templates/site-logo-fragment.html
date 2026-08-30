@@ -3,5 +3,8 @@
 {% elif logo_override_image is defined and logo_override_image %}
     <img src="{{ logo_override_image|camo }}" alt="{{ SITE_NAME }}" height="44" style="border: none">
 {% else %}
-    <span class="site-logo">SKOJ</span>
+    <span class="site-logo">
+        <img src="{{ static('icons/nav-icon-64x64.png') }}" alt="" width="28" height="28" class="site-logo-icon">
+        <span>SKOJ</span>
+    </span>
 {% endif %}

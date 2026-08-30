@@ -27,9 +27,12 @@ class HomePageTestCase(TestCase):
         self.assertNotIn('서비스 표준약관', content)
         self.assertNotIn('JBNU and ALPS', content)
 
-    def test_text_logo_replaces_image(self):
+    def test_site_icon_is_displayed_next_to_text_logo(self):
         content = self.response.content.decode()
-        self.assertIn('<span class="site-logo">SKOJ</span>', content)
+        self.assertIn('href="/static/icons/favicon-32x32.png?v=20260830"', content)
+        self.assertIn('src="/static/icons/nav-icon-64x64.png"', content)
+        self.assertIn('class="site-logo-icon"', content)
+        self.assertIn('<span>SKOJ</span>', content)
         self.assertNotIn('Litmuslogosvg', content)
         self.assertNotIn('data-site-logo', content)
 
