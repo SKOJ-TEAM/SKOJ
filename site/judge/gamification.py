@@ -2,10 +2,10 @@ import random
 import secrets
 
 from django.db import transaction
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Min, Q
 from django.utils import timezone
 
-from judge.models import DifficultyCluster, Problem, ProfileGamification, PromotionAttempt, \
+from judge.models import DifficultyCluster, Problem, ProblemGroup, ProfileGamification, PromotionAttempt, \
     PromotionAttemptProblem, PromotionExam, Submission, Tier
 
 
@@ -181,7 +181,7 @@ def get_profile_dashboard_context(profile):
             {'problem': item.problem, 'solved': item.problem_id in solved_ids}
             for item in attempt.snapshot_problems.select_related('problem').all()
         ]
-    return {
+    context = {
         'gamification': gamification,
         'tier_progress': progress,
         'promotion_eligible': is_eligible_for_promotion(profile, gamification),
@@ -189,6 +189,61 @@ def get_profile_dashboard_context(profile):
         'promotion_problems': attempt_problems,
         'recommended_problem': get_random_unsolved_problem(profile),
         'recommendation_nonce': secrets.token_urlsafe(8),
+    }
+    context.update(get_guide_progress_context(profile))
+    return context
+
+
+def get_guide_progress_context(profile):
+    groups = ProblemGroup.objects.filter(
+        algorithm_guides__is_published=True,
+    ).annotate(
+        guide_order=Min(
+            'algorithm_guides__order',
+            filter=Q(algorithm_guides__is_published=True),
+        ),
+        guide_total=Count(
+            'algorithm_guides',
+            filter=Q(algorithm_guides__is_published=True),
+            distinct=True,
+        ),
+        guide_completed=Count(
+            'algorithm_guides',
+            filter=Q(
+                algorithm_guides__is_published=True,
+                algorithm_guides__completions__profile=profile,
+            ),
+            distinct=True,
+        ),
+    ).order_by('guide_order', 'full_name', 'name')
+
+    progress_groups = []
+    completed_guides = 0
+    total_guides = 0
+    completed_groups = 0
+    for group in groups:
+        is_completed = group.guide_completed == group.guide_total
+        progress_groups.append({
+            'group': group,
+            'completed_count': group.guide_completed,
+            'total_count': group.guide_total,
+            'is_completed': is_completed,
+            'progress_percent': group.guide_completed * 100 // group.guide_total,
+        })
+        completed_guides += group.guide_completed
+        total_guides += group.guide_total
+        completed_groups += int(is_completed)
+
+    total_groups = len(progress_groups)
+    return {
+        'guide_progress_groups': progress_groups,
+        'guide_progress_completed': completed_guides,
+        'guide_progress_total': total_guides,
+        'guide_progress_group_counts': {
+            'in_progress': total_groups - completed_groups,
+            'completed': completed_groups,
+            'all': total_groups,
+        },
     }
 
 

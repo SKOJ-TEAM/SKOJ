@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 import json
 import os
@@ -10,7 +12,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from judge.admin.guide import AlgorithmGuideAdmin, AlgorithmGuideForm, GuideImageAdmin
-from judge.models import AlgorithmGuide, GuideImage, ProblemGroup
+from judge.models import AlgorithmGuide, GuideCompletion, GuideImage, ProblemGroup
 from judge.models.tests.util import CommonDataMixin
 from judge.widgets import AdminMartorWidget
 
@@ -45,6 +47,56 @@ class AlgorithmGuideModelTest(CommonDataMixin, TestCase):
 
         with self.assertRaises(ProtectedError):
             self.problem_group.delete()
+
+    def test_existing_profile_starts_without_guide_completions(self):
+        guide = AlgorithmGuide.objects.create(
+            problem_group=self.problem_group,
+            title='초기 상태',
+            summary='요약',
+            content='본문',
+        )
+
+        self.assertFalse(GuideCompletion.objects.filter(
+            profile=self.users['normal'].profile,
+            guide=guide,
+        ).exists())
+
+    def test_completion_is_unique_for_each_profile_and_guide(self):
+        guide = AlgorithmGuide.objects.create(
+            problem_group=self.problem_group,
+            title='완료 기록',
+            summary='요약',
+            content='본문',
+        )
+        GuideCompletion.objects.create(profile=self.users['normal'].profile, guide=guide)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            GuideCompletion.objects.create(profile=self.users['normal'].profile, guide=guide)
+
+    def test_completion_is_deleted_with_guide_or_profile(self):
+        first_guide = AlgorithmGuide.objects.create(
+            problem_group=self.problem_group,
+            title='가이드 삭제', summary='요약', content='본문',
+        )
+        first_completion = GuideCompletion.objects.create(
+            profile=self.users['normal'].profile,
+            guide=first_guide,
+        )
+
+        first_guide.delete()
+
+        self.assertFalse(GuideCompletion.objects.filter(pk=first_completion.pk).exists())
+
+        second_guide = AlgorithmGuide.objects.create(
+            problem_group=self.problem_group,
+            title='사용자 삭제', summary='요약', content='본문',
+        )
+        user = get_user_model().objects.create_user(username='guide-delete-user')
+        second_completion = GuideCompletion.objects.create(profile=user.profile, guide=second_guide)
+
+        user.profile.delete()
+
+        self.assertFalse(GuideCompletion.objects.filter(pk=second_completion.pk).exists())
 
 
 class AlgorithmGuideAdminTest(CommonDataMixin, TestCase):

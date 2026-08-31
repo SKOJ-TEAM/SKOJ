@@ -5,8 +5,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import Campus, Cohort, Language, ProfileGamification, PromotionAttempt, PromotionAttemptProblem, \
-    PromotionExam, Submission, Tier, TrainingClass
+from judge.models import AlgorithmGuide, Campus, Cohort, GuideCompletion, Language, ProblemGroup, \
+    ProfileGamification, PromotionAttempt, PromotionAttemptProblem, PromotionExam, Submission, Tier, TrainingClass
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -152,10 +152,119 @@ class HomeGamificationCardTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<section class="home-dashboard"')
+        self.assertContains(response, '학습 현황')
         self.assertContains(response, '내 티어')
         self.assertContains(response, '<h2>승급전</h2>', html=True)
         self.assertContains(response, reverse('gamification_ranking'))
         self.assertContains(response, '랜덤 추천 문제')
+
+    def test_home_guide_progress_counts_only_published_guides_and_includes_intro(self):
+        intro_group = ProblemGroup.objects.create(name='skoj-intro', full_name='SKOJ Intro')
+        later_group = ProblemGroup.objects.create(name='later-guide', full_name='후속 학습')
+        draft_group = ProblemGroup.objects.create(name='draft-guide', full_name='비공개 그룹')
+        intro = AlgorithmGuide.objects.create(
+            problem_group=intro_group,
+            title='SKOJ Intro', summary='소개', content='소개', is_published=True, order=0,
+        )
+        first = AlgorithmGuide.objects.create(
+            problem_group=later_group,
+            title='첫 Guide', summary='첫째', content='첫째', is_published=True, order=10,
+        )
+        AlgorithmGuide.objects.create(
+            problem_group=later_group,
+            title='둘째 Guide', summary='둘째', content='둘째', is_published=True, order=11,
+        )
+        hidden = AlgorithmGuide.objects.create(
+            problem_group=later_group,
+            title='숨은 Guide', summary='숨김', content='숨김', is_published=False, order=9,
+        )
+        draft_only = AlgorithmGuide.objects.create(
+            problem_group=draft_group,
+            title='비공개 Guide', summary='숨김', content='숨김', is_published=False, order=1,
+        )
+        GuideCompletion.objects.create(profile=self.user.profile, guide=first)
+        GuideCompletion.objects.create(profile=self.user.profile, guide=hidden)
+        GuideCompletion.objects.create(profile=self.user.profile, guide=draft_only)
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('home'))
+
+        groups = response.context_data['guide_progress_groups']
+        self.assertEqual([item['group'] for item in groups], [intro_group, later_group])
+        self.assertEqual(response.context_data['guide_progress_completed'], 1)
+        self.assertEqual(response.context_data['guide_progress_total'], 3)
+        self.assertEqual(response.context_data['guide_progress_group_counts'], {
+            'in_progress': 2, 'completed': 0, 'all': 2,
+        })
+        self.assertEqual(groups[0]['completed_count'], 0)
+        self.assertEqual(groups[0]['total_count'], 1)
+        self.assertEqual(groups[1]['completed_count'], 1)
+        self.assertEqual(groups[1]['total_count'], 2)
+        self.assertContains(response, intro.title)
+        self.assertNotContains(response, draft_group.full_name)
+
+    def test_home_guide_progress_preserves_completion_while_guide_is_private(self):
+        group = ProblemGroup.objects.create(name='republished-guide', full_name='재공개 학습')
+        guide = AlgorithmGuide.objects.create(
+            problem_group=group,
+            title='재공개 Guide', summary='요약', content='본문', is_published=True, order=1,
+        )
+        GuideCompletion.objects.create(profile=self.user.profile, guide=guide)
+        self.client.force_login(self.user)
+
+        completed_response = self.client.get(reverse('home'))
+        self.assertEqual(completed_response.context_data['guide_progress_group_counts']['completed'], 1)
+
+        guide.is_published = False
+        guide.save(update_fields=('is_published',))
+        private_response = self.client.get(reverse('home'))
+        self.assertEqual(private_response.context_data['guide_progress_total'], 0)
+        self.assertTrue(GuideCompletion.objects.filter(profile=self.user.profile, guide=guide).exists())
+
+        guide.is_published = True
+        guide.save(update_fields=('is_published',))
+        republished_response = self.client.get(reverse('home'))
+        self.assertEqual(republished_response.context_data['guide_progress_completed'], 1)
+        self.assertEqual(republished_response.context_data['guide_progress_group_counts']['completed'], 1)
+
+    def test_home_tabs_have_accessible_defaults_and_connected_panels(self):
+        group = ProblemGroup.objects.create(name='accessible-guide', full_name='접근성 학습')
+        AlgorithmGuide.objects.create(
+            problem_group=group,
+            title='접근성 Guide', summary='요약', content='본문', is_published=True,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(
+            response,
+            'id="guide-tab-in-progress"\n                                aria-selected="true" '
+            'aria-controls="guide-panel-in-progress"',
+            html=False,
+        )
+        self.assertContains(response, 'id="guide-panel-in-progress" role="tabpanel"', html=False)
+        self.assertContains(
+            response,
+            'id="tier-tab-current"\n                                aria-selected="true" '
+            'aria-controls="tier-panel-current"',
+            html=False,
+        )
+        self.assertContains(response, 'id="tier-panel-current" role="tabpanel"', html=False)
+        self.assertContains(response, 'id="guide-panel-completed" role="tabpanel"', html=False)
+        self.assertContains(response, 'id="tier-panel-promotion" role="tabpanel"', html=False)
+        self.assertContains(response, 'id="guide-panel-completed" role="tabpanel"', html=False)
+        self.assertContains(response, 'hidden', html=False)
+
+    def test_home_mobile_card_order_is_guide_then_tier_then_recommendation(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('home'))
+        content = response.content.decode()
+
+        self.assertLess(content.index('학습 현황'), content.index('id="tier-tab-current"'))
+        self.assertLess(content.index('id="tier-tab-current"'), content.index('id="recommended-problem"'))
+        self.assertIn('@media (max-width: 760px)', content)
+        self.assertIn('grid-template-columns: 1fr', content)
 
     def test_home_recommends_only_an_unsolved_public_problem(self):
         solved = create_problem(code='home-solved', name='이미 푼 문제', is_public=True)

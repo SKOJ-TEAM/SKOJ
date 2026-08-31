@@ -104,3 +104,33 @@ class AlgorithmGuide(models.Model):
         ordering = ('order', 'title', 'id')
         verbose_name = '가이드'
         verbose_name_plural = '가이드'
+
+
+class GuideCompletion(models.Model):
+    profile = models.ForeignKey(
+        'Profile',
+        on_delete=models.CASCADE,
+        related_name='guide_completions',
+        verbose_name=_('사용자'),
+    )
+    guide = models.ForeignKey(
+        AlgorithmGuide,
+        on_delete=models.CASCADE,
+        related_name='completions',
+        verbose_name=_('가이드'),
+    )
+    completed_at = models.DateTimeField(auto_now_add=True, verbose_name=_('완료 시각'))
+
+    def __str__(self):
+        return '%s · %s' % (self.profile.username, self.guide.title)
+
+    class Meta:
+        ordering = ('-completed_at', '-id')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('profile', 'guide'),
+                name='unique_profile_guide_completion',
+            ),
+        ]
+        verbose_name = '가이드 완료'
+        verbose_name_plural = '가이드 완료'

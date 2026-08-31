@@ -18,6 +18,27 @@
     <div class="guide-article require-mathjax-support" data-config="{{ static('mathjax_config.js') }}">
         {{ guide.content|markdown('guide', 'jax')|reference|str|safe }}
     </div>
+    <section id="guide-completion" class="guide-completion" aria-labelledby="guide-completion-title">
+        <div>
+            <h2 id="guide-completion-title">학습 완료</h2>
+            <p id="guide-completion-help">언제든 다시 체크하거나 해제할 수 있어요.</p>
+        </div>
+        <form id="guide-completion-form" method="post" action="{{ guide.get_absolute_url() }}#guide-completion">
+            {% csrf_token %}
+            <input type="hidden" name="completed" value="0">
+            <label class="guide-completion-toggle">
+                <input id="guide-completion-checkbox" type="checkbox" name="completed" value="1"
+                       aria-describedby="guide-completion-help"
+                       {% if guide_completed %}checked{% endif %}>
+                <span>이 가이드를 읽었어요</span>
+            </label>
+        </form>
+    </section>
+    <script nonce="{{ request.csp_nonce }}">
+        document.getElementById('guide-completion-checkbox').addEventListener('change', function () {
+            this.form.submit();
+        });
+    </script>
 </article>
 {% endblock %}
 

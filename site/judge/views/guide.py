@@ -1,11 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Min, Q
-from django.http import HttpResponsePermanentRedirect
+from django.http import HttpResponseBadRequest, HttpResponsePermanentRedirect, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import DetailView, ListView
 
-from judge.models import AlgorithmGuide, ProblemGroup
+from judge.models import AlgorithmGuide, GuideCompletion, ProblemGroup
 
 
 LEGACY_GUIDE_SLUGS = {
@@ -96,3 +96,22 @@ class GuideDetail(LoginRequiredMixin, DetailView):
             is_published=True,
             problem_group__name=self.kwargs['problem_group'],
         ).select_related('problem_group')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['guide_completed'] = GuideCompletion.objects.filter(
+            profile=self.request.profile,
+            guide=self.object,
+        ).exists()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        completed = request.POST.get('completed')
+        if completed == '1':
+            GuideCompletion.objects.get_or_create(profile=request.profile, guide=self.object)
+        elif completed == '0':
+            GuideCompletion.objects.filter(profile=request.profile, guide=self.object).delete()
+        else:
+            return HttpResponseBadRequest('completed must be 1 or 0')
+        return HttpResponseRedirect(self.object.get_absolute_url() + '#guide-completion')

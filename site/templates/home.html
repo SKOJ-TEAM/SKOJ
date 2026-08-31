@@ -39,6 +39,65 @@
         }
         .home-card-header h2 { margin: 0; color: var(--font-black); font-size: 20px; }
         .home-card-link { font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .home-guide-summary { color: var(--font-grey); font-size: 13px; white-space: nowrap; }
+        .home-tab-list {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 18px;
+            padding: 4px;
+            border-radius: 11px;
+            background: var(--background-second);
+        }
+        .home-tab {
+            flex: 1;
+            min-width: 0;
+            padding: 9px 10px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--font-grey);
+            font: inherit;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+        .home-tab[aria-selected="true"] {
+            background: var(--page-bg);
+            color: var(--font-black);
+            box-shadow: 0 2px 8px rgba(24, 32, 48, .1);
+        }
+        .home-tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+        .home-tab-count { color: var(--brand-red); }
+        .home-tab-panel[hidden] { display: none; }
+        .home-guide-list {
+            display: grid;
+            gap: 9px;
+            max-height: clamp(210px, 30vh, 270px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding-right: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+        .home-guide-list::-webkit-scrollbar { width: 7px; }
+        .home-guide-list::-webkit-scrollbar-track { background: transparent; }
+        .home-guide-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--border-color); }
+        .home-guide-row {
+            display: block;
+            padding: 11px 13px;
+            border-radius: 10px;
+            background: var(--background-second);
+            color: var(--font-black);
+        }
+        .home-guide-row:hover { text-decoration: none; filter: brightness(.98); }
+        .home-guide-row .home-progress-label { margin-bottom: 7px; }
+        .home-guide-empty {
+            margin: 0;
+            padding: 28px 14px;
+            color: var(--font-grey);
+            text-align: center;
+        }
         .home-tier-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
         .home-tier-badge { display: inline-flex; padding: 6px 13px; border-radius: 999px; font-weight: 800; }
         .home-tier-bronze { color: #8a4f2d; background: #f4dfd0; }
@@ -63,8 +122,8 @@
         .home-progress-list::-webkit-scrollbar-track { border-radius: 999px; background: var(--background-second); }
         .home-progress-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--border-color); }
         .home-progress-label { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; font-size: 13px; }
-        .home-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--background-second); }
-        .home-progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-red), var(--brand-orange)); }
+        .home-progress-track { display: block; height: 7px; overflow: hidden; border-radius: 999px; background: var(--background-second); }
+        .home-progress-value { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-red), var(--brand-orange)); }
         .home-promotion-copy { margin: 0 0 16px; color: var(--font-grey); line-height: 1.65; }
         .home-promotion-list {
             display: grid;
@@ -123,6 +182,7 @@
             .home-dashboard { grid-template-columns: 1fr; width: min(100% - 28px, 520px); }
             .home-dashboard-card { min-height: 0; padding: 20px; }
             .home-progress-list { height: clamp(110px, 22vh, 140px); }
+            .home-guide-list { max-height: clamp(210px, 38vh, 290px); }
             .home-promotion-list { max-height: clamp(150px, 38vh, 220px); }
             .home-recommendation-body { align-items: stretch; flex-direction: column; gap: 18px; }
             .home-recommendation-action { text-align: center; }
@@ -139,51 +199,143 @@
         <section class="home-dashboard" aria-label="내 학습 현황">
             <article class="home-dashboard-card">
                 <div class="home-card-header">
-                    <h2>내 티어</h2>
-                    <a class="home-card-link" href="{{ url('gamification_ranking') }}">전체 랭킹 보기 →</a>
+                    <h2>학습 현황</h2>
+                    <span class="home-guide-summary">{{ guide_progress_completed }} / {{ guide_progress_total }} 완료</span>
                 </div>
-                <div class="home-tier-summary">
-                    <span class="home-tier-badge home-tier-{{ gamification.current_tier }}">{{ gamification.get_current_tier_display() }}</span>
-                    <span class="home-weighted-score">점수 <strong>{{ gamification.weighted_score }}</strong></span>
-                </div>
-                {% if gamification.current_tier == 'master' %}
-                    <p class="home-promotion-copy">최고 티어에 도달했습니다. 더 많은 문제를 해결해 랭킹에 도전해 보세요.</p>
-                {% elif tier_progress %}
-                    <div class="home-progress-list">
-                        {% for cluster in tier_progress %}
-                            {% set progress_percent = ([cluster.solved_count * 100 // cluster.required_solve_count, 100]|min) %}
-                            <div>
-                                <div class="home-progress-label"><span>{{ cluster.problem_group.full_name }}</span><strong>{{ cluster.solved_count }} / {{ cluster.required_solve_count }}</strong></div>
-                                <div class="home-progress-track"><div class="home-progress-value" style="width: {{ progress_percent }}%"></div></div>
-                            </div>
-                        {% endfor %}
+                <div class="home-tabset">
+                    <div class="home-tab-list" role="tablist" aria-label="Guide 진행 상태">
+                        <button class="home-tab" type="button" role="tab" id="guide-tab-in-progress"
+                                aria-selected="true" aria-controls="guide-panel-in-progress" tabindex="0">
+                            진행중 <span class="home-tab-count">{{ guide_progress_group_counts.in_progress }}</span>
+                        </button>
+                        <button class="home-tab" type="button" role="tab" id="guide-tab-completed"
+                                aria-selected="false" aria-controls="guide-panel-completed" tabindex="-1">
+                            완료 <span class="home-tab-count">{{ guide_progress_group_counts.completed }}</span>
+                        </button>
+                        <button class="home-tab" type="button" role="tab" id="guide-tab-all"
+                                aria-selected="false" aria-controls="guide-panel-all" tabindex="-1">
+                            전체 <span class="home-tab-count">{{ guide_progress_group_counts.all }}</span>
+                        </button>
                     </div>
-                {% else %}
-                    <p class="home-promotion-copy">현재 티어에 활성화된 문제 그룹이 없습니다.</p>
-                {% endif %}
+                    <section class="home-tab-panel" id="guide-panel-in-progress" role="tabpanel"
+                             aria-labelledby="guide-tab-in-progress" tabindex="0">
+                        {% if guide_progress_group_counts.in_progress %}
+                            <div class="home-guide-list">
+                                {% for item in guide_progress_groups %}
+                                    {% if not item.is_completed %}
+                                        <a class="home-guide-row" href="{{ url('guide_list', item.group.name) }}">
+                                            <span class="home-progress-label"><span>{{ item.group.full_name }}</span><strong>{{ item.completed_count }} / {{ item.total_count }}</strong></span>
+                                            <span class="home-progress-track" role="progressbar" aria-label="{{ item.group.full_name }} Guide 진행률"
+                                                  aria-valuemin="0" aria-valuemax="{{ item.total_count }}" aria-valuenow="{{ item.completed_count }}">
+                                                <span class="home-progress-value" style="width: {{ item.progress_percent }}%"></span>
+                                            </span>
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="home-guide-empty">진행 중인 Guide 그룹이 없습니다.</p>
+                        {% endif %}
+                    </section>
+                    <section class="home-tab-panel" id="guide-panel-completed" role="tabpanel"
+                             aria-labelledby="guide-tab-completed" tabindex="0" hidden>
+                        {% if guide_progress_group_counts.completed %}
+                            <div class="home-guide-list">
+                                {% for item in guide_progress_groups %}
+                                    {% if item.is_completed %}
+                                        <a class="home-guide-row" href="{{ url('guide_list', item.group.name) }}">
+                                            <span class="home-progress-label"><span>{{ item.group.full_name }}</span><strong>{{ item.completed_count }} / {{ item.total_count }}</strong></span>
+                                            <span class="home-progress-track" role="progressbar" aria-label="{{ item.group.full_name }} Guide 진행률"
+                                                  aria-valuemin="0" aria-valuemax="{{ item.total_count }}" aria-valuenow="{{ item.completed_count }}">
+                                                <span class="home-progress-value" style="width: {{ item.progress_percent }}%"></span>
+                                            </span>
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="home-guide-empty">완료한 Guide 그룹이 아직 없습니다.</p>
+                        {% endif %}
+                    </section>
+                    <section class="home-tab-panel" id="guide-panel-all" role="tabpanel"
+                             aria-labelledby="guide-tab-all" tabindex="0" hidden>
+                        {% if guide_progress_group_counts.all %}
+                            <div class="home-guide-list">
+                                {% for item in guide_progress_groups %}
+                                    <a class="home-guide-row" href="{{ url('guide_list', item.group.name) }}">
+                                        <span class="home-progress-label"><span>{{ item.group.full_name }}</span><strong>{{ item.completed_count }} / {{ item.total_count }}</strong></span>
+                                        <span class="home-progress-track" role="progressbar" aria-label="{{ item.group.full_name }} Guide 진행률"
+                                              aria-valuemin="0" aria-valuemax="{{ item.total_count }}" aria-valuenow="{{ item.completed_count }}">
+                                            <span class="home-progress-value" style="width: {{ item.progress_percent }}%"></span>
+                                        </span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="home-guide-empty">게시된 Guide 그룹이 없습니다.</p>
+                        {% endif %}
+                    </section>
+                </div>
             </article>
 
             <article class="home-dashboard-card">
-                <div class="home-card-header"><h2>승급전</h2></div>
-                {% if gamification.current_tier == 'master' %}
-                    <p class="home-promotion-copy">모든 승급 과정을 완료했습니다. 이제 풀이 점수로 순위를 높여보세요.</p>
-                {% elif promotion_attempt %}
-                    <p class="home-promotion-copy"><strong>{{ promotion_attempt.exam.title }}</strong><br>모든 문제를 해결하면 {{ promotion_attempt.get_target_tier_display() }}로 승격됩니다.</p>
-                    <ul class="home-promotion-list">
-                        {% for item in promotion_problems %}
-                            <li><a href="{{ url('problem_detail', item.problem.code) }}"><span>{{ item.problem.name }}</span><span class="home-promotion-state">{{ '완료' if item.solved else '도전' }}</span></a></li>
-                        {% endfor %}
-                    </ul>
-                {% elif promotion_eligible %}
-                    <p class="home-promotion-copy">승급 조건을 모두 충족했습니다. 활성 승급전이 준비되면 자동으로 열립니다.</p>
-                {% else %}
-                    <p class="home-promotion-copy">현재 티어의 모든 문제 그룹에서 기준 풀이 수를 채우면 승급전이 자동으로 열립니다.</p>
-                {% endif %}
+                <div class="home-tabset">
+                    <div class="home-tab-list" role="tablist" aria-label="티어와 승급전">
+                        <button class="home-tab" type="button" role="tab" id="tier-tab-current"
+                                aria-selected="true" aria-controls="tier-panel-current" tabindex="0">내 티어</button>
+                        <button class="home-tab" type="button" role="tab" id="tier-tab-promotion"
+                                aria-selected="false" aria-controls="tier-panel-promotion" tabindex="-1">승급전</button>
+                    </div>
+                    <section class="home-tab-panel" id="tier-panel-current" role="tabpanel"
+                             aria-labelledby="tier-tab-current" tabindex="0">
+                        <div class="home-card-header">
+                            <h2>내 티어</h2>
+                            <a class="home-card-link" href="{{ url('gamification_ranking') }}">전체 랭킹 보기 →</a>
+                        </div>
+                        <div class="home-tier-summary">
+                            <span class="home-tier-badge home-tier-{{ gamification.current_tier }}">{{ gamification.get_current_tier_display() }}</span>
+                            <span class="home-weighted-score">점수 <strong>{{ gamification.weighted_score }}</strong></span>
+                        </div>
+                        {% if gamification.current_tier == 'master' %}
+                            <p class="home-promotion-copy">최고 티어에 도달했습니다. 더 많은 문제를 해결해 랭킹에 도전해 보세요.</p>
+                        {% elif tier_progress %}
+                            <div class="home-progress-list">
+                                {% for cluster in tier_progress %}
+                                    {% set progress_percent = ([cluster.solved_count * 100 // cluster.required_solve_count, 100]|min) %}
+                                    <div>
+                                        <div class="home-progress-label"><span>{{ cluster.problem_group.full_name }}</span><strong>{{ cluster.solved_count }} / {{ cluster.required_solve_count }}</strong></div>
+                                        <div class="home-progress-track"><div class="home-progress-value" style="width: {{ progress_percent }}%"></div></div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="home-promotion-copy">현재 티어에 활성화된 문제 그룹이 없습니다.</p>
+                        {% endif %}
+                    </section>
+                    <section class="home-tab-panel" id="tier-panel-promotion" role="tabpanel"
+                             aria-labelledby="tier-tab-promotion" tabindex="0" hidden>
+                        <div class="home-card-header"><h2>승급전</h2></div>
+                        {% if gamification.current_tier == 'master' %}
+                            <p class="home-promotion-copy">모든 승급 과정을 완료했습니다. 이제 풀이 점수로 순위를 높여보세요.</p>
+                        {% elif promotion_attempt %}
+                            <p class="home-promotion-copy"><strong>{{ promotion_attempt.exam.title }}</strong><br>모든 문제를 해결하면 {{ promotion_attempt.get_target_tier_display() }}로 승격됩니다.</p>
+                            <ul class="home-promotion-list">
+                                {% for item in promotion_problems %}
+                                    <li><a href="{{ url('problem_detail', item.problem.code) }}"><span>{{ item.problem.name }}</span><span class="home-promotion-state">{{ '완료' if item.solved else '도전' }}</span></a></li>
+                                {% endfor %}
+                            </ul>
+                        {% elif promotion_eligible %}
+                            <p class="home-promotion-copy">승급 조건을 모두 충족했습니다. 활성 승급전이 준비되면 자동으로 열립니다.</p>
+                        {% else %}
+                            <p class="home-promotion-copy">현재 티어의 모든 문제 그룹에서 기준 풀이 수를 채우면 승급전이 자동으로 열립니다.</p>
+                        {% endif %}
+                    </section>
+                </div>
             </article>
 
             <article id="recommended-problem" class="home-dashboard-card home-recommendation-card">
                 <div class="home-card-header">
-                    <h2>랜덤 추천 문제</h2>
+                    <h2>랜덤 추천 문제(고급)</h2>
                     {% if recommended_problem %}
                         <a class="home-card-link" href="{{ url('home') }}?recommend={{ recommendation_nonce }}#recommended-problem">다른 문제 추천 ↻</a>
                     {% endif %}
@@ -202,6 +354,39 @@
                 {% endif %}
             </article>
         </section>
+        <script nonce="{{ request.csp_nonce }}">
+            (function () {
+                function activateTab(tabset, tab, moveFocus) {
+                    var tabs = Array.prototype.slice.call(tabset.querySelectorAll('[role="tab"]'));
+                    tabs.forEach(function (candidate) {
+                        var selected = candidate === tab;
+                        candidate.setAttribute('aria-selected', selected ? 'true' : 'false');
+                        candidate.setAttribute('tabindex', selected ? '0' : '-1');
+                        var panel = document.getElementById(candidate.getAttribute('aria-controls'));
+                        if (panel) panel.hidden = !selected;
+                    });
+                    if (moveFocus) tab.focus();
+                }
+
+                document.querySelectorAll('.home-tabset').forEach(function (tabset) {
+                    var tabs = Array.prototype.slice.call(tabset.querySelectorAll('[role="tab"]'));
+                    tabs.forEach(function (tab, index) {
+                        tab.addEventListener('click', function () { activateTab(tabset, tab, false); });
+                        tab.addEventListener('keydown', function (event) {
+                            var nextIndex = null;
+                            if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+                            if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+                            if (event.key === 'Home') nextIndex = 0;
+                            if (event.key === 'End') nextIndex = tabs.length - 1;
+                            if (nextIndex !== null) {
+                                event.preventDefault();
+                                activateTab(tabset, tabs[nextIndex], true);
+                            }
+                        });
+                    });
+                });
+            }());
+        </script>
     {% endif %}
 {% endblock %}
 {% block meta %}

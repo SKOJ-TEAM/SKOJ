@@ -100,6 +100,49 @@
             max-width: 100%;
             height: auto;
         }
+        .guide-completion {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-top: 20px;
+            padding: 20px 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--page-bg);
+            box-shadow: var(--standard-box-shadow);
+            scroll-margin-top: 24px;
+        }
+        .guide-completion h2 {
+            margin: 0 0 5px;
+            color: var(--font-black);
+            font-size: 18px;
+        }
+        .guide-completion p {
+            margin: 0;
+            color: var(--font-grey);
+            font-size: 14px;
+        }
+        .guide-completion-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 11px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--font-black);
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .guide-completion-toggle:hover {
+            background: var(--hover-background-color);
+        }
+        .guide-completion-toggle input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
         .guide-article pre {
             overflow-x: auto;
             margin: 20px 0;
@@ -202,6 +245,8 @@
             .guide-heading h1 { font-size: 28px; }
             .guide-article { padding: 22px 18px; }
             .guide-actions { align-items: flex-start; }
+            .guide-completion { align-items: stretch; flex-direction: column; gap: 16px; }
+            .guide-completion-toggle { justify-content: center; }
         }
     </style>
 {% endblock %}

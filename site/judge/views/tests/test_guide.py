@@ -1,7 +1,7 @@
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from judge.models import AlgorithmGuide, ProblemGroup
+from judge.models import AlgorithmGuide, GuideCompletion, ProblemGroup
 from judge.models.tests.util import CommonDataMixin
 
 
@@ -162,6 +162,68 @@ class GuideViewTest(CommonDataMixin, TestCase):
         self.assertContains(response, 'vendor/mathjax/3.2.0/es5/tex-chtml.min.js')
         self.assertContains(response, 'background: #f6f8fa;')
         self.assertContains(response, 'background: #161b22;')
+        self.assertContains(response, '이 가이드를 읽었어요')
+        self.assertFalse(response.context_data['guide_completed'])
+
+    def test_guide_completion_can_be_checked_idempotently_and_unchecked(self):
+        url = self.published.get_absolute_url()
+
+        first_response = self.client.post(url, {'completed': '1'})
+        second_response = self.client.post(url, {'completed': '1'})
+
+        self.assertRedirects(
+            first_response,
+            url + '#guide-completion',
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            second_response,
+            url + '#guide-completion',
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(GuideCompletion.objects.filter(
+            profile=self.users['normal'].profile,
+            guide=self.published,
+        ).count(), 1)
+        checked_response = self.client.get(url)
+        self.assertTrue(checked_response.context_data['guide_completed'])
+        self.assertContains(checked_response, 'name="completed" value="1"', html=False)
+        self.assertContains(checked_response, 'checked', html=False)
+
+        unchecked_response = self.client.post(url, {'completed': '0'})
+
+        self.assertRedirects(
+            unchecked_response,
+            url + '#guide-completion',
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(GuideCompletion.objects.filter(
+            profile=self.users['normal'].profile,
+            guide=self.published,
+        ).exists())
+
+    def test_guide_completion_is_isolated_between_users(self):
+        GuideCompletion.objects.create(
+            profile=self.users['normal'].profile,
+            guide=self.published,
+        )
+
+        self.client.force_login(self.users['superuser'])
+        response = self.client.get(self.published.get_absolute_url())
+
+        self.assertFalse(response.context_data['guide_completed'])
+
+    def test_completion_post_rejects_hidden_mismatched_and_invalid_requests(self):
+        hidden_response = self.client.post(self.draft.get_absolute_url(), {'completed': '1'})
+        mismatched_response = self.client.post(reverse(
+            'guide_detail', args=(self.graph.name, self.published.pk),
+        ), {'completed': '1'})
+        invalid_response = self.client.post(self.published.get_absolute_url(), {'completed': 'yes'})
+
+        self.assertEqual(hidden_response.status_code, 404)
+        self.assertEqual(mismatched_response.status_code, 404)
+        self.assertEqual(invalid_response.status_code, 400)
+        self.assertFalse(GuideCompletion.objects.exists())
 
     def test_admin_edit_link_only_shows_to_users_with_change_permission(self):
         normal_response = self.client.get(self.published.get_absolute_url())
