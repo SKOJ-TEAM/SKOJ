@@ -1,8 +1,10 @@
 from contextlib import nullcontext
+from pathlib import Path
 import smtplib
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from django.template.loader import get_template
 from django.test import SimpleTestCase
 
 from judge.views.register import (
@@ -13,6 +15,18 @@ from judge.views.register import (
 
 
 class RegistrationFieldsTestCase(SimpleTestCase):
+    def test_registration_validation_runs_after_field_blur_not_during_typing(self):
+        template = get_template('registration/registration_form.html')
+        template_source = Path(template.origin.name).read_text(encoding='utf-8')
+
+        self.assertIn("config.field.addEventListener('blur'", template_source)
+        self.assertIn("config.field.addEventListener('input'", template_source)
+        self.assertIn('handleFieldInput(config.name)', template_source)
+        self.assertIn('renderValidationErrors(fieldName, errors)', template_source)
+        self.assertIn('validateRegistrationFields(null, function(isValid)', template_source)
+        self.assertNotIn('scheduleValidation', template_source)
+        self.assertNotIn('setTimeout(validateRegistrationFields', template_source)
+
     def test_registration_form_has_only_requested_profile_fields(self):
         fields = CustomRegistrationForm.base_fields
 

@@ -306,9 +306,9 @@
             var password2Field = document.querySelector('#id_password2');
             var firstNameField = document.querySelector('#id_first_name');
             var emailField = document.querySelector('#id_email');
-            var submitButton = form.querySelector('button[type="submit"]');
             var validateRegistrationUrl = '{{ validate_registration_url }}';
-            var requestTimer = null;
+            var activeFieldRequests = {};
+            var activeSubmissionRequest = null;
             var errorContainerSelectors = [
                 '#username-error-container',
                 '#email-error-container',
@@ -398,14 +398,79 @@
                 });
             }
 
-            function validateRegistrationFields(callback) {
+            function renderValidationErrors(fieldName, errors) {
+                if (!fieldName || fieldName === 'username') {
+                    renderErrors('#username-error-container', errors.username || []);
+                }
+                if (!fieldName || fieldName === 'email') {
+                    renderErrors('#email-error-container', errors.email || []);
+                }
+                if (!fieldName || fieldName === 'password2') {
+                    renderErrors('#password2-error-container', errors.password2 || []);
+                }
+                if (!fieldName || fieldName === 'password1') {
+                    syncPasswordSummary(errors.password1 || []);
+                }
+            }
+
+            function clearFieldErrors(fieldName) {
+                renderValidationErrors(fieldName, {});
+            }
+
+            function abortFieldRequest(fieldName) {
+                var request = activeFieldRequests[fieldName];
+                if (!request) {
+                    return;
+                }
+
+                delete activeFieldRequests[fieldName];
+                request.abort();
+            }
+
+            function abortAllFieldRequests() {
+                Object.keys(activeFieldRequests).forEach(function(fieldName) {
+                    abortFieldRequest(fieldName);
+                });
+            }
+
+            function abortSubmissionRequest() {
+                var request = activeSubmissionRequest;
+                if (!request) {
+                    return;
+                }
+
+                activeSubmissionRequest = null;
+                request.abort();
+            }
+
+            function validateRegistrationFields(fieldName, callback) {
                 var xhr = new XMLHttpRequest();
+                if (fieldName) {
+                    abortFieldRequest(fieldName);
+                    activeFieldRequests[fieldName] = xhr;
+                } else {
+                    abortSubmissionRequest();
+                    activeSubmissionRequest = xhr;
+                }
+
                 xhr.open('POST', validateRegistrationUrl, true);
                 xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
                 xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState !== 4) {
                         return;
+                    }
+
+                    if (fieldName) {
+                        if (activeFieldRequests[fieldName] !== xhr) {
+                            return;
+                        }
+                        delete activeFieldRequests[fieldName];
+                    } else {
+                        if (activeSubmissionRequest !== xhr) {
+                            return;
+                        }
+                        activeSubmissionRequest = null;
                     }
 
                     if (xhr.status !== 200) {
@@ -426,10 +491,7 @@
                     }
 
                     var errors = response.errors || {};
-                    renderErrors('#username-error-container', errors.username || []);
-                    renderErrors('#email-error-container', errors.email || []);
-                    renderErrors('#password2-error-container', errors.password2 || []);
-                    syncPasswordSummary(errors.password1 || []);
+                    renderValidationErrors(fieldName, errors);
                     if (callback) {
                         callback(!hasErrors(errors));
                     }
@@ -443,9 +505,30 @@
                 }));
             }
 
-            function scheduleValidation() {
-                window.clearTimeout(requestTimer);
-                requestTimer = window.setTimeout(validateRegistrationFields, 150);
+            function validateField(fieldName, field) {
+                if (!field.value) {
+                    abortFieldRequest(fieldName);
+                    clearFieldErrors(fieldName);
+                    return;
+                }
+
+                validateRegistrationFields(fieldName);
+            }
+
+            function handleFieldInput(fieldName) {
+                abortSubmissionRequest();
+                abortFieldRequest(fieldName);
+                clearFieldErrors(fieldName);
+
+                if (fieldName === 'password1') {
+                    abortFieldRequest('password2');
+                    clearFieldErrors('password2');
+                }
+
+                if (fieldName === 'username' || fieldName === 'first_name' || fieldName === 'email') {
+                    abortFieldRequest('password1');
+                    clearFieldErrors('password1');
+                }
             }
 
             function handleRegistrationSubmit(event) {
@@ -454,8 +537,8 @@
                     event.stopPropagation();
                 }
 
-                window.clearTimeout(requestTimer);
-                validateRegistrationFields(function(isValid) {
+                abortAllFieldRequests();
+                validateRegistrationFields(null, function(isValid) {
                     if (isValid) {
                         form.submit();
                     } else {
@@ -464,14 +547,30 @@
                 });
             }
 
-            [usernameField, password1Field, password2Field, firstNameField, emailField].forEach(function(field) {
-                field.addEventListener('input', scheduleValidation);
+            [
+                {field: usernameField, name: 'username'},
+                {field: password1Field, name: 'password1'},
+                {field: password2Field, name: 'password2'},
+                {field: emailField, name: 'email'}
+            ].forEach(function(config) {
+                config.field.addEventListener('blur', function() {
+                    validateField(config.name, config.field);
+                });
+            });
+
+            [
+                {field: usernameField, name: 'username'},
+                {field: password1Field, name: 'password1'},
+                {field: password2Field, name: 'password2'},
+                {field: firstNameField, name: 'first_name'},
+                {field: emailField, name: 'email'}
+            ].forEach(function(config) {
+                config.field.addEventListener('input', function() {
+                    handleFieldInput(config.name);
+                });
             });
 
             form.addEventListener('submit', handleRegistrationSubmit);
-            if (submitButton) {
-                submitButton.addEventListener('click', handleRegistrationSubmit);
-            }
         });
     </script>
     <script>
