@@ -557,7 +557,7 @@ def get_visible_problem_filter(user, profile=None):
 
 
 def get_visible_problem_groups(user, profile=None):
-    return [
+    problem_groups = [
         {
             'slug': row['group__name'],
             'display_name': row['group__full_name'],
@@ -569,6 +569,7 @@ def get_visible_problem_groups(user, profile=None):
             problem_count=Count('id', distinct=True),
         ).order_by('group__full_name', 'group__name')
     ]
+    return sorted(problem_groups, key=lambda group: group['slug'] != 'basic')
 
 
 class ProblemCategoryList(LoginRequiredMixin, TitleMixin, ListView):

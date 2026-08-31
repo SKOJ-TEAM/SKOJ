@@ -72,6 +72,16 @@ class ProblemGroupNavigationTestCase(TestCase):
         self.assertLess(response.content.index('내가 푼 문제'.encode()), response.content.index('내가 안 푼 문제'.encode()))
         self.assertLess(response.content.index('내가 안 푼 문제'.encode()), response.content.index('기초'.encode()))
 
+    def test_basic_group_is_listed_before_alphabetically_earlier_groups(self):
+        bfs_group = create_problem_group(name='bfs', full_name='BFS')
+        create_problem(code='bfs-navigation', name='BFS 탐색', group=bfs_group, is_public=True)
+
+        response = self.client.get(reverse('problem_list'))
+
+        self.assertEqual(response.status_code, 200)
+        group_slugs = [group['slug'] for group in response.context_data['problem_groups']]
+        self.assertEqual(['basic', 'bfs', 'practice'], group_slugs)
+
     def test_problem_list_default_sort_is_stable_across_pages(self):
         created_codes = [self.basic_problem.code, self.practice_problem.code]
         for index in reversed(range(21)):
