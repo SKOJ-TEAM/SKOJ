@@ -412,7 +412,7 @@
 
     <form id="filter-form" name="form" action="" method="get"> 
         <div class="search-container">
-            <input id="search" type="text" name="search" value="{{ search_query or '' }}"placeholder="사용자 검색"> 
+            <input id="search" type="text" name="search" value="{{ search_query or '' }}" placeholder="이름 검색">
             <i class="fa fa-search"></i>
         </div>
     </form>
@@ -426,12 +426,12 @@
            class="users-table table striped {% block additional_table_classes %}{% endblock %}">
         <thead>
         <tr>
-            <th class="header rank">{{ _('번호') }}</h>
+            <th class="header rank">{{ _('번호') }}</th>
             {#
             <!-- {% block after_rank_head %}{% endblock %} -->
              #}
             
-            <th class="header first_name">{{ _('사용자') }}</th>
+            <th class="header first_name">{{ _('이름') }}</th>
             {% block tier_field scoped %}{% endblock %}
             {% block training_class_field scoped %}{% endblock %}
             {% block information_field %}{% endblock %}
@@ -457,13 +457,8 @@
                 {#
                 <!-- {% block after_rank scoped %}{% endblock %} -->
                  #}
-                <td class="user-name">{{ link_user(user) }} {% block user_data scoped %}{% endblock %}</td>
                 <td class="user-first_name">
-                    {% if user.user.is_staff or user.user.is_superuser %}
-                        {{ link_user_name(user) }}  <!-- 관리자 또는 교수일 경우 -->
-                    {% else %}
-                        {{ link_user(user) }}
-                    {% endif %}
+                    {{ link_user_name(user) }} {% block user_data scoped %}{% endblock %}
                 </td>
                 {% block after_tier scoped %}{% endblock %}
                 {% block after_training_class scoped%}{% endblock %}

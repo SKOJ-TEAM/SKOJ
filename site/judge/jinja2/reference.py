@@ -5,6 +5,7 @@ from urllib.parse import urljoin
 from ansi2html import Ansi2HTMLConverter
 from django.contrib.auth.models import AbstractUser
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from lxml.html import Element
 
@@ -155,16 +156,15 @@ def link_user(user):
 @registry.function
 def link_user_name(user):
     if isinstance(user, Profile):
-        user, profile = user.user, user
+        user = user.user
     elif isinstance(user, AbstractUser):
-        profile = user.profile
+        pass
     elif type(user).__name__ == 'ContestRankingProfile':
-        user, profile = user.user, user
+        user = user.user
     else:
         raise ValueError('Expected profile or user, got %s' % (type(user),))
 
-    # 링크를 생성하는 부분에서 user.first_name 사용
-    return mark_safe(f'<a href="/user/{user.username}/">{user.first_name}</a>')
+    return format_html('<a href="{}">{}</a>', reverse('user_page', args=[user.username]), user.first_name)
 
 
 @registry.function

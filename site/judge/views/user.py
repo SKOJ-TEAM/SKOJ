@@ -572,7 +572,7 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
 
         search = self.request.GET.get('search')
         if search:
-            queryset = queryset.filter(user__username__icontains=search)
+            queryset = queryset.filter(user__first_name__icontains=search)
 
         return queryset.only(
             'display_rank', 'user__username', 'user__first_name', 'points', 'rating', 'performance_points',
