@@ -25,6 +25,8 @@ from judge.views.select2 import ClassSelect2View, CommentSelect2View, ContestSel
     ContestUserSearchSelect2View, ProblemSelect2View, \
     UserSearchSelect2View, UserSelect2View#, OrganizationSelect2View
 from judge.views.widgets import martor_image_uploader
+# Blue/Green 전환 전에 새 Web의 DB·Redis·릴리스 ID를 확인하는 readiness view입니다.
+from judge.views.health import healthz
 
 admin.autodiscover()
 
@@ -132,6 +134,8 @@ def paged_list_view(view, name):
 
 
 urlpatterns = [
+    # 배포 스크립트가 Nginx 전환 전에는 loopback으로, 전환 후에는 공개 HTTPS로 호출합니다.
+    path('healthz/', healthz, name='healthz'),
     path('', blog.PostList.as_view(template_name='home.html', title=_('Home')), kwargs={'page': 1}, name='home'),
     path('500/', exception),
     path('admin/', admin.site.urls),
