@@ -103,6 +103,65 @@ class ProblemGroupNavigationTestCase(TestCase):
         actual_codes += [problem.code for problem in second_response.context_data['problems']]
         self.assertEqual(actual_codes, sorted(created_codes))
 
+    def test_group_page_uses_admin_order_before_unordered_problems(self):
+        ordered_last = create_problem(
+            code='a-group-order', name='관리 순서 2', group=self.basic_group,
+            is_public=True, group_order=2,
+        )
+        ordered_first = create_problem(
+            code='z-group-order', name='관리 순서 1', group=self.basic_group,
+            is_public=True, group_order=1,
+        )
+
+        response = self.client.get(reverse('problem_group_list', args=('basic',)))
+
+        self.assertEqual(response.status_code, 200)
+        codes = [problem.code for problem in response.context_data['problems']]
+        self.assertEqual(codes[:2], [ordered_first.code, ordered_last.code])
+        self.assertEqual(codes[2:], [self.basic_problem.code])
+
+    def test_group_page_explicit_header_sort_overrides_admin_order(self):
+        create_problem(
+            code='z-explicit-sort', name='뒤 ID', group=self.basic_group,
+            is_public=True, group_order=1,
+        )
+        create_problem(
+            code='a-explicit-sort', name='앞 ID', group=self.basic_group,
+            is_public=True, group_order=2,
+        )
+
+        response = self.client.get(
+            reverse('problem_group_list', args=('basic',)),
+            {'order': 'code'},
+        )
+
+        codes = [problem.code for problem in response.context_data['problems']]
+        self.assertEqual(codes, sorted(codes))
+
+    def test_group_order_is_stable_across_pages(self):
+        expected_codes = []
+        for order in range(1, 23):
+            code = 'ordered-page-%02d' % order
+            create_problem(
+                code=code,
+                name='순서 문제 %02d' % order,
+                group=self.basic_group,
+                is_public=True,
+                group_order=order,
+            )
+            expected_codes.append(code)
+
+        first_response = self.client.get(reverse('problem_group_list', args=('basic',)))
+        second_response = self.client.get(
+            reverse('problem_group_list', args=('basic',)),
+            {'page': 2},
+        )
+
+        actual_codes = [problem.code for problem in first_response.context_data['problems']]
+        actual_codes += [problem.code for problem in second_response.context_data['problems']]
+        self.assertEqual(actual_codes[:22], expected_codes)
+        self.assertEqual(actual_codes[22:], [self.basic_problem.code])
+
     def test_group_slug_is_used_in_url_and_korean_name_is_displayed(self):
         stack_group = create_problem_group(name='stack', full_name='스택')
         stack_problem = create_problem(

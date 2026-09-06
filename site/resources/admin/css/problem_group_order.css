@@ -1,0 +1,46 @@
+#problem-group-order {
+    margin-top: 20px;
+}
+
+#problem-group-order table {
+    width: 100%;
+}
+
+#problem-group-order th,
+#problem-group-order td {
+    vertical-align: middle;
+}
+
+#problem-group-order .order-handle-column,
+#problem-group-order .order-number-column {
+    width: 4.5rem;
+    text-align: center;
+}
+
+#problem-group-order .order-actions-column {
+    width: 16rem;
+}
+
+#problem-group-order .problem-order-handle {
+    text-align: center;
+    cursor: grab;
+    font-size: 1.25rem;
+    user-select: none;
+}
+
+#problem-group-order .problem-order-number {
+    text-align: center;
+    font-weight: 600;
+}
+
+#problem-group-order .problem-order-actions .button {
+    margin-right: 0.35rem;
+}
+
+#problem-group-order tr.dragging {
+    opacity: 0.45;
+}
+
+#problem-group-order tr.drag-over td {
+    border-top: 3px solid var(--primary, #417690);
+}

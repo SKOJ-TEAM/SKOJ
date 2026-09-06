@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
-from django.db.models import CASCADE, F, FilteredRelation, Q, SET_NULL
+from django.db.models import CASCADE, Case, F, FilteredRelation, Q, SET_NULL, When
 from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils import timezone
@@ -89,6 +89,15 @@ class TranslatedProblemQuerySet(SearchQuerySet):
             'translations', condition=Q(translations__language=language),
         )).annotate(i18n_name=Coalesce(F('i18n_translation__name'), F('name'), output_field=models.CharField()))
 
+    def order_by_group_order(self):
+        return self.annotate(
+            group_order_missing=Case(
+                When(group_order__isnull=True, then=1),
+                default=0,
+                output_field=models.IntegerField(),
+            ),
+        ).order_by('group_order_missing', 'group_order', 'code', 'id')
+
 
 class SubmissionSourceAccess:
     ALWAYS = 'A'
@@ -148,6 +157,13 @@ class Problem(models.Model):
                                          'These users will be able to view the private problem, but not edit it.'))
     group = models.ForeignKey(ProblemGroup, verbose_name=_('문제 그룹'), on_delete=CASCADE,
                               help_text=_('문제 목록의 분류와 URL에 사용됩니다.'))
+    group_order = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name=_('그룹 내 노출 순서'),
+        help_text=_('문제 그룹 관리자에서 설정하는 학습 순서입니다.'),
+    )
     promotion_exam = models.ForeignKey(
         'PromotionExam', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
         verbose_name=_('승급전'),
