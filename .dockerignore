@@ -3,6 +3,8 @@
 .DS_Store
 .env
 .env.docker
+# 서버별 Blue/Green 상태와 배포 로그를 이미지 build context에서 제외합니다.
+.deployment
 .local
 dmojsite
 data
@@ -15,5 +17,6 @@ docs
 site/.env
 site/db.sqlite3
 site/tmp
+# 운영 설정과 Judge key가 이미지에 의도치 않게 포함되지 않도록 제외합니다.
 site/dmoj/local_settings.py
 site/judge/configs

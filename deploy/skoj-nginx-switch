@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# root 소유로 설치되는 제한된 Nginx backend 전환 도구입니다.
+# setup-deployment.sh가 /usr/local/sbin/skoj-nginx-switch에 설치합니다.
+# 고정된 route 이름만 받아 호출자가 임의 경로나 Nginx 지시문을 넣지 못하게 합니다.
+
+# 링크 생성·검사·reload 중 하나라도 실패하면 즉시 복구 흐름으로 이동합니다.
+set -Eeuo pipefail
+
+# 관리 대상은 setup-deployment.sh가 설치한 전용 디렉터리와 active 링크로 고정합니다.
+readonly CONFIG_DIR=/etc/nginx/skoj
+readonly ROUTE_DIR=$CONFIG_DIR/routes
+readonly ACTIVE_LINK=$CONFIG_DIR/active.conf
+
+# Blue, Green, Maintenance, Legacy 네 이름 외에는 입력 단계에서 거부합니다.
+[[ $# -eq 1 ]] || { printf 'usage: skoj-nginx-switch blue|green|maintenance|legacy\n' >&2; exit 64; }
+case "$1" in
+    blue|green|maintenance|legacy) target=$1 ;;
+    *) printf 'invalid Nginx target: %s\n' "$1" >&2; exit 64 ;;
+esac
+
+# setup 스크립트가 설치한 실제 route 파일이 있는지도 전환 전에 확인합니다.
+target_file="$ROUTE_DIR/$target.conf"
+[[ -f "$target_file" ]] || { printf 'missing Nginx route: %s\n' "$target_file" >&2; exit 66; }
+
+# 검사나 reload 실패 시 되돌릴 수 있도록 기존 심볼릭 링크 대상을 기억합니다.
+previous=''
+if [[ -L "$ACTIVE_LINK" ]]; then
+    previous=$(readlink "$ACTIVE_LINK")
+fi
+# 같은 디렉터리에 새 링크를 만든 뒤 rename해 요청 사이의 부분 상태 없이 원자적으로 교체합니다.
+temporary=$(mktemp --tmpdir="$CONFIG_DIR" active.conf.XXXXXX)
+rm -f "$temporary"
+ln -s "$target_file" "$temporary"
+mv -Tf "$temporary" "$ACTIVE_LINK"
+
+restore_previous() {
+    # 이전 링크도 같은 원자적 교체 방식으로 복원합니다.
+    if [[ -n "$previous" ]]; then
+        local restore
+        restore=$(mktemp --tmpdir="$CONFIG_DIR" active.conf.XXXXXX)
+        rm -f "$restore"
+        ln -s "$previous" "$restore"
+        mv -Tf "$restore" "$ACTIVE_LINK"
+        nginx -t >/dev/null 2>&1 || true
+    fi
+}
+
+# 유효하지 않은 설정은 reload하지 않습니다. 검사 실패 시 이전 링크를 복원해
+# 이후 reload나 서버 재시작도 마지막 정상 backend를 사용하게 합니다.
+if ! nginx -t; then
+    restore_previous
+    printf 'Nginx validation failed; restored previous route\n' >&2
+    exit 78
+fi
+
+# reload 자체가 실패해도 링크를 되돌리고 이전 설정으로 reload를 한 번 더 시도합니다.
+if ! systemctl reload nginx; then
+    restore_previous
+    systemctl reload nginx >/dev/null 2>&1 || true
+    printf 'Nginx reload failed; restored previous route\n' >&2
+    exit 75
+fi
+
+# 성공한 전환은 system journal과 배포 명령 출력 양쪽에 남깁니다.
+logger -t skoj-deploy "Nginx route switched to $target"
+printf 'Nginx route switched to %s\n' "$target"
