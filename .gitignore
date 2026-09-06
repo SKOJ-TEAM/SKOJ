@@ -107,4 +107,5 @@ site/dmoj/local_settings.py
 .agent/
 DEVELOPER_GUIDELINES.md
 status_report/
-restart.sh
+# 서버별 배포 상태와 로그는 deploy/restart 스크립트가 원자적으로 생성하므로 Git에서 제외합니다.
+.deployment/

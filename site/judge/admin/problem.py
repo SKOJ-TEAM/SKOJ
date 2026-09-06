@@ -802,6 +802,9 @@ class ProblemAdmin(VersionAdmin):
                 obj.code = str(int(last_problem.code) + 1)
             else:
                 obj.code = str(10000) #10000번부터 문제 시작          
+
+        if change and form.changed_data and 'group' in form.changed_data:
+            obj.group_order = None
         
         super(ProblemAdmin, self).save_model(request, obj, form, change)
         if form.changed_data and any(field in form.changed_data for field in (

@@ -37,7 +37,16 @@ BRIDGED_DJANGO_ADDRESS = [('0.0.0.0', 9998)]
 BRIDGED_DJANGO_CONNECT = ('bridge', 9998)
 
 DMOJ_PROBLEM_DATA_ROOT = '/problems'
-STATIC_ROOT = '/app/site/tmp/static'
+
+# Blue와 Green은 정적 파일 volume을 공유하지만 서로 다른 릴리스 디렉터리를 사용합니다.
+# RELEASE_ID를 경로에 합치기 전에 이미지 식별자에 안전한 문자만 있는지 검사합니다.
+RELEASE_ID = env('RELEASE_ID', default='development')
+if not all(character.isalnum() or character in '.-_' for character in RELEASE_ID):
+    raise ValueError('RELEASE_ID contains unsafe characters')
+# collectstatic 결과는 릴리스별로 보존해 Nginx 전환과 롤백 중 자산 불일치를 막습니다.
+STATIC_RELEASE_BASE = '/app/site/tmp/static/releases'
+STATIC_ROOT = os.path.join(STATIC_RELEASE_BASE, RELEASE_ID)
+STATIC_URL = f'/static/releases/{RELEASE_ID}/'
 MEDIA_ROOT = '/app/site/tmp/media'
 MEDIA_URL = '/media/'
 STATICFILES_DIRS = [DMOJ_RESOURCES]

@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# 로컬 tmux 세션에서 Judge 1~3을 시작하는 운영 보조 스크립트입니다.
+#
+# 사용 방법:
+#   cd /home/songg9572/SKOJ
+#   ./site/judge/start_judges_1_3.sh
+#
+# 실행 전 `tmux`, DMOJ 실행 파일, `site/judge/configs/skoj-judge*.yml`이 필요합니다.
+# DMOJ 위치가 기본값과 다르면 `DMOJ_BIN=/경로/dmoj` 환경 변수로 지정합니다.
+# 같은 범위의 기존 tmux 세션은 종료하고 새 세션으로 교체합니다.
+# 실행 후 확인: `tmux attach -t dmoj_judge_1_3`
+
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
 DMOJ_BIN="${DMOJ_BIN:-$PROJECT_ROOT/.local/bin/dmoj}"

@@ -620,7 +620,9 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
 
             queryset = queryset.add_i18n_name(self.request.LANGUAGE_CODE)
             sort_key = self.order.lstrip('-')
-            if sort_key in self.sql_sort:
+            if sort_key == 'group_order':
+                queryset = queryset.order_by_group_order()
+            elif sort_key in self.sql_sort:
                 queryset = queryset.order_by(self.order, 'id')
             elif sort_key == 'name':
                 queryset = queryset.order_by(self.order.replace('name', 'i18n_name'), 'id')
@@ -879,6 +881,9 @@ class ProblemList(LoginRequiredMixin, QueryStringSortMixin, TitleMixin, SolvedPr
                 request.session.pop(key, None)
         return HttpResponseRedirect(request.get_full_path())
 class ProblemGroupProblemList(ProblemList):
+    def get_default_sort_order(self, request):
+        return 'group_order'
+
     def get(self, request, *args, **kwargs):
         if kwargs['problem_group'] == 'bruteforce':
             return HttpResponsePermanentRedirect(reverse('problem_group_list', args=('brute-force',)))

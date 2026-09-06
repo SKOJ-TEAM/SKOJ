@@ -10,17 +10,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DockerApplicationConfigurationTest(unittest.TestCase):
     @classmethod
-    def compose_config(cls, extra_environment=None):
+    def compose_config(cls, extra_environment=None, include_development_override=False):
         environment = os.environ.copy()
         environment['SKOJ_ENV_FILE'] = str(ROOT / '.env.docker.example')
         environment.update(extra_environment or {})
+        command = [
+            'docker', 'compose',
+            '--env-file', str(ROOT / '.env.docker.example'),
+            '--profile', 'deployment',
+            '--profile', 'tools',
+            '-f', str(ROOT / 'compose.yaml'),
+        ]
+        if include_development_override:
+            command.extend(['-f', str(ROOT / 'compose.override.yaml')])
+        command.extend(['config', '--format', 'json'])
         result = subprocess.run(
-            [
-                'docker', 'compose',
-                '--env-file', str(ROOT / '.env.docker.example'),
-                '-f', str(ROOT / 'compose.yaml'),
-                'config', '--format', 'json',
-            ],
+            command,
             cwd=ROOT,
             env=environment,
             check=True,
@@ -43,7 +48,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
 
     def test_build_context_excludes_local_secrets_and_virtualenv(self):
         dockerignore = (ROOT / '.dockerignore').read_text()
-        for entry in ('site/.env', 'site/dmoj/local_settings.py', 'dmojsite', 'data', 'logs',
+        for entry in ('site/.env', 'site/dmoj/local_settings.py', 'dmojsite', 'data', 'logs', '.deployment',
                       'site/judge/configs'):
             with self.subTest(entry=entry):
                 self.assertIn(entry, dockerignore)
@@ -55,7 +60,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             'redis://redis:6379/1',
             "('bridge', 9998)",
             "'/problems'",
-            "'/app/site/tmp/static'",
+            "'/app/site/tmp/static/releases'",
         ):
             with self.subTest(value=value):
                 self.assertIn(value, settings)
@@ -68,13 +73,19 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             dockerfile,
         )
 
-        web = self.compose_config()['services']['web']
+        services = self.compose_config(include_development_override=True)['services']
+        web = services['web-blue']
         settings_mount = next(
             volume for volume in web['volumes']
             if volume['target'] == '/app/site/dmoj/settings.py'
         )
         self.assertTrue(settings_mount['source'].endswith('/site/dmoj/settings.example.py'))
         self.assertTrue(settings_mount['read_only'])
+
+        production_web = self.compose_config()['services']['web-blue']
+        self.assertNotIn('/app/site', {
+            volume['target'] for volume in production_web.get('volumes', [])
+        })
 
     def test_example_environment_contains_no_real_secret(self):
         example = (ROOT / '.env.docker.example').read_text()
@@ -107,20 +118,24 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
     def test_compose_defines_application_services(self):
         config = self.compose_config()
         self.assertEqual(
-            {'db', 'redis', 'init', 'web', 'celery', 'bridge', 'judge', 'judge-02'},
+            {
+                'db', 'redis', 'init', 'web-blue', 'web-green',
+                'celery-blue', 'celery-green', 'bridge', 'judge', 'judge-02',
+            },
             set(config['services']),
         )
 
         for service in config['services'].values():
             self.assertNotIn('platform', service)
 
-        web_ports = config['services']['web']['ports']
-        self.assertTrue(any(
-            port.get('host_ip') == '127.0.0.1'
-            and str(port.get('published')) == '8000'
-            and int(port.get('target')) == 8000
-            for port in web_ports
-        ))
+        for service, published in (('web-blue', '8001'), ('web-green', '8002')):
+            with self.subTest(service=service):
+                self.assertTrue(any(
+                    port.get('host_ip') == '127.0.0.1'
+                    and str(port.get('published')) == published
+                    and int(port.get('target')) == 8000
+                    for port in config['services'][service]['ports']
+                ))
 
         db_ports = config['services']['db']['ports']
         self.assertTrue(any(
@@ -134,7 +149,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             with self.subTest(service=internal_service):
                 self.assertNotIn('ports', config['services'][internal_service])
 
-        for django_service in ('web', 'celery', 'bridge'):
+        for django_service in ('web-blue', 'web-green', 'celery-blue', 'celery-green', 'bridge'):
             with self.subTest(service=django_service):
                 self.assertEqual(
                     'dmoj.settings',
@@ -147,7 +162,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
                 '--bind', '0.0.0.0:8000',
                 '--workers', '5',
             ],
-            config['services']['web']['command'],
+            config['services']['web-blue']['command'],
         )
 
         dockerfile = (ROOT / 'dockerfile').read_text()
@@ -157,7 +172,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             dockerfile,
         )
 
-    def test_application_services_wait_for_idempotent_initialization(self):
+    def test_initialization_is_explicit_and_not_a_web_dependency(self):
         services = self.compose_config()['services']
         init = services['init']
 
@@ -166,12 +181,9 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertEqual('service_healthy', init['depends_on']['db']['condition'])
         self.assertEqual('service_healthy', init['depends_on']['redis']['condition'])
 
-        for service in ('web', 'celery', 'bridge'):
+        for service in ('web-blue', 'web-green', 'celery-blue', 'celery-green', 'bridge'):
             with self.subTest(service=service):
-                self.assertEqual(
-                    'service_completed_successfully',
-                    services[service]['depends_on']['init']['condition'],
-                )
+                self.assertNotIn('init', services[service]['depends_on'])
 
         command = (ROOT / 'site/judge/management/commands/initialize_docker.py').read_text()
         self.assertIn("call_command('migrate', interactive=False)", command)
@@ -210,7 +222,7 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertEqual('bind', db_data['type'])
         self.assertTrue(db_data['source'].endswith('/data/mariadb'))
 
-        for service in ('init', 'web', 'celery', 'bridge'):
+        for service in ('init', 'web-blue', 'web-green', 'celery-blue', 'celery-green', 'bridge'):
             with self.subTest(service=service):
                 static = next(
                     volume for volume in services[service]['volumes']
@@ -226,6 +238,20 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
                 self.assertEqual('bind', logs['type'])
                 self.assertTrue(logs['source'].endswith('/logs'))
                 self.assertEqual('/app/site/tmp/logs', services[service]['environment']['LOGGING_ROOT'])
+
+                targets = {volume['target'] for volume in services[service]['volumes']}
+                self.assertNotIn('/app/site', targets)
+                self.assertNotIn('/app/site/dmoj/settings.py', targets)
+                self.assertNotIn('/app/site/dmoj/local_settings.py', targets)
+
+    def test_development_override_restores_source_mounts(self):
+        services = self.compose_config(include_development_override=True)['services']
+        for service in ('init', 'web-blue', 'web-green', 'celery-blue', 'celery-green', 'bridge'):
+            with self.subTest(service=service):
+                targets = {volume['target'] for volume in services[service]['volumes']}
+                self.assertIn('/app/site', targets)
+                self.assertIn('/app/site/dmoj/settings.py', targets)
+                self.assertIn('/app/site/dmoj/local_settings.py', targets)
 
     def test_security_settings_are_configurable_from_environment(self):
         settings = (ROOT / 'docker/django/local_settings.py').read_text()
@@ -330,10 +356,43 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         for command in (
             'cp .env.docker.example .env.docker',
             'mkdir -p data/mariadb data/static logs problems',
-            'docker compose --env-file .env.docker up -d --build',
+            'docker compose --env-file .env.docker --profile tools run --rm init',
             'initialize_docker',
             'python manage.py createsuperuser',
             'python manage.py changepassword admin',
         ):
             with self.subTest(command=command):
                 self.assertIn(command, guide)
+
+    def test_deployment_scripts_and_nginx_routes_are_documented_and_safe(self):
+        # 배포 진입점과 Nginx 전환 도구가 실패 즉시 중단하는 엄격 모드를 유지하는지 확인합니다.
+        deploy = (ROOT / 'deploy.sh').read_text()
+        restart = (ROOT / 'restart.sh').read_text()
+        setup = (ROOT / 'setup-deployment.sh').read_text()
+        switch = (ROOT / 'deploy/skoj-nginx-switch').read_text()
+        nginx = (ROOT / 'deploy/nginx/skoj.conf').read_text()
+
+        for script in (deploy, restart, setup, switch):
+            self.assertIn('set -Eeuo pipefail', script)
+        # 일반 무중단 배포가 migration을 직접 적용하지 않고 명확히 거부하는지 확인합니다.
+        self.assertIn('pending database migrations detected', deploy)
+        self.assertIn('showmigrations --plan', deploy)
+        self.assertIn('compilejsi18n --verbosity 0', deploy)
+        self.assertIn('platform_preflight', deploy)
+        self.assertIn('platform_preflight', restart)
+        library = (ROOT / 'deploy/lib.sh').read_text()
+        self.assertIn('MIN_FREE_KB', library)
+        self.assertIn('compose config --quiet', library)
+        self.assertIn('for service in db redis', library)
+        self.assertNotIn('manage.py migrate', deploy)
+        # 중단 배포는 검증 가능한 DB 백업 후 cache DB 1만 비우며 전체 stack을 내리지 않습니다.
+        self.assertIn('mariadb-dump --single-transaction', restart)
+        self.assertIn('redis-cli -n 1 FLUSHDB', restart)
+        self.assertNotIn('docker compose down', restart)
+        # Nginx는 허용된 route만 검사 후 reload하고 Blue/Green 고정 포트를 사용해야 합니다.
+        self.assertIn('nginx -t', switch)
+        self.assertIn('systemctl reload nginx', switch)
+        self.assertIn('blue|green|maintenance|legacy', switch)
+        self.assertIn('include /etc/nginx/skoj/active.conf', nginx)
+        self.assertIn('127.0.0.1:8001', (ROOT / 'deploy/nginx/routes/blue.conf').read_text())
+        self.assertIn('127.0.0.1:8002', (ROOT / 'deploy/nginx/routes/green.conf').read_text())
