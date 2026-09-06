@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# `/home/ubuntu` 환경의 tmux 세션에서 Judge 7~10을 시작하는 보조 스크립트입니다.
+#
+# 사용 방법:
+#   ./site/judge/start_judges_7_10.sh
+#
+# 실행 전 `tmux`, `/home/ubuntu/.local/bin/dmoj`, `/home/ubuntu/site/judge/configs/`
+# 아래의 `skoj-judge-7.yml`~`skoj-judge-10.yml`이 필요합니다.
+# 같은 이름의 기존 tmux 세션은 종료하고 새 세션으로 교체합니다.
+# 실행 후 확인: `tmux attach -t dmoj_judge_7_10`
+
 # 기존 tmux 세션 종료
 tmux kill-session -t dmoj_judge_7_10 2>/dev/null || true
 
