@@ -4,7 +4,10 @@
 #
 # 사용 방법:
 #   cd /home/songg9572/SKOJ
-#   ./restart.sh "$(git rev-parse HEAD)"
+#   ./restart.sh
+#
+# 특정 SHA를 명시하는 방법:
+#   ./restart.sh <git-sha>
 #
 # 다음 상황에서 사용합니다:
 # - `deploy.sh`가 미적용 마이그레이션을 발견해 종료 코드 20으로 중단된 경우
@@ -27,7 +30,7 @@
 #
 # 백업과 실패 처리:
 # - 기본 백업 위치는 `/home/songg9572/skoj-backups/skoj-pre-deploy-<시각>.sql.gz`입니다.
-# - `SKOJ_BACKUP_DIR=/다른/경로 ./restart.sh <git-sha>`로 백업 위치를 바꿀 수 있습니다.
+# - `SKOJ_BACKUP_DIR=/다른/경로 ./restart.sh`로 백업 위치를 바꿀 수 있습니다.
 # - 백업 생성 또는 검증 실패 시 migrate를 실행하지 않습니다.
 # - 배포 실패 시 Maintenance 화면을 유지하며 DB는 자동 복원하지 않습니다.
 #   원인을 확인한 뒤 DEPLOYMENT.md의 수동 복원 절차를 사용해야 합니다.
@@ -122,13 +125,14 @@ initialize_state_for_first_deploy() {
 }
 
 main() {
-    # 중단 배포는 현재 HEAD를 가리키는 릴리스 SHA 하나만 허용합니다.
-    [[ $# -eq 1 ]] || die "usage: ./restart.sh <git-sha>"
+    # 인자를 생략하면 현재 HEAD를 사용하며, 특정 SHA는 하나만 명시할 수 있습니다.
+    [[ $# -le 1 ]] || die "usage: ./restart.sh [git-sha]"
     prepare_runtime
     require_command gzip
     platform_preflight
-    local release image target_colour had_state=1
-    release=$(validate_release "$1")
+    local requested release image target_colour had_state=1
+    requested=${1:-$(git -C "$SCRIPT_ROOT" rev-parse HEAD)}
+    release=$(validate_release "$requested")
     image=$(build_release_image "$release")
 
     # state.env가 없으면 기존 단일 구조에서 Blue/Green으로 처음 전환하는 경우입니다.
