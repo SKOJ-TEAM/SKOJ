@@ -68,20 +68,20 @@ sudo ./setup-deployment.sh
 최초 managed 배포는 중단 배포로 수행합니다. 이 과정에서 기존 Web·Celery를 중지하고 Bridge를 불변 이미지로 한 번 재생성합니다. Judge는 같은 Bridge에 다시 연결됩니다.
 
 ```sh
-./restart.sh "$(git rev-parse HEAD)"
+./restart.sh
 ```
 
 ## 무중단 배포
 
 ```sh
-./deploy.sh "$(git rev-parse HEAD)"
+./deploy.sh
 ```
 
-스크립트는 dirty worktree와 다른 SHA를 거부합니다. 빌드 전 Compose 유효성, 최소 4GiB 여유 공간, MariaDB·Redis health를 검사하며 `SKOJ_MIN_FREE_KB`로 공간 기준을 높일 수 있습니다. 이미지를 만든 뒤 모델 누락 마이그레이션과 운영 DB의 미적용 마이그레이션을 검사합니다. 미적용 마이그레이션이 하나라도 있으면 DB, 실행 컨테이너, Nginx를 변경하지 않고 종료 코드 `20`으로 중단합니다.
+인자를 생략하면 현재 `HEAD`를 배포하며, 필요한 경우에만 `./deploy.sh <git-sha>`로 명시할 수 있습니다. 스크립트는 dirty worktree와 현재 HEAD가 아닌 SHA를 거부합니다. 빌드 전 Compose 유효성, 최소 4GiB 여유 공간, MariaDB·Redis health를 검사하며 `SKOJ_MIN_FREE_KB`로 공간 기준을 높일 수 있습니다. 이미지를 만든 뒤 모델 누락 마이그레이션과 운영 DB의 미적용 마이그레이션을 검사합니다. 미적용 마이그레이션이 하나라도 있으면 DB, 실행 컨테이너, Nginx를 변경하지 않고 종료 코드 `20`으로 중단합니다.
 
 ```text
 Blue/Green deployment rejected: pending database migrations detected.
-Run: ./restart.sh <sha>
+Run: ./restart.sh
 ```
 
 마이그레이션이 없으면 비활성 Web의 health/smoke 검사를 통과한 뒤 Nginx를 원자적으로 전환합니다. 실제 HTTPS 검사까지 성공하면 새 Celery를 올리고 기존 Celery를 warm shutdown합니다. 이전 Web은 즉시 롤백을 위해 계속 실행합니다.
@@ -104,7 +104,7 @@ Run: ./restart.sh <sha>
 ## 마이그레이션이 있는 중단 배포
 
 ```sh
-./restart.sh "$(git rev-parse HEAD)"
+./restart.sh
 ```
 
 수행 순서는 Maintenance 전환, Web·Celery 정상 종료, DB dump, `initialize_docker`, Django 캐시 삭제, 새 Web·Celery 검사, Nginx 전환입니다. DB, Redis, Bridge, Judge는 계속 실행합니다. Redis DB 1의 Django 캐시만 비우며 DB 0의 Celery queue는 보존합니다.

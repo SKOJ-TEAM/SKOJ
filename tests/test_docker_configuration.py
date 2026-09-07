@@ -420,6 +420,12 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
         self.assertIn('compilejsi18n --verbosity 0', deploy)
         self.assertIn('platform_preflight', deploy)
         self.assertIn('platform_preflight', restart)
+        # SHA 인자를 생략해도 현재 HEAD를 사용하며 기존 명시 SHA와 rollback을 유지합니다.
+        for script in (deploy, restart):
+            self.assertIn('[[ $# -le 1 ]]', script)
+            self.assertIn('${1:-$(git -C "$SCRIPT_ROOT" rev-parse HEAD)}', script)
+            self.assertIn('validate_release "$requested"', script)
+        self.assertIn('if [[ "$requested" == rollback ]]', deploy)
         library = (ROOT / 'deploy/lib.sh').read_text()
         self.assertIn('MIN_FREE_KB', library)
         self.assertIn('compose config --quiet', library)

@@ -4,13 +4,16 @@
 #
 # 사용 방법:
 #   cd /home/songg9572/SKOJ
-#   ./deploy.sh "$(git rev-parse HEAD)"
+#   ./deploy.sh
+#
+# 특정 SHA를 명시하는 방법:
+#   ./deploy.sh <git-sha>
 #
 # 직전 무중단 배포로 롤백하는 방법:
 #   ./deploy.sh rollback
 #
 # 실행 전 조건:
-# - 최초 1회 `sudo ./setup-deployment.sh`와 `./restart.sh <git-sha>`가 완료되어야 합니다.
+# - 최초 1회 `sudo ./setup-deployment.sh`와 `./restart.sh`가 완료되어야 합니다.
 # - 배포할 커밋이 현재 HEAD와 같고 작업 트리에 미커밋 변경이 없어야 합니다.
 # - `.env.docker`가 존재하고 MariaDB와 Redis가 healthy 상태여야 합니다.
 # - 저장소가 있는 디스크에 기본 4 GiB 이상의 여유 공간이 있어야 합니다.
@@ -23,7 +26,7 @@
 #
 # 주의 사항:
 # - 미적용 Django 마이그레이션이 있으면 아무 스키마도 변경하지 않고 종료 코드 20으로
-#   거부합니다. 이 경우 `./restart.sh "$(git rev-parse HEAD)"`를 사용합니다.
+#   거부합니다. 이 경우 `./restart.sh`를 사용합니다.
 # - 전환 후 검사가 실패하면 Nginx와 Celery를 기존 색상으로 자동 복구합니다.
 # - 이 스크립트는 데이터베이스 스키마와 데이터를 변경하지 않습니다.
 # - rollback은 DB를 되돌리지 않으므로 마이그레이션을 적용한 배포 복구에는 사용하지 않습니다.
@@ -95,21 +98,23 @@ rollback_release() {
 }
 
 main() {
-    # 릴리스 SHA 하나 또는 rollback 명령 하나만 허용합니다.
-    [[ $# -eq 1 ]] || die "usage: ./deploy.sh <git-sha>|rollback"
+    # 인자를 생략하면 현재 HEAD를 사용하며, 특정 SHA 또는 rollback 하나만 추가로 허용합니다.
+    [[ $# -le 1 ]] || die "usage: ./deploy.sh [git-sha]|rollback"
     # 필수 명령, 환경 파일, Nginx helper, 중복 배포 잠금을 확인합니다.
     prepare_runtime
 
-    if [[ "$1" == rollback ]]; then
+    local requested
+    requested=${1:-$(git -C "$SCRIPT_ROOT" rev-parse HEAD)}
+    if [[ "$requested" == rollback ]]; then
         rollback_release
         return
     fi
 
     # 일반 배포는 최초 restart.sh가 만든 관리 상태를 기반으로만 실행합니다.
-    load_state || die "no managed deployment state; run ./restart.sh $1 for the first deployment"
+    load_state || die "no managed deployment state; run ./restart.sh $requested for the first deployment"
     platform_preflight
     local release image migration_plan
-    release=$(validate_release "$1")
+    release=$(validate_release "$requested")
     image=$(build_release_image "$release")
     # 현재 활성 색상의 반대편을 이번 후보 배포 슬롯으로 선택합니다.
     original_colour=$ACTIVE_COLOR
@@ -129,7 +134,7 @@ main() {
     if grep -Eq '^\[ \]' <<<"$migration_plan"; then
         printf '%s\n' "$migration_plan" >&2
         printf 'Blue/Green deployment rejected: pending database migrations detected.\n' >&2
-        printf 'Run: ./restart.sh %s\n' "$release" >&2
+        printf 'Run: ./restart.sh\n' >&2
         exit 20
     fi
 

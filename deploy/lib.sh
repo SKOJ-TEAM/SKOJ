@@ -4,8 +4,8 @@
 #
 # 사용 방법:
 # - 관리자가 직접 실행하는 파일이 아닙니다.
-# - 실행 진입점은 무중단 배포 `./deploy.sh <git-sha>` 또는 중단 배포
-#   `./restart.sh <git-sha>`를 사용합니다.
+# - 실행 진입점은 무중단 배포 `./deploy.sh` 또는 중단 배포
+#   `./restart.sh`를 사용합니다. 특정 Git SHA가 필요할 때만 인자로 지정합니다.
 # - 다른 배포 스크립트에서 사용할 때만 다음과 같이 source 합니다.
 #     source "$(dirname "${BASH_SOURCE[0]}")/deploy/lib.sh"
 #
