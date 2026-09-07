@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
     ports:
       # DB는 외부 네트워크가 아닌 호스트 loopback에서만 접근할 수 있습니다.
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:${DB_HOST_PORT:-3306}:3306"
     environment:
       MARIADB_DATABASE: ${DB_NAME:-dmoj}
       MARIADB_USER: ${DB_USER:-dmoj}
@@ -123,7 +123,7 @@ services:
       # health 응답과 정적 파일 경로가 실제 이미지 SHA와 일치하도록 전달합니다.
       RELEASE_ID: ${SKOJ_BLUE_RELEASE:-development}
     ports:
-      - "127.0.0.1:8001:8000"
+      - "127.0.0.1:${BLUE_WEB_HOST_PORT:-8001}:8000"
 
   # Green Web은 Blue와 동일한 내부 구성으로 고정된 호스트 loopback 8002를 사용합니다.
   web-green:
@@ -133,7 +133,7 @@ services:
       <<: *app-environment
       RELEASE_ID: ${SKOJ_GREEN_RELEASE:-development}
     ports:
-      - "127.0.0.1:8002:8000"
+      - "127.0.0.1:${GREEN_WEB_HOST_PORT:-8002}:8000"
     # Green은 일반 compose up에 섞이지 않고 배포 스크립트가 명시할 때만 시작합니다.
     profiles: ["deployment"]
 

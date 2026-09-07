@@ -4,6 +4,35 @@
 
 운영 Blue/Green 배포와 호스트 Nginx 구성은 [DEPLOYMENT.md](DEPLOYMENT.md)를 따릅니다. 운영 스크립트는 override가 자동 적용되지 않도록 항상 `-f compose.yaml`을 명시합니다.
 
+## 빠른 개발 서버 실행
+
+`dev.sh`는 운영 Compose 프로젝트와 포트·데이터를 분리한 개발 서버를 관리합니다. 기본적으로 `skoj-dev` 프로젝트와 `.development/` 데이터 디렉터리를 사용하므로 같은 서버의 운영 `skoj` 컨테이너를 내리지 않습니다.
+
+```sh
+./dev.sh up
+```
+
+브라우저에서 <http://127.0.0.1:18000>을 열어 확인합니다. Django 개발 서버가 Python 변경을 자동으로 다시 읽습니다. 화면 개발에 필요하지 않은 Celery, Bridge, Judge는 기본 실행에서 제외하며 제출과 채점까지 확인할 때만 다음 명령을 사용합니다.
+
+```sh
+./dev.sh up-full
+```
+
+평소에는 개발 컨테이너를 내리고 데이터는 보존합니다.
+
+```sh
+./dev.sh down
+```
+
+상태와 Web 로그는 다음처럼 확인합니다.
+
+```sh
+./dev.sh status
+./dev.sh logs
+```
+
+기본 개발 포트는 Web `18000`, Green `18002`, MariaDB `13306`입니다. `SKOJ_DEV_WEB_PORT`, `SKOJ_DEV_GREEN_PORT`, `SKOJ_DEV_DB_PORT` 환경 변수로 변경할 수 있습니다.
+
 ## 1. 준비
 
 - AMD64 또는 ARM64 Linux

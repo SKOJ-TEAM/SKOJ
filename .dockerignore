@@ -5,6 +5,8 @@
 .env.docker
 # 서버별 Blue/Green 상태와 배포 로그를 이미지 build context에서 제외합니다.
 .deployment
+# dev.sh가 만드는 개발 DB와 실행 데이터를 이미지 build context에서 제외합니다.
+.development
 .local
 dmojsite
 data

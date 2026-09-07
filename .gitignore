@@ -109,3 +109,5 @@ DEVELOPER_GUIDELINES.md
 status_report/
 # 서버별 배포 상태와 로그는 deploy/restart 스크립트가 원자적으로 생성하므로 Git에서 제외합니다.
 .deployment/
+# dev.sh가 만드는 로컬 DB, 정적 파일, 로그와 문제 데이터를 Git에서 제외합니다.
+.development/
