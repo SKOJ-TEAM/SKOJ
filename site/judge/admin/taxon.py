@@ -111,7 +111,8 @@ class ProblemGroupAdmin(admin.ModelAdmin):
 
     class Media:
         css = {'all': ('admin/css/problem_group_order.css',)}
-        js = ('admin/js/problem_group_order.js',)
+        # 순서 UI는 django.jQuery를 사용하므로 Django admin 초기화 스크립트를 먼저 불러온다.
+        js = ('admin/js/jquery.init.js', 'admin/js/problem_group_order.js')
 
     def save_model(self, request, obj, form, change):
         with transaction.atomic():

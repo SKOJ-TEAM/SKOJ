@@ -23,8 +23,8 @@
 
         var $container = $('<div id="problem-group-order" class="module"></div>');
         var $heading = $('<h2>학습 노출 순서</h2>');
-        var $help = $('<p class="help">위아래로 끌어서 배치하세요. 저장하면 1번부터 연속된 순서로 정리됩니다.</p>');
-        var $table = $('<table><thead><tr><th class="order-handle-column">이동</th><th class="order-number-column">순서</th><th>문제</th><th class="order-actions-column">조작</th></tr></thead><tbody></tbody></table>');
+        var $help = $('<p class="help">이동 아이콘을 위아래로 끌어서 배치하세요. 저장하면 1번부터 연속된 순서로 정리됩니다.</p>');
+        var $table = $('<table><thead><tr><th class="order-handle-column">이동</th><th class="order-number-column">순서</th><th>문제</th></tr></thead><tbody></tbody></table>');
         var $tbody = $table.find('tbody');
         $container.append($heading, $help, $table);
         $select.closest('.form-row').after($container);
@@ -48,19 +48,6 @@
             });
         }
 
-        function moveRow(problemId, offset) {
-            var $row = $tbody.find('tr[data-problem-id="' + problemId + '"]');
-            if (!$row.length) {
-                return;
-            }
-            if (offset < 0 && $row.prev().length) {
-                $row.insertBefore($row.prev());
-            } else if (offset > 0 && $row.next().length) {
-                $row.insertAfter($row.next());
-            }
-            updateOrderInput();
-        }
-
         function render() {
             var labels = selectedLabels();
             var selectedIds = Object.keys(labels);
@@ -75,33 +62,18 @@
 
             $tbody.empty();
             order.forEach(function (id, index) {
-                var $row = $('<tr draggable="true"></tr>').attr('data-problem-id', id);
-                var $handle = $('<td class="problem-order-handle" title="끌어서 이동" aria-label="끌어서 이동">☰</td>');
+                var $row = $('<tr></tr>').attr('data-problem-id', id);
+                var $handle = $('<td class="problem-order-handle" draggable="true" title="끌어서 이동" aria-label="끌어서 이동">☰</td>');
                 var $number = $('<td class="problem-order-number"></td>').text(index + 1);
                 var $label = $('<td class="problem-order-label"></td>').text(labels[id]);
-                var $actions = $('<td class="problem-order-actions"></td>');
-                var $up = $('<button type="button" class="button" aria-label="위로 이동">↑</button>');
-                var $down = $('<button type="button" class="button" aria-label="아래로 이동">↓</button>');
-                $up.on('click', function () { moveRow(id, -1); });
-                $down.on('click', function () { moveRow(id, 1); });
-                $actions.append($up, $down);
 
-                if (!originalIds.has(id)) {
-                    var $cancel = $('<button type="button" class="button problem-order-cancel">추가 취소</button>');
-                    $cancel.on('click', function () {
-                        $select.find('option[value="' + id + '"]').prop('selected', false);
-                        $select.trigger('change');
-                    });
-                    $actions.append($cancel);
-                }
-
-                $row.on('dragstart', function (event) {
+                $handle.on('dragstart', function (event) {
                     draggedId = id;
                     event.originalEvent.dataTransfer.effectAllowed = 'move';
                     event.originalEvent.dataTransfer.setData('text/plain', id);
                     $row.addClass('dragging');
                 });
-                $row.on('dragend', function () {
+                $handle.on('dragend', function () {
                     draggedId = null;
                     $row.removeClass('dragging');
                     $tbody.find('tr').removeClass('drag-over');
@@ -132,7 +104,7 @@
                     updateOrderInput();
                 });
 
-                $row.append($handle, $number, $label, $actions);
+                $row.append($handle, $number, $label);
                 $tbody.append($row);
             });
             updateOrderInput();

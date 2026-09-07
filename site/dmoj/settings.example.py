@@ -79,8 +79,9 @@ EXIFTOOL = '/usr/bin/exiftool'
 # ACE_URL is no longer read anywhere. Ace is loaded straight from the vendored
 # copy in resources/vendor/ace/ by django_ace/widgets.py and problem/submit.html,
 # so that CSP (`script-src 'self'`) cannot break it via a stale setting.
-SELECT2_JS_URL = '/static/libs/select2/select2.js'
-SELECT2_CSS_URL = '/static/libs/select2/select2.css'
+# 상대 경로를 사용해야 Blue/Green 및 개발 환경의 릴리스별 STATIC_URL이 자동으로 붙는다.
+SELECT2_JS_URL = 'libs/select2/select2.js'
+SELECT2_CSS_URL = 'libs/select2/select2.css'
 
 DMOJ_CAMO_URL = None
 DMOJ_CAMO_KEY = None
