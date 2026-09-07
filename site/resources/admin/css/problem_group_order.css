@@ -17,10 +17,6 @@
     text-align: center;
 }
 
-#problem-group-order .order-actions-column {
-    width: 16rem;
-}
-
 #problem-group-order .problem-order-handle {
     text-align: center;
     cursor: grab;
@@ -33,8 +29,8 @@
     font-weight: 600;
 }
 
-#problem-group-order .problem-order-actions .button {
-    margin-right: 0.35rem;
+#problem-group-order .problem-order-handle:active {
+    cursor: grabbing;
 }
 
 #problem-group-order tr.dragging {

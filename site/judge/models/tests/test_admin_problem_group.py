@@ -33,6 +33,7 @@ class ProblemGroupAdminOrderTestCase(TestCase):
             '%s,%s' % (self.second.pk, self.first.pk),
         )
 
+    @override_settings(STATIC_URL='/static/releases/test-release/')
     def test_admin_change_page_loads_order_controls_and_assets(self):
         user = get_user_model().objects.create_superuser(
             username='problem-group-admin',
@@ -46,9 +47,40 @@ class ProblemGroupAdminOrderTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'admin/js/problem_group_order.js')
         self.assertContains(response, 'admin/css/problem_group_order.css')
+        self.assertContains(response, '/static/releases/test-release/libs/select2/select2.js')
+        self.assertContains(response, '/static/releases/test-release/libs/select2/select2.css')
         self.assertContains(response, 'data-original-problem-ids="%s,%s"' % (
             self.second.pk, self.first.pk,
         ))
+        self.assertLess(
+            response.content.index(b'admin/js/jquery.init.js'),
+            response.content.index(b'admin/js/problem_group_order.js'),
+        )
+
+    def test_admin_save_without_changes_preserves_order(self):
+        user = get_user_model().objects.create_superuser(
+            username='problem-group-no-change-admin',
+            email='no-change@example.com',
+            password='test-password',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse('admin:judge_problemgroup_change', args=(self.group.pk,)),
+            {
+                'name': self.group.name,
+                'full_name': self.group.full_name,
+                'problems': [self.second.pk, self.first.pk],
+                'problem_order': '%s,%s' % (self.second.pk, self.first.pk),
+                '_save': '저장',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            list(self.group.problem_set.order_by_group_order().values_list('pk', flat=True)),
+            [self.second.pk, self.first.pk],
+        )
 
     def test_form_rejects_duplicate_and_removed_existing_problems(self):
         duplicate_form = ProblemGroupForm(data={
