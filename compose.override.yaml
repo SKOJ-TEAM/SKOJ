@@ -10,6 +10,15 @@ x-development-app: &development-app
     - ./site:/app/site
     - ./site/dmoj/settings.example.py:/app/site/dmoj/settings.py:ro
     - ./docker/django/local_settings.py:/app/site/dmoj/local_settings.py:ro
+  environment:
+    # 로컬 HTTP 접속이 HTTPS로 강제 이동하지 않도록 개발 환경에서만 보안 redirect를 끕니다.
+    DEBUG: "True"
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+    SECURE_SSL_REDIRECT: "False"
+    SECURE_HSTS_INCLUDE_SUBDOMAINS: "False"
+    SECURE_HSTS_PRELOAD: "False"
+    SESSION_COOKIE_SECURE: "False"
+    CSRF_COOKIE_SECURE: "False"
 
 services:
   # 애플리케이션 이미지를 쓰는 모든 Django 계열 서비스에 같은 개발 설정을 적용합니다.
@@ -17,8 +26,11 @@ services:
     <<: *development-app
   web-blue:
     <<: *development-app
+    # Python 변경을 감지해 자동 재시작하는 Django 개발 서버를 사용합니다.
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
   web-green:
     <<: *development-app
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
   celery-blue:
     <<: *development-app
   celery-green:

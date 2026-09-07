@@ -172,6 +172,26 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
             dockerfile,
         )
 
+    def test_development_ports_can_be_isolated_from_production(self):
+        config = self.compose_config({
+            'DB_HOST_PORT': '13306',
+            'BLUE_WEB_HOST_PORT': '18000',
+            'GREEN_WEB_HOST_PORT': '18002',
+        })
+
+        expected_ports = {
+            'db': '13306',
+            'web-blue': '18000',
+            'web-green': '18002',
+        }
+        for service, published in expected_ports.items():
+            with self.subTest(service=service):
+                self.assertTrue(any(
+                    port.get('host_ip') == '127.0.0.1'
+                    and str(port.get('published')) == published
+                    for port in config['services'][service]['ports']
+                ))
+
     def test_initialization_is_explicit_and_not_a_web_dependency(self):
         services = self.compose_config()['services']
         init = services['init']
@@ -252,6 +272,26 @@ class DockerApplicationConfigurationTest(unittest.TestCase):
                 self.assertIn('/app/site', targets)
                 self.assertIn('/app/site/dmoj/settings.py', targets)
                 self.assertIn('/app/site/dmoj/local_settings.py', targets)
+
+        web_environment = services['web-blue']['environment']
+        self.assertEqual('True', web_environment['DEBUG'])
+        self.assertEqual('False', web_environment['SECURE_SSL_REDIRECT'])
+        self.assertEqual(
+            ['python', 'manage.py', 'runserver', '0.0.0.0:8000'],
+            services['web-blue']['command'],
+        )
+
+    def test_development_script_isolated_project_and_preserves_data(self):
+        script = (ROOT / 'dev.sh').read_text()
+
+        self.assertIn('PROJECT_NAME=${SKOJ_DEV_PROJECT_NAME:-skoj-dev}', script)
+        self.assertIn('BLUE_WEB_HOST_PORT=${SKOJ_DEV_WEB_PORT:-18000}', script)
+        self.assertIn('DB_HOST_PORT=${SKOJ_DEV_DB_PORT:-13306}', script)
+        self.assertIn('$SCRIPT_ROOT/.development', script)
+        self.assertIn('--project-name "$PROJECT_NAME"', script)
+        self.assertIn('-f "$SCRIPT_ROOT/compose.override.yaml"', script)
+        self.assertIn('compose down --remove-orphans', script)
+        self.assertNotIn('down --volumes', script)
 
     def test_security_settings_are_configurable_from_environment(self):
         settings = (ROOT / 'docker/django/local_settings.py').read_text()

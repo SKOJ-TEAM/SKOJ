@@ -9,6 +9,7 @@
 | `setup-deployment.sh` | 최초 1회 Nginx Blue/Green 설정과 제한된 전환 권한을 설치합니다. Nginx 템플릿이 변경된 경우에도 다시 실행합니다. |
 | `deploy.sh` | 마이그레이션이 없는 릴리스를 비활성 색상에 올린 뒤 Nginx를 전환하는 무중단 배포 진입점입니다. 직전 일반 배포 롤백도 담당합니다. |
 | `restart.sh` | 최초 도입, 마이그레이션 또는 비호환 변경을 DB 백업 후 Maintenance 상태에서 배포하는 중단 배포 진입점입니다. |
+| `dev.sh` | 운영과 분리된 프로젝트명·포트·데이터로 로컬 개발 서버를 시작하고 종료합니다. 운영 배포에는 사용하지 않습니다. |
 | `.env.docker` | 운영 DB, Redis, Django 등 Compose 실행에 필요한 환경 변수를 보관합니다. Git에 포함하지 않습니다. |
 | `.deployment/state.env` | 활성 색상과 Blue/Green 이미지·릴리스 정보를 기록합니다. 스크립트가 자동 생성하므로 직접 수정하지 않습니다. |
 | `.deployment/history.log` | `deploy.sh`와 `restart.sh`의 주요 배포 기록을 저장합니다. Git에 포함하지 않습니다. |
