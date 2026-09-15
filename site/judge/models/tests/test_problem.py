@@ -88,7 +88,8 @@ class ProblemTestCase(CommonDataMixin, TestCase):
         for common_name, memory_limit in self.basic_problem.language_memory_limit:
             self.assertEqual(memory_limit, 131072)
         for common_name, time_limit in self.basic_problem.language_time_limit:
-            self.assertEqual(time_limit, 100)
+            expected = 10 if common_name == Language.get_python3().name else 100
+            self.assertEqual(time_limit, expected)
 
     def test_basic_problem_methods(self):
         self.assertTrue(self.basic_problem.is_editor(self.users['normal'].profile))

@@ -21,12 +21,13 @@
 # - `.env.docker`가 존재하고 MariaDB와 Redis가 healthy 상태여야 합니다.
 #
 # 배포 동작:
-# - Nginx를 Maintenance로 전환하고 Web과 Celery만 중지합니다.
+# - Nginx를 Maintenance로 전환하고 Web·Celery를 정상 종료한 뒤 기존 채점 완료를 기다립니다.
+# - 채점 완료 확인 후 Bridge를 정지해 백업·초기화 중 채점 쓰기를 막습니다.
 # - MariaDB dump를 만들고 gzip 무결성과 파일 크기를 확인한 뒤 init/migrate를 실행합니다.
 # - Redis DB 1의 Django 캐시만 비우고 Celery queue가 있는 DB 0은 보존합니다.
-# - 새 Web과 Celery의 readiness 검사 후 Nginx를 새 색상으로 전환합니다.
-# - DB, Redis, Bridge, Judge는 계속 실행합니다. 단, 최초 도입 때만 Bridge를
-#   불변 이미지 기반으로 한 번 재생성하며 Judge는 같은 Bridge로 재연결됩니다.
+# - 새 Bridge에 Judge 2개가 재연결되고 Web·Celery readiness가 통과하면 사이트를 재개합니다.
+# - DB·Redis·실행 중인 Judge는 보존하며 Bridge는 매번 새 릴리스 이미지로 교체합니다.
+# - SKOJ_JUDGE_DRAIN_TIMEOUT(기본600초), SKOJ_JUDGE_READY_TIMEOUT(기본120초)으로 대기를 조절합니다.
 #
 # 백업과 실패 처리:
 # - 기본 백업 위치는 `/home/songg9572/skoj-backups/skoj-pre-deploy-<시각>.sql.gz`입니다.
@@ -130,7 +131,10 @@ main() {
     prepare_runtime
     require_command gzip
     platform_preflight
-    local requested release image target_colour had_state=1
+    local requested release image target_colour bridge_started_after had_state=1
+    local drain_timeout=${SKOJ_JUDGE_DRAIN_TIMEOUT:-600} ready_timeout=${SKOJ_JUDGE_READY_TIMEOUT:-120}
+    [[ "$drain_timeout" =~ ^[0-9]+$ && "$ready_timeout" =~ ^[0-9]+$ ]] \
+        || die "judge wait timeouts must be nonnegative integer seconds"
     requested=${1:-$(git -C "$SCRIPT_ROOT" rev-parse HEAD)}
     release=$(validate_release "$requested")
     image=$(build_release_image "$release")
@@ -154,11 +158,19 @@ main() {
     switch_nginx maintenance
     maintenance_enabled=1
 
-    # 동시 실행이 안전하지 않은 변경이므로 모든 Web과 Celery를 정상 종료합니다.
-    compose stop web-blue web-green celery-blue celery-green || true
+    # Web의 진행 중 요청을 마친 다음 Celery의 작업도 마쳐 새 제출 유입을 차단합니다.
+    compose stop --timeout 600 web-blue web-green
+    compose stop --timeout 600 celery-blue celery-green
     if ((had_state == 0)); then
         stop_legacy_application
     fi
+
+    # 새 이미지의 읽기 전용 명령으로 대기열까지 확인합니다. 타임아웃 시 Bridge는 유지합니다.
+    SKOJ_TOOL_IMAGE=$image
+    export_compose_state
+    compose run --rm --no-deps init python manage.py wait_for_judge_state drained --timeout "$drain_timeout" \
+        || die "unfinished submissions remain; Bridge was not restarted"
+    compose stop --timeout 60 bridge
 
     # 검증된 백업 없이는 아래 init/migrate 단계로 진행하지 않습니다.
     backup_database
@@ -169,11 +181,17 @@ main() {
     export_compose_state
     compose run --rm init
 
+    SKOJ_BRIDGE_IMAGE=$image
+    export_compose_state
+    bridge_started_after=$(date +%s)
+    compose up -d --no-deps --force-recreate bridge
     if ((had_state == 0)); then
-        # 최초 도입에서만 Bridge를 불변 이미지로 재생성해 기존 소스 mount를 제거합니다.
-        # Judge는 중지하지 않으며 동일한 단일 Bridge가 돌아오면 다시 연결됩니다.
-        compose up -d --no-deps --force-recreate bridge
+        compose up -d --no-deps judge judge-02
     fi
+    # 이전 online 값만으로 통과하지 않도록 이번 교체 이후 연결 시각까지 검증합니다.
+    compose run --rm --no-deps init python manage.py wait_for_judge_state ready \
+        --since "$bridge_started_after" --timeout "$ready_timeout" \
+        || die "judges did not reconnect to the new Bridge"
 
     # 캐시 DB 1에는 이전 릴리스의 Python 직렬화 객체가 남을 수 있어 비웁니다.
     # Celery queue가 있는 Redis DB 0은 작업 유실 방지를 위해 절대 비우지 않습니다.
@@ -198,4 +216,6 @@ main() {
     log "Pre-deployment database backup: $DATABASE_BACKUP"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
