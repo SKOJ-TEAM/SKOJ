@@ -42,8 +42,9 @@ class RankingViewTestCase(TestCase):
 
         response = self.client.get(reverse('gamification_ranking'))
 
-        self.assertContains(response, '>홍길동</a>')
-        self.assertNotContains(response, '>ranking-user</a>')
+        self.assertContains(response, '<span>홍길동</span>')
+        self.assertNotContains(response, '<span>ranking-user</span>')
+        self.assertContains(response, 'class="profile-avatar"')
 
     def test_ranking_displays_affiliation_and_hides_tier_solve_columns(self):
         cohort = Cohort.objects.create(number=99)

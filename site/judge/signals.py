@@ -118,6 +118,15 @@ def profile_update(sender, instance, **kwargs):
     ProfileGamification.objects.get_or_create(profile=instance)
 
 
+@receiver(post_delete, sender=Profile)
+def profile_avatar_delete(sender, instance, **kwargs):
+    from functools import partial
+    from judge.utils.avatars import delete_unused_avatar
+
+    if instance.avatar:
+        transaction.on_commit(partial(delete_unused_avatar, instance.avatar.name))
+
+
 @receiver(post_save, sender=User)
 def ensure_user_profile(sender, instance, created, **kwargs):
     if not created:

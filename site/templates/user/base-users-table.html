@@ -458,7 +458,7 @@
                 <!-- {% block after_rank scoped %}{% endblock %} -->
                  #}
                 <td class="user-first_name">
-                    {{ link_user_name(user) }} {% block user_data scoped %}{% endblock %}
+                    {% block user_name scoped %}{{ link_user_name(user) }}{% endblock %} {% block user_data scoped %}{% endblock %}
                 </td>
                 {% block after_tier scoped %}{% endblock %}
                 {% block after_training_class scoped%}{% endblock %}

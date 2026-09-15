@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils.html import format_html
+
+from judge.jinja2.gravatar import gravatar
 
 
 User = get_user_model()
@@ -23,13 +26,22 @@ class UserListViewTestCase(TestCase):
     def setUp(self):
         self.client.force_login(self.viewer)
 
+    def assertAvatarNameLink(self, response, user):
+        self.assertContains(response, format_html(
+            '<a class="profile-avatar-name" href="{}" aria-label="{} 프로필 보기">'
+            '<img class="profile-avatar" src="{}" alt="" width="32" height="32" '
+            'loading="lazy" decoding="async">{}</a>',
+            reverse('user_page', args=(user.username,)), user.first_name or '사용자',
+            gravatar(user.profile, 32), user.first_name,
+        ), html=True)
+
     def test_list_displays_names_for_all_user_types(self):
         response = self.client.get(reverse('user_list'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<th class="header first_name">이름</th>', html=True)
-        self.assertContains(response, '<a href="/user/normal-login">홍길동</a>', html=True)
-        self.assertContains(response, '<a href="/user/staff-login">김교수</a>', html=True)
+        self.assertAvatarNameLink(response, self.normal)
+        self.assertAvatarNameLink(response, self.staff)
         self.assertNotContains(response, '>normal-login</a>')
         self.assertNotContains(response, '>staff-login</a>')
         self.assertNotContains(response, 'class="user-name"')
@@ -37,7 +49,7 @@ class UserListViewTestCase(TestCase):
     def test_list_leaves_missing_name_blank_without_username_fallback(self):
         response = self.client.get(reverse('user_list'))
 
-        self.assertContains(response, '<a href="/user/unnamed-login"></a>', html=True)
+        self.assertAvatarNameLink(response, self.unnamed)
         self.assertNotContains(response, '>unnamed-login</a>')
 
     def test_list_escapes_name_text(self):

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.conf.urls.static import static as serve_media
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.contrib.sitemaps.views import sitemap
@@ -25,6 +26,7 @@ from judge.views.select2 import ClassSelect2View, CommentSelect2View, ContestSel
     ContestUserSearchSelect2View, ProblemSelect2View, \
     UserSearchSelect2View, UserSelect2View#, OrganizationSelect2View
 from judge.views.widgets import martor_image_uploader
+from judge.views.avatar import edit_avatar
 # Blue/Green 전환 전에 새 Web의 DB·Redis·릴리스 ID를 확인하는 readiness view입니다.
 from judge.views.health import healthz
 
@@ -213,6 +215,7 @@ urlpatterns = [
 
     path('user', user.UserAboutPage.as_view(), name='user_page'),
     path('edit/profile/', user.edit_profile, name='user_edit_profile'),
+    path('edit/profile/avatar/', edit_avatar, name='user_edit_avatar'),
     path('data/prepare/', user.UserPrepareData.as_view(), name='user_prepare_data'),
     path('data/download/', user.UserDownloadData.as_view(), name='user_download_data'),
     path('user/<str:user>', include([
@@ -531,3 +534,9 @@ if 'newsletter' in settings.INSTALLED_APPS:
     urlpatterns.append(path('newsletter/', include('newsletter.urls')))
 if 'impersonate' in settings.INSTALLED_APPS:
     urlpatterns.append(path('impersonate/', include('impersonate.urls')))
+
+# Production serves media through Nginx; make uploaded photos visible on the isolated dev server too.
+if settings.DEBUG:
+    import mimetypes
+    mimetypes.add_type('image/webp', '.webp')
+    urlpatterns += serve_media(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

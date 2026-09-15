@@ -1,6 +1,8 @@
 {% extends "user/user-base.html" %}
 
 {% block user_media %}
+    <link rel="stylesheet" href="{{ static('avatar-editor.css') }}">
+    <script src="{{ static('avatar-editor.js') }}" defer></script>
     {% include "timezone/media-css.html" %}
     {{ form.media.css }}
     <style>
@@ -369,6 +371,7 @@
 
 {% block body %}
     <div class="centered-form">
+        {% include "user/avatar-editor.html" %}
         <form id="edit-form" action="" method="post" class="form-area">
             {% if form.errors %}
                 <div class="alert alert-danger alert-dismissable">
@@ -452,11 +455,6 @@
                                 <label for="id_test_site" style="float: unset" class="inline-header grayed">
                                     {{- form.test_site.label -}}
                                 </label>
-                            </td></tr>
-                            <tr><td>
-                                <a href="https://www.gravatar.com/" target="_blank" class="inline-header" rel="noopener">
-                                    {{ _('Change your avatar') }}
-                                </a>
                             </td></tr>
                             <tr><td>
                                 <a href="{{ url('password_change') }}" class="inline-header">

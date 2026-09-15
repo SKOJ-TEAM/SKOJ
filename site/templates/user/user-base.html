@@ -233,7 +233,7 @@
         <div class="user-sidebar-area">
             <div class="user-sidebar-div">
                 <div class="user-sidebar">
-                    <img src="{{ gravatar(user, 135) }}" class="user-gravatar">
+                    <img {% if user == request.profile %}data-own-avatar{% endif %} src="{{ gravatar(user, 135) }}" alt="프로필 사진" class="user-gravatar">
                     <br>
                     <div class="user-info-text">
                         <div class="user-info-text-1">

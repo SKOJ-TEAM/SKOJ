@@ -13,8 +13,12 @@ def gravatar(email, size=80, default=None):
     if isinstance(email, Profile):
         if default is None:
             default = email.mute
+        if email.avatar and not default and not email.mute:
+            return email.avatar.url
         email = email.user.email
     elif isinstance(email, AbstractUser):
+        if hasattr(email, 'profile'):
+            return gravatar(email.profile, size, default)
         email = email.email
 
     gravatar_url = 'https://www.gravatar.com/avatar/' + hashlib.md5(utf8bytes(email.strip().lower())).hexdigest() + '?'
