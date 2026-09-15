@@ -1,5 +1,6 @@
 {% extends "submission/info-base.html" %}
 {% block media %}
+<link rel="stylesheet" href="{{ static('problem-group-navigation.css') }}">
 <style>
     .tabs {
         margin: 0 auto;
@@ -135,6 +136,14 @@
 {% endblock %}
 
 {% block body %}
+    {% if problem_group_navigation %}
+    <nav class="problem-group-navigation" aria-label="문제 분류 탐색">
+        <a href="{{ problem_group_navigation.url }}">
+            <span class="navigation-label">{{ problem_group_navigation.name }} 문제 더 풀기</span>
+            <span class="navigation-arrow" aria-hidden="true">→</span>
+        </a>
+    </nav>
+    {% endif %}
     <div id="test-cases">{% include "submission/status-testcases.html" %}</div>
 
     {% if not submission.is_graded %}

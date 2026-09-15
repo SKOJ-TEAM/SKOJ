@@ -42,6 +42,7 @@ from judge.models import ContestSubmission, Judge, Language, Problem, ProblemGro
 from judge.pdf_problems import DefaultPdfMaker, HAS_PDF
 from judge.utils.diggpaginator import DiggPaginator
 from judge.utils.opengraph import generate_opengraph
+from judge.utils.problem_navigation import problem_group_navigation
 from judge.utils.problems import contest_attempted_ids, contest_completed_ids, hot_problems, user_attempted_ids, \
     user_completed_ids
 from judge.utils.strings import safe_float_or_none, safe_int_or_none
@@ -174,12 +175,18 @@ class ProblemDetail(ProblemMixin, SolvedProblemMixin, CommentedDetailView):
     context_object_name = 'problem'
     template_name = 'problem/problem.html'
 
+    def get_queryset(self):
+        return super().get_queryset().select_related('group')
+
     def get_comment_page(self):
         return 'p:%s' % self.object.code
 
     def get_context_data(self, **kwargs):
         context = super(ProblemDetail, self).get_context_data(**kwargs)
         user = self.request.user
+        context['problem_group_navigation'] = problem_group_navigation(
+            self.object, in_contest=self.request.in_contest,
+        )
 
         context['vote_perm'] = self.object.vote_permission_for_user(user)
         context['now'] = timezone.now()

@@ -1,0 +1,44 @@
+.problem-group-navigation {
+    position: static;
+    width: auto;
+    height: auto;
+    max-width: calc(100vw - 32px);
+    background: transparent;
+    z-index: auto;
+    display: flex;
+    min-width: 0;
+    margin-bottom: 8px;
+}
+
+.problem-group-navigation a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 4px;
+    color: var(--font-black);
+    font-size: 14px;
+    line-height: 1.5;
+    text-decoration: none;
+}
+
+.problem-group-navigation a:hover {
+    text-decoration: underline;
+}
+
+.problem-group-navigation a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+.problem-group-navigation .navigation-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.problem-group-navigation .navigation-arrow {
+    flex-shrink: 0;
+}
