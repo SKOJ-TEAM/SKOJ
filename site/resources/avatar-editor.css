@@ -15,6 +15,21 @@
 .avatar-editor-current img { border-radius: 50%; object-fit: cover; flex: 0 0 80px; }
 .avatar-editor label { display: block; float: none; margin-bottom: 8px; font-weight: 600; }
 .avatar-editor input[type="file"] { max-width: 100%; }
+#avatar-file { font: inherit; color: var(--font-grey); }
+#avatar-file::file-selector-button {
+    margin-right: 12px;
+    padding: 10px 16px;
+    border: 1px solid var(--brand-red, #c62828);
+    border-radius: 6px;
+    background: var(--brand-red, #c62828);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+#avatar-file:not(:disabled):hover::file-selector-button { filter: brightness(0.9); }
+#avatar-file:focus-visible { outline: 2px solid var(--brand-red, #c62828); outline-offset: 3px; border-radius: 6px; }
+#avatar-file:disabled::file-selector-button { opacity: 0.5; cursor: not-allowed; }
 .avatar-editor input[type="range"] { width: 100%; margin: 0 0 14px; accent-color: var(--brand-red, #c62828); }
 #avatar-help, .avatar-editor-note, .avatar-editor-sliders p { color: var(--font-grey); font-size: 13px; line-height: 1.6; }
 #avatar-crop:not([hidden]) { display: flex; align-items: center; gap: 28px; margin: 24px 0; flex-wrap: wrap; }
