@@ -5,8 +5,8 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from judge.gamification import get_attempt_solved_problem_ids, get_tier_progress, sync_profile_gamification
-from judge.models import DifficultyCluster, Language, ProblemGroup, Profile, ProfileGamification, PromotionAttempt, \
-    PromotionExam, Submission, Tier
+from judge.models import DifficultyCluster, Language, ProblemGroup, Profile, ProfileGamification, ChallengeAttempt, \
+    ChallengeExam, Submission, Tier
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -23,9 +23,9 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.regular_problem = create_problem(
             code='tierregular', points=10, is_public=True, group=self.problem_group,
         )
-        self.exam = PromotionExam.objects.create(title='Silver 승급전', source_tier=Tier.BRONZE)
+        self.exam = ChallengeExam.objects.create(title='Silver 승급전', source_tier=Tier.BRONZE)
         self.exam_problem = create_problem(
-            code='tierexam', points=10, is_public=True, group=self.problem_group, promotion_exam=self.exam,
+            code='tierexam', points=10, is_public=True, group=self.problem_group, challenge_exam=self.exam,
         )
 
     def create_full_solve(self, problem):
@@ -48,7 +48,7 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         gamification = self.profile.gamification
         gamification.refresh_from_db()
         progress = get_tier_progress(self.profile)
-        attempt = PromotionAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
+        attempt = ChallengeAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
 
         self.assertEqual(gamification.weighted_score, 3)
         self.assertEqual(gamification.bronze_solved, 1)
@@ -56,38 +56,38 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.assertEqual(list(attempt.problems.all()), [self.exam_problem])
         self.assertTrue(self.exam_problem.is_accessible_by(self.users['normal']))
 
-        self.exam_problem.promotion_exam = None
+        self.exam_problem.challenge_exam = None
         self.exam_problem.is_public = False
         self.exam_problem.save()
         self.assertTrue(self.exam_problem.is_accessible_by(self.users['normal']))
 
-    def test_promotion_solve_before_unlock_is_not_counted(self):
+    def test_challenge_solve_before_unlock_is_not_counted(self):
         earlier_submission = self.create_full_solve(self.exam_problem)
         self.create_full_solve(self.regular_problem)
-        attempt = PromotionAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
+        attempt = ChallengeAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
 
         self.assertNotIn(earlier_submission.problem_id, get_attempt_solved_problem_ids(attempt))
         self.profile.gamification.refresh_from_db()
         self.assertEqual(self.profile.gamification.current_tier, Tier.BRONZE)
 
-        promotion_submission = self.create_full_solve(self.exam_problem)
+        challenge_submission = self.create_full_solve(self.exam_problem)
         self.profile.gamification.refresh_from_db()
         attempt.refresh_from_db()
         self.assertEqual(self.profile.gamification.current_tier, Tier.SILVER)
         self.assertIsNotNone(attempt.completed_at)
 
-        promotion_submission.result = 'WA'
-        promotion_submission.points = 0
-        promotion_submission.save()
+        challenge_submission.result = 'WA'
+        challenge_submission.points = 0
+        challenge_submission.save()
         self.profile.gamification.refresh_from_db()
         self.assertEqual(self.profile.gamification.current_tier, Tier.SILVER)
 
-    def test_every_problem_added_after_unlock_is_required_for_promotion(self):
+    def test_every_problem_added_after_unlock_is_required_for_challenge(self):
         self.create_full_solve(self.regular_problem)
-        attempt = PromotionAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
+        attempt = ChallengeAttempt.objects.get(profile=self.profile, source_tier=Tier.BRONZE)
         added_problem = create_problem(
             code='tierexamadded', points=10, is_public=True, group=self.problem_group,
-            promotion_exam=self.exam, promotion_order=1,
+            challenge_exam=self.exam, challenge_order=1,
         )
 
         self.create_full_solve(self.exam_problem)
@@ -105,7 +105,7 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         self.assertEqual(self.profile.gamification.current_tier, Tier.SILVER)
         self.assertIsNotNone(attempt.completed_at)
 
-    def test_five_tier_promotion_order(self):
+    def test_five_tier_challenge_order(self):
         self.assertEqual(Tier.next(Tier.BRONZE), Tier.SILVER)
         self.assertEqual(Tier.next(Tier.SILVER), Tier.GOLD)
         self.assertEqual(Tier.next(Tier.GOLD), Tier.DIAMOND)
@@ -179,7 +179,7 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
             ranking_weight=5,
         )
         self.create_full_solve(self.regular_problem)
-        self.assertFalse(PromotionAttempt.objects.filter(profile=self.profile).exists())
+        self.assertFalse(ChallengeAttempt.objects.filter(profile=self.profile).exists())
 
     def test_rebuild_command_is_repeatable_for_one_profile(self):
         self.create_full_solve(self.regular_problem)
@@ -187,4 +187,4 @@ class GamificationProgressTestCase(CommonDataMixin, TestCase):
         call_command('rebuild_gamification', '--profile', str(self.profile.id), verbosity=0)
         self.profile.gamification.refresh_from_db()
         self.assertEqual(self.profile.gamification.weighted_score, 3)
-        self.assertEqual(PromotionAttempt.objects.filter(profile=self.profile).count(), 1)
+        self.assertEqual(ChallengeAttempt.objects.filter(profile=self.profile).count(), 1)

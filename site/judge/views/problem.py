@@ -560,7 +560,7 @@ def get_visible_problem_filter(user, profile=None):
         problem_filter |= Q(authors=profile)
         problem_filter |= Q(curators=profile)
         problem_filter |= Q(testers=profile)
-    return problem_filter & Q(promotion_exam__isnull=True)
+    return problem_filter & Q(challenge_exam__isnull=True)
 
 
 def get_visible_problem_groups(user, profile=None):

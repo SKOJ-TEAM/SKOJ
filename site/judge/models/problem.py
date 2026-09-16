@@ -165,11 +165,11 @@ class Problem(models.Model):
         verbose_name=_('그룹 내 노출 순서'),
         help_text=_('문제 그룹 관리자에서 설정하는 학습 순서입니다.'),
     )
-    promotion_exam = models.ForeignKey(
-        'PromotionExam', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
+    challenge_exam = models.ForeignKey(
+        'ChallengeExam', on_delete=SET_NULL, null=True, blank=True, related_name='problems',
         verbose_name=_('승급전'),
     )
-    promotion_order = models.PositiveIntegerField(default=0, verbose_name=_('승급전 문제 순서'))
+    challenge_order = models.PositiveIntegerField(default=0, verbose_name=_('승급전 문제 순서'))
     time_limit = models.FloatField(verbose_name=_('time limit'),
                                    help_text=_('The time limit for this problem, in seconds. '
                                                'Fractional seconds (e.g. 1.5) are supported.'),
@@ -265,7 +265,7 @@ class Problem(models.Model):
         return False
 
     def is_accessible_by(self, user, skip_contest_problem_check=False):
-        if self.promotion_exam_id:
+        if self.challenge_exam_id:
             if user.is_authenticated and (
                     user.has_perm('judge.manage_contest_problem') or
                     user.has_perm('judge.see_private_problem') or
@@ -273,12 +273,12 @@ class Problem(models.Model):
                 return True
             if not user.is_authenticated:
                 return False
-            from judge.gamification import can_access_promotion_problem
-            return can_access_promotion_problem(user.profile, self)
+            from judge.gamification import can_access_challenge_problem
+            return can_access_challenge_problem(user.profile, self)
 
         if user.is_authenticated:
-            from judge.gamification import can_access_promotion_problem
-            if can_access_promotion_problem(user.profile, self):
+            from judge.gamification import can_access_challenge_problem
+            if can_access_challenge_problem(user.profile, self):
                 return True
 
         # If we don't want to check if the user is in a contest containing that problem.
@@ -356,8 +356,8 @@ class Problem(models.Model):
         view_all_problem = user.has_perm('judge.view_all_problem')
         edit_public_problem = edit_own_problem and user.has_perm('judge.edit_public_problem')
         edit_all_problem = edit_own_problem and user.has_perm('judge.edit_all_problem')
-        from judge.models.gamification import PromotionAttemptProblem
-        promotion_ids = PromotionAttemptProblem.objects.filter(
+        from judge.models.gamification import ChallengeAttemptProblem
+        challenge_ids = ChallengeAttemptProblem.objects.filter(
             attempt__profile=user.profile,
         ).values('problem_id')
 
@@ -377,7 +377,7 @@ class Problem(models.Model):
             q |= Q(authors=user.profile)
             q |= Q(curators=user.profile)
             q |= Q(testers=user.profile)
-            q |= Q(id__in=promotion_ids)
+            q |= Q(id__in=challenge_ids)
             if user.has_perm('judge.manage_contest_problem'):
                 q |= Q(is_contest_problem=True)
             queryset = queryset.filter(q)
@@ -387,13 +387,13 @@ class Problem(models.Model):
 
         if not (user.has_perm('judge.manage_contest_problem') or user.has_perm('judge.see_private_problem') or
                 user.has_perm('judge.view_all_problem')):
-            queryset = queryset.filter(Q(promotion_exam__isnull=True) | Q(id__in=promotion_ids))
+            queryset = queryset.filter(Q(challenge_exam__isnull=True) | Q(id__in=challenge_ids))
         return queryset
 
     @classmethod
     def get_public_problems(cls):
         # return cls.objects.filter(is_public=True, is_organization_private=False).defer('description')
-        return cls.objects.filter(is_public=True, is_contest_problem=False, promotion_exam__isnull=True).defer(
+        return cls.objects.filter(is_public=True, is_contest_problem=False, challenge_exam__isnull=True).defer(
             'description',
         )
 
@@ -564,7 +564,7 @@ class Problem(models.Model):
         if not (settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT <= memory_limit_kb <= settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT):
             raise ValidationError({'memory_limit': _('Memory limit must be between {min} and {max} KB.').format(
                 min=settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT, max=settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT)})
-        if self.is_contest_problem and self.promotion_exam_id:
+        if self.is_contest_problem and self.challenge_exam_id:
             raise ValidationError({
                 'is_contest_problem': _('대회 전용 문제는 승급전에 사용할 수 없습니다.'),
             })

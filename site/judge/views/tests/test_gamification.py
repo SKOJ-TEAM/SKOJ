@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from judge.models import AlgorithmGuide, Campus, Cohort, GuideCompletion, Language, ProblemGroup, \
-    ProfileGamification, PromotionAttempt, PromotionAttemptProblem, PromotionExam, Submission, Tier, TrainingClass
+    ProfileGamification, ChallengeAttempt, ChallengeAttemptProblem, ChallengeExam, Submission, Tier, TrainingClass
 from judge.models.tests.util import CommonDataMixin, create_problem
 
 
@@ -148,7 +148,7 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, "var theme = 'dark';")
 
     @override_settings(DMOJ_HOME_LEARNING_CARDS_ENABLED=True)
-    def test_authenticated_home_shows_tier_and_promotion_cards(self):
+    def test_authenticated_home_shows_tier_and_challenge_cards(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('home'))
 
@@ -257,7 +257,7 @@ class HomeGamificationCardTestCase(TestCase):
         )
         self.assertContains(response, 'id="tier-panel-current" role="tabpanel"', html=False)
         self.assertContains(response, 'id="guide-panel-completed" role="tabpanel"', html=False)
-        self.assertContains(response, 'id="tier-panel-promotion" role="tabpanel"', html=False)
+        self.assertContains(response, 'id="tier-panel-challenge" role="tabpanel"', html=False)
         self.assertContains(response, 'id="guide-panel-completed" role="tabpanel"', html=False)
         self.assertContains(response, 'hidden', html=False)
 
@@ -333,29 +333,29 @@ class HomeGamificationCardTestCase(TestCase):
 
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
-class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
+class ChallengeExamProblemManagerTestCase(CommonDataMixin, TestCase):
     def setUp(self):
-        self.exam = PromotionExam.objects.create(title='Gold 승급전', source_tier=Tier.BRONZE)
-        self.first_problem = create_problem(code='promotion-one', name='첫 번째 문제', is_public=True)
-        self.second_problem = create_problem(code='promotion-two', name='두 번째 문제', is_public=True)
+        self.exam = ChallengeExam.objects.create(title='Gold 승급전', source_tier=Tier.BRONZE)
+        self.first_problem = create_problem(code='challenge-one', name='첫 번째 문제', is_public=True)
+        self.second_problem = create_problem(code='challenge-two', name='두 번째 문제', is_public=True)
         self.contest_problem = create_problem(
-            code='promotion-contest', name='대회 문제', is_public=True, is_contest_problem=True,
+            code='challenge-contest', name='대회 문제', is_public=True, is_contest_problem=True,
         )
         self.client.force_login(self.users['superuser'])
 
     def test_change_page_links_to_problem_manager(self):
-        response = self.client.get(reverse('admin:judge_promotionexam_change', args=(self.exam.pk,)))
+        response = self.client.get(reverse('admin:judge_challengeexam_change', args=(self.exam.pk,)))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            reverse('admin:judge_promotionexam_problem_manager', args=(self.exam.pk,)),
+            reverse('admin:judge_challengeexam_problem_manager', args=(self.exam.pk,)),
         )
         self.assertContains(response, '현재 선택된 문제: 0개')
         self.assertNotContains(response, 'name="problems"')
 
     def test_add_page_saves_exam_then_redirects_to_problem_manager(self):
-        add_url = reverse('admin:judge_promotionexam_add')
+        add_url = reverse('admin:judge_challengeexam_add')
         add_response = self.client.get(add_url)
 
         self.assertEqual(add_response.status_code, 200)
@@ -368,10 +368,10 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
             '_manage_problems': '1',
         })
 
-        created_exam = PromotionExam.objects.get(title='Diamond 승급전')
+        created_exam = ChallengeExam.objects.get(title='Diamond 승급전')
         self.assertRedirects(
             response,
-            reverse('admin:judge_promotionexam_problem_manager', args=(created_exam.pk,)),
+            reverse('admin:judge_challengeexam_problem_manager', args=(created_exam.pk,)),
             fetch_redirect_response=False,
         )
 
@@ -383,11 +383,11 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
         self.assertEqual(ranking_menu['model'], 'judge.ProfileGamification')
         self.assertEqual(ranking_menu['children'], [
             'judge.DifficultyCluster',
-            'judge.PromotionExam',
-            'judge.PromotionAttempt',
+            'judge.ChallengeExam',
+            'judge.ChallengeAttempt',
         ])
         self.assertEqual(ProfileGamification._meta.verbose_name_plural, '사용자 티어')
-        self.assertEqual(PromotionExam._meta.verbose_name_plural, '승급전')
+        self.assertEqual(ChallengeExam._meta.verbose_name_plural, '승급전')
 
         response = self.client.get(reverse('admin:index'))
         self.assertEqual(response.status_code, 200)
@@ -399,7 +399,7 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
 
     def test_problem_manager_lists_general_problems_and_excludes_contest_problems(self):
         response = self.client.get(reverse(
-            'admin:judge_promotionexam_problem_manager', args=(self.exam.pk,),
+            'admin:judge_challengeexam_problem_manager', args=(self.exam.pk,),
         ))
 
         self.assertEqual(response.status_code, 200)
@@ -416,7 +416,7 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
         self.assertNotIn(self.contest_problem.pk, problem_ids)
 
     def test_problem_manager_updates_exam_assignments(self):
-        update_url = reverse('admin:judge_promotionexam_problem_manager_update', args=(self.exam.pk,))
+        update_url = reverse('admin:judge_challengeexam_problem_manager_update', args=(self.exam.pk,))
         response = self.client.post(update_url, {
             'selected_items': json.dumps({
                 str(self.first_problem.pk): True,
@@ -427,8 +427,8 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.first_problem.refresh_from_db()
         self.second_problem.refresh_from_db()
-        self.assertEqual(self.first_problem.promotion_exam, self.exam)
-        self.assertIsNone(self.second_problem.promotion_exam)
+        self.assertEqual(self.first_problem.challenge_exam, self.exam)
+        self.assertIsNone(self.second_problem.challenge_exam)
 
         response = self.client.post(update_url, {
             'selected_items': json.dumps({
@@ -440,22 +440,22 @@ class PromotionExamProblemManagerTestCase(CommonDataMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.first_problem.refresh_from_db()
         self.second_problem.refresh_from_db()
-        self.assertIsNone(self.first_problem.promotion_exam)
-        self.assertEqual(self.second_problem.promotion_exam, self.exam)
+        self.assertIsNone(self.first_problem.challenge_exam)
+        self.assertEqual(self.second_problem.challenge_exam, self.exam)
 
     def test_problem_manager_syncs_unfinished_attempt_problem_list(self):
-        self.first_problem.promotion_exam = self.exam
-        self.first_problem.save(update_fields=('promotion_exam',))
-        attempt = PromotionAttempt.objects.create(
+        self.first_problem.challenge_exam = self.exam
+        self.first_problem.save(update_fields=('challenge_exam',))
+        attempt = ChallengeAttempt.objects.create(
             profile=self.users['normal'].profile,
             exam=self.exam,
             source_tier=Tier.BRONZE,
             target_tier=Tier.SILVER,
         )
-        PromotionAttemptProblem.objects.create(attempt=attempt, problem=self.first_problem, order=0)
+        ChallengeAttemptProblem.objects.create(attempt=attempt, problem=self.first_problem, order=0)
 
         response = self.client.post(
-            reverse('admin:judge_promotionexam_problem_manager_update', args=(self.exam.pk,)),
+            reverse('admin:judge_challengeexam_problem_manager_update', args=(self.exam.pk,)),
             {'selected_items': json.dumps({
                 str(self.first_problem.pk): True,
                 str(self.second_problem.pk): True,

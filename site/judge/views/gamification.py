@@ -2,18 +2,18 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Case, IntegerField, Value, When
 from django.views.generic import TemplateView
 
-from judge.gamification import get_promotion_context
+from judge.gamification import get_challenge_context
 from judge.models import ProfileGamification, Tier
 from judge.utils.views import TitleMixin
 
 
-class PromotionView(LoginRequiredMixin, TitleMixin, TemplateView):
+class ChallengeView(LoginRequiredMixin, TitleMixin, TemplateView):
     title = '승급전'
-    template_name = 'gamification/promotion.html'
+    template_name = 'gamification/challenge.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(get_promotion_context(self.request.profile))
+        context.update(get_challenge_context(self.request.profile))
         return context
 
 

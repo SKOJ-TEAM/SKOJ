@@ -5,8 +5,8 @@ from django.db import transaction
 from django.db.models import Count, F, Min, Q
 from django.utils import timezone
 
-from judge.models import DifficultyCluster, Problem, ProblemGroup, ProfileGamification, PromotionAttempt, \
-    PromotionAttemptProblem, PromotionExam, Submission, Tier
+from judge.models import DifficultyCluster, Problem, ProblemGroup, ProfileGamification, ChallengeAttempt, \
+    ChallengeAttemptProblem, ChallengeExam, Submission, Tier
 
 
 def get_or_create_gamification(profile):
@@ -18,7 +18,7 @@ def solved_cluster_problems(profile):
     return Problem.objects.filter(
         is_public=True,
         is_contest_problem=False,
-        promotion_exam__isnull=True,
+        challenge_exam__isnull=True,
         group__difficulty_clusters__is_active=True,
         submission__user=profile,
         submission__result='AC',
@@ -57,7 +57,7 @@ def get_tier_progress(profile, tier=None):
         solved_count=Count('problem_group__problem', filter=Q(
             problem_group__problem__is_public=True,
             problem_group__problem__is_contest_problem=False,
-            problem_group__problem__promotion_exam__isnull=True,
+            problem_group__problem__challenge_exam__isnull=True,
             problem_group__problem__submission__user=profile,
             problem_group__problem__submission__result='AC',
             problem_group__problem__submission__points__gte=F('problem_group__problem__points'),
@@ -65,7 +65,7 @@ def get_tier_progress(profile, tier=None):
     ).order_by('order', 'problem_group__full_name'))
 
 
-def is_eligible_for_promotion(profile, gamification=None):
+def is_eligible_for_challenge(profile, gamification=None):
     gamification = gamification or get_or_create_gamification(profile)
     if gamification.current_tier == Tier.MASTER:
         return False
@@ -73,15 +73,15 @@ def is_eligible_for_promotion(profile, gamification=None):
     return bool(progress) and all(cluster.solved_count >= cluster.required_solve_count for cluster in progress)
 
 
-def sync_promotion_attempt_problems(attempt):
-    exam_problems = list(attempt.exam.problems.order_by('promotion_order', 'id').values_list(
-        'id', 'promotion_order',
+def sync_challenge_attempt_problems(attempt):
+    exam_problems = list(attempt.exam.problems.order_by('challenge_order', 'id').values_list(
+        'id', 'challenge_order',
     ))
     problem_ids = [problem_id for problem_id, _order in exam_problems]
     attempt.snapshot_problems.exclude(problem_id__in=problem_ids).delete()
     existing_ids = set(attempt.snapshot_problems.values_list('problem_id', flat=True))
-    PromotionAttemptProblem.objects.bulk_create([
-        PromotionAttemptProblem(attempt=attempt, problem_id=problem_id, order=order)
+    ChallengeAttemptProblem.objects.bulk_create([
+        ChallengeAttemptProblem(attempt=attempt, problem_id=problem_id, order=order)
         for problem_id, order in exam_problems if problem_id not in existing_ids
     ])
     for problem_id, order in exam_problems:
@@ -90,36 +90,36 @@ def sync_promotion_attempt_problems(attempt):
 
 
 @transaction.atomic
-def unlock_promotion_attempt(profile):
+def unlock_challenge_attempt(profile):
     gamification = ProfileGamification.objects.select_for_update().get(profile=profile)
-    if gamification.current_tier == Tier.MASTER or not is_eligible_for_promotion(profile, gamification):
+    if gamification.current_tier == Tier.MASTER or not is_eligible_for_challenge(profile, gamification):
         return None
 
-    existing = PromotionAttempt.objects.filter(
+    existing = ChallengeAttempt.objects.filter(
         profile=profile, source_tier=gamification.current_tier,
     ).select_related('exam').first()
     if existing is not None:
-        return sync_promotion_attempt_problems(existing)
+        return sync_challenge_attempt_problems(existing)
 
-    exam = PromotionExam.objects.filter(source_tier=gamification.current_tier, is_active=True).first()
+    exam = ChallengeExam.objects.filter(source_tier=gamification.current_tier, is_active=True).first()
     if exam is None:
         return None
-    problems = list(exam.problems.order_by('promotion_order', 'id'))
+    problems = list(exam.problems.order_by('challenge_order', 'id'))
     if not problems:
         return None
 
-    attempt = PromotionAttempt.objects.create(
+    attempt = ChallengeAttempt.objects.create(
         profile=profile,
         exam=exam,
         source_tier=gamification.current_tier,
         target_tier=exam.target_tier,
     )
-    return sync_promotion_attempt_problems(attempt)
+    return sync_challenge_attempt_problems(attempt)
 
 
 def get_active_attempt(profile, gamification=None):
     gamification = gamification or get_or_create_gamification(profile)
-    return PromotionAttempt.objects.filter(
+    return ChallengeAttempt.objects.filter(
         profile=profile,
         source_tier=gamification.current_tier,
         completed_at__isnull=True,
@@ -138,16 +138,16 @@ def get_attempt_solved_problem_ids(attempt):
 
 
 @transaction.atomic
-def complete_promotion_if_ready(profile):
+def complete_challenge_if_ready(profile):
     gamification = ProfileGamification.objects.select_for_update().get(profile=profile)
-    attempt = PromotionAttempt.objects.select_for_update().filter(
+    attempt = ChallengeAttempt.objects.select_for_update().filter(
         profile=profile,
         source_tier=gamification.current_tier,
         completed_at__isnull=True,
     ).first()
     if attempt is None:
         return None
-    sync_promotion_attempt_problems(attempt)
+    sync_challenge_attempt_problems(attempt)
     required_ids = set(attempt.snapshot_problems.values_list('problem_id', flat=True))
     if not required_ids or not required_ids.issubset(get_attempt_solved_problem_ids(attempt)):
         return None
@@ -163,14 +163,14 @@ def complete_promotion_if_ready(profile):
 
 def sync_profile_gamification(profile):
     gamification = recalculate_profile_score(profile)
-    completed = complete_promotion_if_ready(profile)
+    completed = complete_challenge_if_ready(profile)
     if completed is not None:
         gamification.refresh_from_db()
-    unlock_promotion_attempt(profile)
+    unlock_challenge_attempt(profile)
     return gamification
 
 
-def get_promotion_context(profile, gamification=None):
+def get_challenge_context(profile, gamification=None):
     gamification = gamification or sync_profile_gamification(profile)
     progress = get_tier_progress(profile, gamification.current_tier)
     for cluster in progress:
@@ -188,12 +188,12 @@ def get_promotion_context(profile, gamification=None):
     return {
         'gamification': gamification,
         'tier_progress': progress,
-        'promotion_eligible': bool(next_tier and progress) and all(cluster.is_completed for cluster in progress),
-        'promotion_attempt': attempt,
-        'promotion_problems': attempt_problems,
-        'promotion_solved_count': sum(item['solved'] for item in attempt_problems),
-        'promotion_completed_groups': sum(cluster.is_completed for cluster in progress),
-        'promotion_target_tier': Tier(next_tier).label if next_tier else None,
+        'challenge_eligible': bool(next_tier and progress) and all(cluster.is_completed for cluster in progress),
+        'challenge_attempt': attempt,
+        'challenge_problems': attempt_problems,
+        'challenge_solved_count': sum(item['solved'] for item in attempt_problems),
+        'challenge_completed_groups': sum(cluster.is_completed for cluster in progress),
+        'challenge_target_tier': Tier(next_tier).label if next_tier else None,
     }
 
 
@@ -206,7 +206,7 @@ def get_profile_dashboard_context(profile, *, show_learning_cards=True):
         'recommendation_nonce': secrets.token_urlsafe(8),
     }
     if show_learning_cards:
-        context.update(get_promotion_context(profile, gamification))
+        context.update(get_challenge_context(profile, gamification))
         context.update(get_guide_progress_context(profile))
     return context
 
@@ -273,7 +273,7 @@ def get_random_unsolved_problem(profile):
     candidates = Problem.objects.filter(
         is_public=True,
         is_contest_problem=False,
-        promotion_exam__isnull=True,
+        challenge_exam__isnull=True,
     ).exclude(id__in=solved_problem_ids)
     candidate_ids = list(candidates.values_list('id', flat=True))
     if not candidate_ids:
@@ -281,5 +281,5 @@ def get_random_unsolved_problem(profile):
     return candidates.select_related('group').get(pk=random.choice(candidate_ids))
 
 
-def can_access_promotion_problem(profile, problem):
-    return PromotionAttemptProblem.objects.filter(attempt__profile=profile, problem=problem).exists()
+def can_access_challenge_problem(profile, problem):
+    return ChallengeAttemptProblem.objects.filter(attempt__profile=profile, problem=problem).exists()

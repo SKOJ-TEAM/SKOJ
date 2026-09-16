@@ -253,8 +253,8 @@ else:
                     'icon': 'fa-trophy',
                     'children': [
                         'judge.DifficultyCluster',
-                        'judge.PromotionExam',
-                        'judge.PromotionAttempt',
+                        'judge.ChallengeExam',
+                        'judge.ChallengeAttempt',
                     ],
                 },
                 {

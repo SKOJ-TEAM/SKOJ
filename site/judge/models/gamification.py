@@ -50,7 +50,7 @@ class DifficultyCluster(models.Model):
         verbose_name_plural = _('난이도 클러스터')
 
 
-class PromotionExam(models.Model):
+class ChallengeExam(models.Model):
     SOURCE_TIER_CHOICES = (
         (Tier.BRONZE, _('브론즈 → 실버')),
         (Tier.SILVER, _('실버 → 골드')),
@@ -70,7 +70,7 @@ class PromotionExam(models.Model):
 
     def clean(self):
         super().clean()
-        if self.is_active and PromotionExam.objects.exclude(pk=self.pk).filter(
+        if self.is_active and ChallengeExam.objects.exclude(pk=self.pk).filter(
                 source_tier=self.source_tier, is_active=True).exists():
             raise ValidationError({'is_active': _('출발 티어별로 하나의 승급전만 활성화할 수 있습니다.')})
 
@@ -107,16 +107,16 @@ class ProfileGamification(models.Model):
         verbose_name_plural = _('사용자 티어')
 
 
-class PromotionAttempt(models.Model):
-    profile = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='promotion_attempts',
+class ChallengeAttempt(models.Model):
+    profile = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='challenge_attempts',
                                 verbose_name=_('사용자 프로필'))
-    exam = models.ForeignKey(PromotionExam, on_delete=models.PROTECT, related_name='attempts',
+    exam = models.ForeignKey(ChallengeExam, on_delete=models.PROTECT, related_name='attempts',
                              verbose_name=_('승급전'))
     source_tier = models.CharField(max_length=10, choices=Tier.choices, verbose_name=_('출발 티어'))
     target_tier = models.CharField(max_length=10, choices=Tier.choices, verbose_name=_('목표 티어'))
     unlocked_at = models.DateTimeField(default=timezone.now, verbose_name=_('해금 시각'))
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_('완료 시각'))
-    problems = models.ManyToManyField('Problem', through='PromotionAttemptProblem', related_name='+')
+    problems = models.ManyToManyField('Problem', through='ChallengeAttemptProblem', related_name='+')
 
     @property
     def is_completed(self):
@@ -134,9 +134,9 @@ class PromotionAttempt(models.Model):
         verbose_name_plural = _('승급 기록')
 
 
-class PromotionAttemptProblem(models.Model):
+class ChallengeAttemptProblem(models.Model):
     attempt = models.ForeignKey(
-        PromotionAttempt, on_delete=models.CASCADE, related_name='snapshot_problems', verbose_name=_('승급 기록'),
+        ChallengeAttempt, on_delete=models.CASCADE, related_name='snapshot_problems', verbose_name=_('승급 기록'),
     )
     problem = models.ForeignKey('Problem', on_delete=models.PROTECT, related_name='+', verbose_name=_('문제'))
     order = models.PositiveIntegerField(default=0, verbose_name=_('표시 순서'))

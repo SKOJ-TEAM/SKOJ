@@ -6,19 +6,19 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from judge.models import Contest, Language, PromotionExam, Submission, Tier
+from judge.models import Contest, Language, ChallengeExam, Submission, Tier
 from judge.models.tests.util import create_contest_participation, create_problem, create_problem_group
 from judge.utils.problem_navigation import problem_group_navigation
 
 
 class ProblemNavigationPolicyTest(SimpleTestCase):
     def test_only_public_ordinary_practice_provides_navigation(self):
-        defaults = dict(is_public=True, is_encrypted=False, is_contest_problem=False, promotion_exam_id=None,
+        defaults = dict(is_public=True, is_encrypted=False, is_contest_problem=False, challenge_exam_id=None,
                         group=SimpleNamespace(name='stack', full_name='스택'))
         self.assertEqual(problem_group_navigation(SimpleNamespace(**defaults)),
                          {'name': '스택', 'url': '/problems/stack/'})
         for changes in ({'is_public': False}, {'is_encrypted': True},
-                        {'is_contest_problem': True}, {'promotion_exam_id': 1}):
+                        {'is_contest_problem': True}, {'challenge_exam_id': 1}):
             with self.subTest(changes=changes):
                 self.assertIsNone(problem_group_navigation(SimpleNamespace(**dict(defaults, **changes))))
         for flags in ({'in_contest': True}, {'contest_submission': True}):
@@ -135,10 +135,10 @@ class ProblemNavigationViewTest(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertNotContains(response, 'class="problem-group-navigation"')
 
-    def test_promotion_problem_hides_navigation_even_for_admin(self):
+    def test_challenge_problem_hides_navigation_even_for_admin(self):
         self.user.is_superuser = self.user.is_staff = True
         self.user.save()
-        self.problem.promotion_exam = PromotionExam.objects.create(title='Navigation exam', source_tier=Tier.BRONZE)
+        self.problem.challenge_exam = ChallengeExam.objects.create(title='Navigation exam', source_tier=Tier.BRONZE)
         self.problem.save()
         for path in (self.problem_url, self.submission_url):
             response = self.client.get(path)

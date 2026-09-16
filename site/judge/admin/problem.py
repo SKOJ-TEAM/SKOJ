@@ -569,7 +569,7 @@ class ProblemAdmin(VersionAdmin):
             'fields': ('sample_input', 'sample_output'),
         }),
         # (_('Social Media'), {'classes': ('collapse',), 'fields': ('og_image', 'summary')}),
-        (_('Taxonomy'), {'fields': ('group', 'promotion_exam', 'promotion_order')}),
+        (_('Taxonomy'), {'fields': ('group', 'challenge_exam', 'challenge_order')}),
         (_('Points'), {'fields': ('points', )}),
         (_('Limits'), {'fields': ('time_limit', ('memory_limit','memory_limit_1','memory_unit'),'allowed_languages',)}),
         # (_('Language'), {'fields': ('allowed_languages',)}),
@@ -835,7 +835,7 @@ class ProblemAdmin(VersionAdmin):
         
         super(ProblemAdmin, self).save_model(request, obj, form, change)
         if form.changed_data and any(field in form.changed_data for field in (
-                'group', 'promotion_exam', 'promotion_order')):
+                'group', 'challenge_exam', 'challenge_order')):
             from judge.tasks import rebuild_all_gamification
             transaction.on_commit(rebuild_all_gamification.delay)
         if (
