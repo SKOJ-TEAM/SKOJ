@@ -1103,7 +1103,7 @@
                 <li><a href="{{ url('guide_tag_list') }}">GUIDE</a></li>
             {% endif %}
             <li><a href="{{ url('problem_list') }}">PROBLEMS</a></li>
-            <li><a href="{{ url('gamification_promotion') }}"{% if request.resolver_match.url_name == 'gamification_promotion' %} class="active" aria-current="page"{% endif %}>승급전</a></li>
+            <li><a href="{{ url('gamification_promotion') }}"{% if request.resolver_match.url_name == 'gamification_promotion' %} class="active" aria-current="page"{% endif %}>CHALLENGE</a></li>
             {% if request.user.is_authenticated %}
                 <li><a href="{{ url('gamification_ranking') }}">RANKING</a></li>
             {% endif %}

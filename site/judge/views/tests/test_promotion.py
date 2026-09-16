@@ -51,8 +51,9 @@ class PromotionViewTestCase(TestCase):
     def test_navigation_is_after_problems_and_active(self):
         response = self.client.get(self.url)
         content = response.content.decode()
-        self.assertLess(content.index('>PROBLEMS</a>'), content.index('>승급전</a>'))
-        self.assertLess(content.index('>승급전</a>'), content.index('>RANKING</a>'))
+        self.assertLess(content.index('>PROBLEMS</a>'), content.index('>CHALLENGE</a>'))
+        self.assertLess(content.index('>CHALLENGE</a>'), content.index('>RANKING</a>'))
+        self.assertContains(response, '<h2 class="title">승급전</h2>', html=True)
         self.assertContains(response, 'href="/promotion/" class="active" aria-current="page"')
         self.assertContains(response, '<button id="navicon" type="button"')
         self.assertContains(response, 'aria-controls="nav-list" aria-expanded="false"')
