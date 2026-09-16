@@ -197,6 +197,7 @@
 {% block home_dashboard %}
     {% if request.user.is_authenticated %}
         <section class="home-dashboard" aria-label="내 학습 현황">
+            {% if home_learning_cards_enabled %}
             <article class="home-dashboard-card">
                 <div class="home-card-header">
                     <h2>학습 현황</h2>
@@ -333,6 +334,7 @@
                 </div>
             </article>
 
+            {% endif %}
             <article id="recommended-problem" class="home-dashboard-card home-recommendation-card">
                 <div class="home-card-header">
                     <h2>랜덤 추천 문제(고급)</h2>
@@ -354,6 +356,7 @@
                 {% endif %}
             </article>
         </section>
+        {% if home_learning_cards_enabled %}
         <script nonce="{{ request.csp_nonce }}">
             (function () {
                 function activateTab(tabset, tab, moveFocus) {
@@ -387,6 +390,7 @@
                 });
             }());
         </script>
+        {% endif %}
     {% endif %}
 {% endblock %}
 {% block meta %}

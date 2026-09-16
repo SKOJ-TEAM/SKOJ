@@ -147,6 +147,7 @@ class HomeGamificationCardTestCase(TestCase):
 
         self.assertContains(response, "var theme = 'dark';")
 
+    @override_settings(DMOJ_HOME_LEARNING_CARDS_ENABLED=True)
     def test_authenticated_home_shows_tier_and_promotion_cards(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('home'))
@@ -159,6 +160,7 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, reverse('gamification_ranking'))
         self.assertContains(response, '랜덤 추천 문제')
 
+    @override_settings(DMOJ_HOME_LEARNING_CARDS_ENABLED=True)
     def test_home_guide_progress_counts_only_published_guides_and_includes_intro(self):
         intro_group = ProblemGroup.objects.create(name='skoj-intro', full_name='SKOJ Intro')
         later_group = ProblemGroup.objects.create(name='later-guide', full_name='후속 학습')
@@ -204,6 +206,7 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, intro.title)
         self.assertNotContains(response, draft_group.full_name)
 
+    @override_settings(DMOJ_HOME_LEARNING_CARDS_ENABLED=True)
     def test_home_guide_progress_preserves_completion_while_guide_is_private(self):
         group = ProblemGroup.objects.create(name='republished-guide', full_name='재공개 학습')
         guide = AlgorithmGuide.objects.create(
@@ -228,6 +231,7 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertEqual(republished_response.context_data['guide_progress_completed'], 1)
         self.assertEqual(republished_response.context_data['guide_progress_group_counts']['completed'], 1)
 
+    @override_settings(DMOJ_HOME_LEARNING_CARDS_ENABLED=True)
     def test_home_tabs_have_accessible_defaults_and_connected_panels(self):
         group = ProblemGroup.objects.create(name='accessible-guide', full_name='접근성 학습')
         AlgorithmGuide.objects.create(
@@ -257,6 +261,7 @@ class HomeGamificationCardTestCase(TestCase):
         self.assertContains(response, 'id="guide-panel-completed" role="tabpanel"', html=False)
         self.assertContains(response, 'hidden', html=False)
 
+    @override_settings(DMOJ_HOME_LEARNING_CARDS_ENABLED=True)
     def test_home_mobile_card_order_is_guide_then_tier_then_recommendation(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('home'))

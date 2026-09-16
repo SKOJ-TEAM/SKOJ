@@ -1,0 +1,62 @@
+/* Loaded only on the promotion page; contain the legacy fixed-width wrappers. */
+body #content-body, body .title-area { width: min(1040px, calc(100% - 32px)); max-width: 100%; box-sizing: border-box; }
+.promotion-page { --font-grey: var(--font-dark-grey); max-width: 1040px; margin: 0 auto 40px; color: var(--font-black); overflow-wrap: anywhere; }
+.promotion-page * { box-sizing: border-box; }
+.promotion-hero, .promotion-card { border: 1px solid var(--border-color); border-radius: 18px; background: var(--page-bg); box-shadow: 0 10px 28px rgba(24, 32, 48, 0.06); }
+.promotion-hero { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 32px; margin-bottom: 24px; border-top: 4px solid var(--brand-red); }
+.promotion-eyebrow { margin: 0 0 12px; color: var(--brand-red); font-size: 12px; font-weight: 800; letter-spacing: 0.1em; }
+.promotion-hero h2 { margin: 0 0 12px; font-size: 26px; line-height: 1.35; }
+.promotion-description { margin: 0; color: var(--font-grey); line-height: 1.8; }
+.promotion-description strong { color: var(--font-black); }
+.promotion-tier-path { display: flex; align-items: center; gap: 20px; flex-shrink: 0; padding: 20px 24px; border-radius: 12px; background: var(--background-second); }
+.promotion-caption { display: block; margin-bottom: 8px; color: var(--font-grey); font-size: 12px; }
+.promotion-tier-path strong { font-size: 20px; white-space: nowrap; }
+.promotion-tier-target strong, .promotion-tier-arrow { color: var(--brand-red); }
+.promotion-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 24px; }
+.promotion-card { padding: 28px; min-width: 0; }
+.promotion-card-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+.promotion-card h2 { margin: 0; font-size: 20px; }
+.promotion-step { color: var(--brand-red); margin-right: 7px; font-size: 13px; }
+.promotion-count { font-size: 13px; color: var(--font-grey); white-space: nowrap; }
+.promotion-requirements, .promotion-problems { list-style: none; padding: 0; margin: 22px 0 0; }
+.promotion-requirements li + li { border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 20px; }
+.promotion-requirement-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.promotion-requirement-heading a { font-weight: 700; color: var(--font-black); overflow-wrap: anywhere; }
+.promotion-requirement-heading a span { color: var(--brand-red); }
+.promotion-state { display: inline-block; padding: 4px 9px; border-radius: 6px; background: var(--background-second); color: var(--font-grey); font-size: 12px; white-space: nowrap; }
+.promotion-state.is-complete { color: var(--brand-red); font-weight: 700; }
+.promotion-requirement-count { margin: 10px 0 8px; font-size: 13px; color: var(--font-grey); }
+.promotion-requirement-count strong { color: var(--font-black); }
+.promotion-progress { display: block; width: 100%; height: 7px; border: 0; border-radius: 999px; overflow: hidden; appearance: none; background: var(--background-second); color: var(--brand-red); }
+.promotion-progress::-webkit-progress-bar { background: var(--background-second); }
+.promotion-progress::-webkit-progress-value { background: var(--brand-red); border-radius: 999px; }
+.promotion-progress::-moz-progress-bar { background: var(--brand-red); border-radius: 999px; }
+.promotion-note { margin: 10px 0 0; color: var(--font-grey); font-size: 12px; line-height: 1.7; }
+.promotion-problems li + li { margin-top: 10px; }
+.promotion-page .promotion-problem-link { display: flex; align-items: center; gap: 12px; padding: 16px; color: var(--font-black); border: 1px solid var(--border-color); border-radius: 10px; background: var(--background-second); text-decoration: none; }
+.promotion-problem-number { color: var(--font-grey); font-size: 12px; }
+.promotion-problem-name { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.promotion-problem-action { color: var(--brand-red); font-weight: 700; font-size: 12px; white-space: nowrap; }
+.promotion-page .promotion-problem-link:hover { border-color: var(--brand-red); }
+.promotion-problem-link:hover .promotion-problem-name { text-decoration: underline; text-underline-offset: 3px; }
+.promotion-empty { padding: 28px 16px; margin-top: 20px; text-align: center; border: 1px dashed var(--border-color); border-radius: 12px; background: var(--background-second); color: var(--font-grey); line-height: 1.8; }
+.promotion-empty h3 { color: var(--font-black); font-size: 18px; margin: 12px 0 8px; }
+.promotion-empty p { margin: 0 0 18px; }
+.promotion-page .promotion-button { display: inline-block; padding: 11px 18px; border-radius: 8px; background: var(--brand-red); color: #fff; font-weight: 700; text-decoration: none; }
+.promotion-button:hover { filter: brightness(0.9); }
+.promotion-secondary-link { display: inline-block; margin: 12px; color: var(--font-black); font-weight: 700; }
+.promotion-page a:focus-visible { outline: 2px solid var(--brand-red); outline-offset: 4px; }
+.promotion-master { text-align: center; padding: 40px 24px; }
+.promotion-master .promotion-description { margin: 16px 0 24px; }
+@media (max-width: 760px) {
+    .promotion-grid { grid-template-columns: 1fr; gap: 16px; }
+    .promotion-hero { align-items: stretch; flex-direction: column; padding: 24px; gap: 20px; }
+    .promotion-hero h2 { font-size: 23px; }
+    .promotion-tier-path { justify-content: center; }
+    .promotion-card { padding: 22px; }
+}
+@media (max-width: 400px) {
+    .promotion-hero, .promotion-card { padding: 18px; }
+    .promotion-page .promotion-problem-link { flex-wrap: wrap; padding: 12px; }
+    .promotion-problem-action { margin-left: auto; }
+}

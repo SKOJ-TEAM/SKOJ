@@ -150,6 +150,7 @@ urlpatterns = [
     path('problems/random/', problem.RandomProblem.as_view(), name='problem_random'),
     path('problems/', problem.ProblemList.as_view(), name='problem_list'),
     path('problems/<slug:problem_group>/', problem.ProblemGroupProblemList.as_view(), name='problem_group_list'),
+    path('promotion/', gamification.PromotionView.as_view(), name='gamification_promotion'),
     path('ranking/', gamification.RankingView.as_view(), name='gamification_ranking'),
     path('problem/<str:problem>', include([
         

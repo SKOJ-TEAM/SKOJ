@@ -1,0 +1,100 @@
+{% extends "common-content.html" %}
+
+{% block title %}승급전 - SKOJ{% endblock %}
+{% block content_title %}승급전{% endblock %}
+{% block media %}
+    <link rel="stylesheet" href="{{ static('promotion.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="promotion-page">
+    <section class="promotion-hero" aria-labelledby="promotion-heading">
+        <div>
+            <p class="promotion-eyebrow">SKOJ · LEVEL UP</p>
+            <h2 id="promotion-heading">{{ '최고 티어에 도달했어요!' if not promotion_target_tier else '다음 티어를 향한 도전' }}</h2>
+            <p class="promotion-description">{{ '모든 승급 과정을 완료했습니다. 새로운 문제를 풀며 도전을 이어가세요.' if not promotion_target_tier else '승급 조건을 채우고, 승급전의 모든 문제를 해결하면 다음 티어로 올라갑니다.' }}</p>
+        </div>
+        <div class="promotion-tier-path" aria-label="현재 티어와 목표 티어">
+            <div><span class="promotion-caption">현재 티어</span><strong>{{ gamification.get_current_tier_display() }}</strong></div>
+            {% if promotion_target_tier %}
+                <span class="promotion-tier-arrow" aria-hidden="true">→</span>
+                <div class="promotion-tier-target"><span class="promotion-caption">목표 티어</span><strong>{{ promotion_target_tier }}</strong></div>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if promotion_target_tier %}
+    <div class="promotion-grid">
+        <section class="promotion-card" aria-labelledby="requirements-heading">
+            <div class="promotion-card-heading">
+                <h2 id="requirements-heading"><span class="promotion-step">01</span> 승급 조건</h2>
+                <span class="promotion-count">{{ promotion_completed_groups }} / {{ tier_progress|length }} 충족</span>
+            </div>
+            <p class="promotion-description">아래 모든 그룹의 기준 풀이 수를 채워주세요. 공개된 일반 문제를 만점으로 맞히면 반영됩니다.</p>
+            {% if tier_progress %}
+                <ul class="promotion-requirements">
+                    {% for cluster in tier_progress %}
+                    <li>
+                        <div class="promotion-requirement-heading">
+                            <a href="{{ url('problem_group_list', cluster.problem_group.name) }}">{{ cluster.problem_group.full_name }} <span aria-hidden="true">↗</span></a>
+                            <span class="promotion-state{{ ' is-complete' if cluster.is_completed else '' }}">{{ '충족' if cluster.is_completed else '진행 중' }}</span>
+                        </div>
+                        <div class="promotion-requirement-count"><strong>{{ cluster.solved_count }}</strong> / {{ cluster.required_solve_count }}문제 해결</div>
+                        <progress class="promotion-progress" value="{{ cluster.progress_percent }}" max="100" aria-label="{{ cluster.problem_group.full_name }} 승급 조건 진행률">{{ cluster.progress_percent }}%</progress>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="promotion-empty">현재 티어의 승급 조건을 준비 중입니다.</div>
+            {% endif %}
+        </section>
+
+        <section class="promotion-card promotion-exam-card" aria-labelledby="exam-heading">
+            <div class="promotion-card-heading">
+                <h2 id="exam-heading"><span class="promotion-step">02</span> 승급전 문제</h2>
+                {% if promotion_attempt %}<span class="promotion-count">{{ promotion_solved_count }} / {{ promotion_problems|length }} 완료</span>{% endif %}
+            </div>
+            {% if promotion_attempt %}
+                <p class="promotion-description"><strong>{{ promotion_attempt.exam.title }}</strong><br>승급전이 열렸습니다. 아래 문제를 모두 해결하면 {{ promotion_target_tier }}로 승급합니다.</p>
+                <p class="promotion-note">승급전이 열린 이후의 만점 정답만 인정됩니다.</p>
+                {% if promotion_problems %}
+                    <ol class="promotion-problems">
+                        {% for item in promotion_problems %}
+                        <li>
+                            <a class="promotion-problem-link" href="{{ url('problem_detail', item.problem.code) }}">
+                                <span class="promotion-problem-number" aria-hidden="true">{{ loop.index }}</span>
+                                <span class="promotion-problem-name">{{ item.problem.name }}</span>
+                                <span class="promotion-problem-action">{{ '완료' if item.solved else '도전하기' }} <span aria-hidden="true">→</span></span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <div class="promotion-empty">승급전 문제를 준비 중입니다. 잠시 후 다시 확인해 주세요.</div>
+                {% endif %}
+            {% elif promotion_eligible %}
+                <div class="promotion-empty">
+                    <span class="promotion-state is-complete">조건 충족</span>
+                    <h3>승급전을 준비 중입니다</h3>
+                    <p>승급 조건을 모두 채웠어요. 활성 승급전과 문제가 준비되면 이곳에 표시됩니다.</p>
+                </div>
+            {% else %}
+                <div class="promotion-empty">
+                    <span class="promotion-state">아직 잠겨 있어요</span>
+                    <h3>승급 조건을 먼저 채워주세요</h3>
+                    <p>모든 그룹의 조건을 충족하면 이곳에 승급전 문제 목록이 열립니다.</p>
+                    <a class="promotion-button" href="{{ url('problem_list') }}">문제 풀러 가기 <span aria-hidden="true">→</span></a>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+    {% else %}
+        <section class="promotion-card promotion-master" aria-label="승급 완료">
+            <h2>마스터, 모든 승급을 완료했어요</h2>
+            <p class="promotion-description">더 많은 문제를 해결하고 랭킹에 도전해 보세요.</p>
+            <a class="promotion-button" href="{{ url('problem_list') }}">문제 풀러 가기 →</a>
+            <a class="promotion-secondary-link" href="{{ url('gamification_ranking') }}">랭킹 보기 →</a>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}
