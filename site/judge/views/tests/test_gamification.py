@@ -36,15 +36,28 @@ class RankingViewTestCase(TestCase):
         self.assertNotContains(response, '내 티어')
         self.assertNotContains(response, '<h2>승급전</h2>', html=True)
 
-    def test_own_row_is_first_with_actual_rank_and_no_duplicate(self):
-        leader = User.objects.create_user(username='ranking-leader')
-        ProfileGamification.objects.filter(profile=leader.profile).update(current_tier=Tier.MASTER)
+    def test_own_summary_preserves_own_row_in_full_ranking(self):
+        first = User.objects.create_user(username='ranking-first')
+        second = User.objects.create_user(username='ranking-second')
+        fourth = User.objects.create_user(username='ranking-fourth')
+        ProfileGamification.objects.filter(profile=first.profile).update(current_tier=Tier.MASTER)
+        ProfileGamification.objects.filter(profile=second.profile).update(current_tier=Tier.DIAMOND)
+        ProfileGamification.objects.filter(profile=self.user.profile).update(current_tier=Tier.GOLD)
         self.client.force_login(self.user)
         response = self.client.get(reverse('gamification_ranking'))
         rows = response.context_data['rankings']
         self.assertEqual([(row.profile_id, row.rank) for row in rows],
-                         [(self.user.profile.pk, 2), (leader.profile.pk, 1)])
-        self.assertContains(response, 'class="current-user-row"', count=1)
+                         [(self.user.profile.pk, 3), (first.profile.pk, 1), (second.profile.pk, 2),
+                          (self.user.profile.pk, 3), (fourth.profile.pk, 4)])
+        self.assertContains(response, 'class="current-user-row"', count=2)
+        self.assertContains(response, '<td class="ranking-rank">3</td>', count=2, html=True)
+
+    def test_first_place_user_has_both_summary_and_ranked_row(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('gamification_ranking'))
+        self.assertEqual([(row.profile_id, row.rank) for row in response.context_data['rankings']],
+                         [(self.user.profile.pk, 1), (self.user.profile.pk, 1)])
+        self.assertContains(response, 'class="current-user-row"', count=2)
 
     def test_staff_viewer_is_not_added_to_ranking(self):
         self.user.is_staff = True
