@@ -44,6 +44,7 @@ class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
         ))
         for index, ranking in enumerate(rankings, start=1):
             ranking.rank = index
+        rankings.sort(key=lambda ranking: ranking.profile_id != self.request.profile.pk)
 
         context.update({
             'rankings': rankings,

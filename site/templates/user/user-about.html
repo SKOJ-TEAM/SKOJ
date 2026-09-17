@@ -36,7 +36,7 @@
         }
         #submission-activity #submission-activity-display {
             background-color: var(--page-bg);
-            padding: 10px 15px 20px 10px;
+            padding: 10px 15px 20px;
             text-align: center;
             border-radius: 10px;
             border: none;
@@ -47,11 +47,19 @@
             display: flex;
             justify-content: space-between;
         }
+        .submission-activity-scroll {
+            overflow-x: auto;
+        }
         #submission-activity #submission-activity-display h5 {
             margin-bottom: 7px;
         }
         #submission-activity #submission-activity-display #submission-activity-table {
+            display: table;
+            table-layout: fixed;
             width: 100%;
+            min-width: 640px;
+            margin-inline: auto;
+            box-sizing: border-box;
             padding: 5px;
         }
         .submission-date-col {
@@ -174,7 +182,8 @@
             #}
             <!-- 잔디밭 -->
             <div id="submission-activity-display">
-                <h5>2024</h5>
+                <h5>최근 1년</h5>
+                <div class="submission-activity-scroll" tabindex="0" role="region" aria-label="최근 1년 제출 활동">
                 <table id="submission-activity-table">
                     <tr id="submission-0">
                         <th class="submission-date-col info-text">
@@ -212,6 +221,7 @@
                         </th>
                     </tr>
                 </table>
+                </div>
                 <div class="info-bar">
                     <span id="submission-total-count" class="info-text">
                     </span>

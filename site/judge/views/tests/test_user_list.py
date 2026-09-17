@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from judge.jinja2.gravatar import gravatar
+from judge.models import Campus, Cohort, TrainingClass
 
 
 User = get_user_model()
@@ -74,3 +75,45 @@ class UserListViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'id="user-normal-login"')
+
+    def test_own_row_is_pinned_on_each_page_with_actual_rank(self):
+        for index in range(21):
+            user = User.objects.create_user(username='ahead-%s' % index)
+            user.profile.performance_points = 100
+            user.profile.save(update_fields=('performance_points',))
+        for page in (1, 2):
+            response = self.client.get(reverse('user_list'), {'page': page})
+            rows = response.context_data['users']
+            self.assertEqual((rows[0][0], rows[0][1].pk), (22, self.viewer.profile.pk))
+            self.assertEqual(sum(user.pk == self.viewer.profile.pk for _, user in rows), 1)
+            self.assertContains(response, 'class="current-user-row"', count=1)
+            self.assertEqual(response.context_data['paginator'].count, 25)
+
+    def test_search_does_not_pin_nonmatching_viewer(self):
+        response = self.client.get(reverse('user_list'), {'search': '홍길'})
+        self.assertNotContains(response, 'id="user-user-list-viewer"')
+        self.assertNotContains(response, 'class="current-user-row"')
+
+    def test_unlisted_viewer_is_not_added(self):
+        self.viewer.profile.is_unlisted = True
+        self.viewer.profile.save(update_fields=('is_unlisted',))
+        response = self.client.get(reverse('user_list'))
+        self.assertNotContains(response, 'id="user-user-list-viewer"')
+        self.assertNotContains(response, 'class="current-user-row"')
+
+    def test_pinned_row_preserves_training_class_scope(self):
+        training_class = TrainingClass.objects.create(
+            cohort=Cohort.objects.create(number=99),
+            campus=Campus.objects.create(code='pinning-campus', name='테스트'), number=1,
+        )
+        self.normal.profile.training_class = training_class
+        self.normal.profile.save(update_fields=('training_class',))
+        self.client.force_login(self.normal)
+        response = self.client.get(reverse('user_list'))
+        self.assertEqual([user.pk for _, user in response.context_data['users']], [self.normal.profile.pk])
+        self.assertContains(response, 'class="current-user-row"', count=1)
+
+    def test_anonymous_viewer_still_requires_login(self):
+        self.client.logout()
+        self.assertRedirects(self.client.get(reverse('user_list')), reverse('auth_login'),
+                             fetch_redirect_response=False)

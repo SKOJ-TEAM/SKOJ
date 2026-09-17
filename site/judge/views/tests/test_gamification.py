@@ -31,9 +31,28 @@ class RankingViewTestCase(TestCase):
         response = self.client.get(reverse('gamification_ranking'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '전체 사용자 랭킹')
+        self.assertNotContains(response, '전체 사용자 랭킹')
+        self.assertNotContains(response, '티어를 우선하고, 같은 티어에서는')
         self.assertNotContains(response, '내 티어')
         self.assertNotContains(response, '<h2>승급전</h2>', html=True)
+
+    def test_own_row_is_first_with_actual_rank_and_no_duplicate(self):
+        leader = User.objects.create_user(username='ranking-leader')
+        ProfileGamification.objects.filter(profile=leader.profile).update(current_tier=Tier.MASTER)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('gamification_ranking'))
+        rows = response.context_data['rankings']
+        self.assertEqual([(row.profile_id, row.rank) for row in rows],
+                         [(self.user.profile.pk, 2), (leader.profile.pk, 1)])
+        self.assertContains(response, 'class="current-user-row"', count=1)
+
+    def test_staff_viewer_is_not_added_to_ranking(self):
+        self.user.is_staff = True
+        self.user.save(update_fields=('is_staff',))
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('gamification_ranking'))
+        self.assertEqual(response.context_data['rankings'], [])
+        self.assertNotContains(response, 'class="current-user-row"')
 
     def test_ranking_displays_name_instead_of_username(self):
         self.user.first_name = '홍길동'

@@ -17,7 +17,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
-from django.db.models import Count, Max, Min
+from django.db.models import Count, Max, Min, Q
 from django.db.models.functions import ExtractYear, TruncDate
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render, resolve_url, redirect
@@ -565,7 +565,7 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
         training_class = self.get_training_class()
         queryset = Profile.objects.filter(is_unlisted=False).select_related(
             'user', 'training_class__cohort', 'training_class__campus', 'gamification',
-        ).order_by('-performance_points')
+        ).order_by('-performance_points', 'pk')
 
         if training_class is not None:
             queryset = queryset.filter(training_class=training_class)
@@ -586,7 +586,17 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
         context['title_info'] = self.title_info
         context['training_class'] = self.get_training_class()
         start = self.paginate_by * (context['page_obj'].number - 1)
-        context['users'] = enumerate(context['users'], start=start + 1)
+        users = list(enumerate(context['users'], start=start + 1))
+        if self.request.user.is_authenticated:
+            own_profile = self.object_list.filter(pk=self.request.profile.pk).first()
+            if own_profile is not None:
+                own_rank = self.object_list.filter(
+                    Q(performance_points__gt=own_profile.performance_points) |
+                    Q(performance_points=own_profile.performance_points, pk__lt=own_profile.pk),
+                ).count() + 1
+                users = [(own_rank, own_profile)] + [(rank, user) for rank, user in users
+                                                    if user.pk != own_profile.pk]
+        context['users'] = users
         context['first_page_href'] = '.'
         context.update(self.get_sort_context())
         context.update(self.get_sort_paginate_context())

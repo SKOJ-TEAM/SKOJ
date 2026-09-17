@@ -274,3 +274,37 @@ summary:focus-visible {
     .skoj-info .dev-team { gap: 16px; }
     .skoj-info .year, .skoj-info .team-members { padding-inline: 12px; }
 }
+
+/* Profile cards follow the viewport; the activity calendar scrolls inside its card. */
+.user-info-page .user-sidebar-div,
+.user-info-page .user-content-div {
+    width: min(1040px, calc(100% - 32px));
+}
+@media (max-width: 600px) {
+    .user-info-page .user-sidebar { flex-wrap: wrap; }
+    .user-info-page .user-info-text { min-width: 0; margin-left: 16px; }
+    .user-info-page .user-info-btn { flex-basis: 100%; }
+    .user-info-page .user-custom-tabs ul { flex-wrap: wrap; }
+}
+
+/* Pin the signed-in user visually without changing their displayed rank. */
+.ranking-table .current-user-row > td,
+.user-directory-table .current-user-row > td {
+    background: var(--tab-active-bg);
+}
+.ranking-table .current-user-row > td:first-child,
+.user-directory-table .current-user-row > td:first-child {
+    box-shadow: inset 3px 0 var(--primary-color);
+}
+.current-user-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    margin-left: 4px;
+    border-radius: 5px;
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1.4;
+    vertical-align: middle;
+    white-space: nowrap;
+}

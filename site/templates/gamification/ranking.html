@@ -7,9 +7,6 @@
 <style>
     .ranking-page { width: min(1120px, 100%); margin: 0 auto; }
     .ranking-card { overflow: hidden; background: var(--page-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; box-shadow: 0 10px 28px rgba(24, 32, 48, 0.07); }
-    .ranking-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
-    .ranking-heading h2 { margin: 0 0 6px; color: var(--font-black); }
-    .ranking-heading p { margin: 0; color: var(--font-grey); }
     .tier-badge { display: inline-flex; padding: 5px 11px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
     .tier-bronze { color: #8a4f2d; background: #f4dfd0; }
     .tier-silver { color: #4b5563; background: #e5e7eb; }
@@ -24,17 +21,16 @@
     .ranking-table tbody tr:last-child td { border-bottom: 0; }
     .ranking-table .ranking-user, .ranking-table .ranking-affiliation { text-align: left; }
     .ranking-rank { font-weight: 800; }
-    @media (max-width: 700px) { .ranking-card { padding: 18px; } .ranking-heading { align-items: start; flex-direction: column; } }
+    @media (max-width: 700px) { .ranking-card { padding: 18px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="ranking-page">
     <section class="ranking-card">
-        <div class="ranking-heading"><div><h2>전체 사용자 랭킹</h2><p>티어를 우선하고, 같은 티어에서는 가중 풀이 점수가 높은 순으로 집계합니다.</p></div></div>
         {% if rankings %}<div class="ranking-table-wrap"><table class="ranking-table">
             <thead><tr><th>순위</th><th class="ranking-user">이름</th><th class="ranking-affiliation">소속반</th><th>티어</th><th>가중 점수</th></tr></thead>
-            <tbody>{% for row in rankings %}<tr><td class="ranking-rank">{{ row.rank }}</td><td class="ranking-user"><span class="{{ row.profile.css_class }}"><a class="profile-avatar-name" href="{{ url('user_page', row.profile.user.username) }}"><img class="profile-avatar" src="{{ gravatar(row.profile, 32) }}" alt="" width="32" height="32" loading="lazy" decoding="async"><span>{{ row.profile.user.first_name or '이름 없음' }}</span></a></span></td><td class="ranking-affiliation">{{ row.profile.training_class or '-' }}</td><td><span class="tier-badge tier-{{ row.current_tier }}">{{ row.get_current_tier_display() }}</span></td><td><strong>{{ row.weighted_score }}</strong></td></tr>{% endfor %}</tbody>
+            <tbody>{% for row in rankings %}<tr{% if row.profile_id == request.profile.pk %} class="current-user-row"{% endif %}><td class="ranking-rank">{{ row.rank }}</td><td class="ranking-user"><span class="{{ row.profile.css_class }}"><a class="profile-avatar-name" href="{{ url('user_page', row.profile.user.username) }}"><img class="profile-avatar" src="{{ gravatar(row.profile, 32) }}" alt="" width="32" height="32" loading="lazy" decoding="async"><span>{{ row.profile.user.first_name or '이름 없음' }}</span></a></span>{% if row.profile_id == request.profile.pk %} <span class="current-user-badge">나</span>{% endif %}</td><td class="ranking-affiliation">{{ row.profile.training_class or '-' }}</td><td><span class="tier-badge tier-{{ row.current_tier }}">{{ row.get_current_tier_display() }}</span></td><td><strong>{{ row.weighted_score }}</strong></td></tr>{% endfor %}</tbody>
         </table></div>{% else %}<p>표시할 사용자가 없습니다.</p>{% endif %}
     </section>
 </div>
