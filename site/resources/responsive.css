@@ -174,6 +174,89 @@ summary:focus-visible {
     .problem-tools { position: static; }
 }
 
+/* Filters sit above the unchanged results column; statistics keep the sidebar. */
+#common-content.submission-list-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    grid-template-areas: "filters filters" "results statistics";
+    gap: 24px;
+}
+#common-content.submission-list-layout > #content-left {
+    grid-area: results;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+#common-content.submission-list-layout > #content-right {
+    grid-area: statistics;
+    display: block;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+}
+.submission-list-layout .info-float { width: 100%; }
+.submission-list-layout .sidebox { width: 100%; box-sizing: border-box; }
+.submission-list-layout .submission-filter { grid-area: filters; margin: 0; }
+.submission-filter #filter-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 12px;
+}
+.submission-filter .filter-form-group { min-width: 0; margin: 0; }
+.submission-filter .form-submit-group { margin: 0; padding: 0; }
+.submission-list-layout .select2-selection__choice { max-width: 100%; white-space: normal; overflow-wrap: anywhere; box-sizing: border-box; }
+.submission-list-layout #status-graph canvas { max-width: 100%; }
+.submission-list-layout #status-graph { max-width: 230px; margin-inline: auto; }
+.submission-table-scroll { width: 100%; overflow-x: auto; }
+.submission-table-scroll:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+.submission-list-layout #submissions-table { min-width: 817.4px; }
+.submission-list-layout .submission-header,
+.submission-list-layout .submission-row {
+    display: grid;
+    grid-template-columns: 98px minmax(214px, 1fr) 130px 90px 100px 100px 85px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.submission-list-layout .submission-header > div { width: auto; min-width: 0; }
+.submission-list-layout .submission-header .head-main span { width: auto; }
+.submission-list-layout .submission-row .sub-main { display: contents; }
+.submission-list-layout .submission-row > .sub-result {
+    width: auto;
+    min-width: 0;
+    height: auto;
+    box-sizing: border-box;
+}
+.submission-list-layout .submission-row .sub-main > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: auto !important;
+    min-width: 0;
+    min-height: 55px;
+    padding: 8px 6px;
+    background: var(--page-bg);
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.submission-list-layout .submission-row .sub-main > .name { align-items: stretch; padding-inline: 15px 6px; }
+.submission-list-layout .submission-row .name a { display: block; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.submission-list-layout .submission-row .sub-user a { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.submission-list-layout .submission-row .sub-prop { width: 100%; max-width: 100%; }
+.submission-list-layout .submission-row .sub-main .sub-info > div { width: auto; margin: 0; }
+.submission-list-layout .submission-row .sub-info .xs-br { display: none; }
+.submission-list-layout .no-submissions { width: 100%; box-sizing: border-box; }
+@media (max-width: 960px) {
+    #common-content.submission-list-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "filters" "results" "statistics"; }
+    .submission-filter #filter-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .submission-filter .form-submit-group { grid-column: 1 / -1; justify-content: flex-end; }
+}
+@media (max-width: 600px) {
+    .submission-filter #filter-form { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Keep submission controls and the embedded editor within the same viewport. */
 .form-area, #content .title-div { max-width: 100%; box-sizing: border-box; }
 #problem_submit .flex-container { flex-wrap: wrap; }

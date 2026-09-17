@@ -329,21 +329,6 @@
             border:none;
             padding: 0;
         }
-        @media (max-width: 700px) {
-        html, body{
-            min-width: 700px;  /* 708px 이하로 줄어들지 않도록 고정 */
-            overflow-x: auto;  /* 필요 시 스크롤바 추가 */
-        }
-        
-        .submission {
-            display: block;
-        }
-
-        .sub-main {
-            font-size: 13px;
-            line-height: 0.7;
-        }
-    }
     </style>
 {% endblock %}
 
@@ -444,16 +429,6 @@
             flex-direction: column;
             overflow: visible;
         }
-        #content-left {
-            flex: initial;
-            width: 100%;
-            overflow-x: auto;
-            overflow: visible;
-        }
-        #content-right {
-            max-width: 250px !important;
-            width:200px;
-        }
         #submissions-table{
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             border-bottom: none;
@@ -463,20 +438,6 @@
         #submissions-table a:hover {
             text-decoration: underline;
         }
-        @media (max-width: 920px) {
-        #common-content {
-            display: flex;
-            flex-direction: row;
-        }
-        
-        #content-right {
-            order: 2; /* content-right를 content-left 아래로 이동 */
-        }
-
-        #content-left {
-            order: 1;
-        }
-    }
         .submission-header {
             width: 817.4px;
             height: 40px;
@@ -568,60 +529,59 @@
         }
     </style>
 
-    <div id="common-content">
+    <div id="common-content" class="submission-list-layout">
+        <section class="submission-filter sidebox" aria-label="제출 필터">
+            <h3>필터</h3>
+            <div class="sidebox-content">
+                <form id="filter-form" name="form" action="{{ first_page_href }}" method="get">
+                    <div class="filter-form-group">
+                        <label for="status">채점 결과</label>
+                        <select id="status" name="status" multiple>
+                            {% for id, name in all_statuses %}
+                                <option {% if id in selected_statuses %}selected{% endif %}
+                                        value="{{ id }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-form-group">
+                        <label for="language">{{ _('Language') }}</label>
+                        <select id="language" name="language" multiple>
+                            {% for code, name in all_languages %}
+                                <option {% if code in selected_languages %}selected{% endif %}
+                                        value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-form-group">
+                        <label for="problem">문제</label>
+                        <select id="problem" name="problem" multiple>
+                            {% for id, name in all_problems %}
+                                <option {% if id in selected_problems %}selected{% endif %}
+                                        value="{{ id }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-form-group">
+                        <label for="user">유저</label>
+                        <select id="user" name="user" multiple>
+                            {% for id, name in all_users %}
+                                <option {% if str(id) in selected_users %} selected {% endif %}
+                                        value="{{ id }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-submit-group">
+                        <!-- (구버전/참고) CSP에서 inline onclick이 차단될 수 있음
+                        <a id="go" onclick="form.submit()">{{ _('Go') }}</a>
+                        -->
+                        <button id="go" type="submit">{{ _('Go') }}</button>
+                    </div>
+                </form>
+            </div>
+        </section>
         <div id="content-right" class="submission">
             <div class="info-float">
-                <div class="sidebox">
-                    <h3>필터</h3>
-                    <div class="sidebox-content">
-                        <form id="filter-form" name="form" action="{{ first_page_href }}" method="get">
-                            <div class="filter-form-group">
-                                <label for="status">채점 결과</label>
-                                <select id="status" name="status" multiple>
-                                    {% for id, name in all_statuses %}
-                                        <option {% if id in selected_statuses %}selected{% endif %}
-                                                value="{{ id }}">{{ name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="filter-form-group">
-                                <label for="language">{{ _('Language') }}</label>
-                                <select id="language" name="language" multiple>
-                                    {% for code, name in all_languages %}
-                                        <option {% if code in selected_languages %}selected{% endif %}
-                                                value="{{ code }}">{{ name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="filter-form-group">
-                                <label for="problem">문제</label>
-                                <select id="problem" name="problem" multiple>
-                                    {% for id, name in all_problems %}
-                                        <option {% if id in selected_problems %}selected{% endif %}
-                                                value="{{ id }}">{{ name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="filter-form-group">
-                                <label for="user">유저</label>
-                                <select id="user" name="user" multiple>
-                                    {% for id, name in all_users %}
-                                        <option {% if str(id) in selected_users %} selected {% endif %}
-                                                value="{{ id }}">{{ name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-submit-group">
-                                <!-- (구버전/참고) CSP에서 inline onclick이 차단될 수 있음
-                                <a id="go" onclick="form.submit()">{{ _('Go') }}</a>
-                                -->
-                                <button id="go" type="submit">{{ _('Go') }}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
                 <div class="sidebox">
                     <div id="statistics-table">
                         <h3>{{ _('Statistics') }}</h3>
@@ -643,6 +603,7 @@
                 <a href="javascript:void(0)">{{ _('You were disconnected. Refresh to show latest updates.') }}</a>
             </div>
 
+            <div class="submission-table-scroll" role="region" aria-label="제출 목록" tabindex="0">
             <div id="submissions-table">
                 <div class="submission-header">
                     <div class="head-result"><i class="fa fa-check-circle"></i></div>
@@ -666,6 +627,7 @@
                 {% else %}
                     <div class="no-submissions">제출이 없습니다.</div>
                 {% endif %}
+            </div>
             </div>
         </div>
     </div>
