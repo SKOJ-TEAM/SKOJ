@@ -368,7 +368,7 @@
     <form id="problem_submit" action="" method="post" class="form-area">
         {% csrf_token %}
         {{ form.non_field_errors() }}
-        <div class="flex-container">
+        <div class="flex-container submit-options">
             <div id="language">
                 {{ form.language.errors }}
                 <div id="language-select">
@@ -383,33 +383,30 @@
                     </select>
                 </div>
             </div>
-
+            <div class="source-visibility">
+                {{ form.is_source_public.errors }}
+                <label class="source-visibility-toggle" for="id_is_source_public">
+                    {{ form.is_source_public.as_widget(attrs={'aria-label': '코드 공개'}) }}
+                    <span class="source-visibility-track" aria-hidden="true"></span>
+                    <span class="source-visibility-on">공개</span>
+                    <span class="source-visibility-off">비공개</span>
+                </label>
+            </div>
         </div>
+        <p id="source-visibility-help">
+            {% if request.user.is_staff %}
+                관리자 계정의 코드는 일반 사용자에게 공개되지 않습니다.
+            {% else %}
+                공개하면 이 문제를 맞힌 사용자가 코드를 볼 수 있습니다. 비공개여도 본인과 관리 권한자는 볼 수 있습니다.
+                제출 후에는 관리자가 공개 여부를 변경할 수 있습니다. 대회 중에는 대회 열람 규칙이 적용됩니다.
+            {% endif %}
+        </p>
 
         <div id="submit-wrapper">
             <div id="editor">
                 {{ form.source.errors }}
                 {{ form.source }}
             </div>
-        </div>
-
-        <div class="source-visibility">
-            {{ form.is_source_public.errors }}
-            <label class="source-visibility-toggle" for="id_is_source_public">
-                <span>코드 공개</span>
-                {{ form.is_source_public }}
-                <span class="source-visibility-track" aria-hidden="true"></span>
-                <span class="source-visibility-on">공개</span>
-                <span class="source-visibility-off">비공개</span>
-            </label>
-            <p id="source-visibility-help">
-                {% if request.user.is_staff %}
-                    관리자 계정의 코드는 일반 사용자에게 공개되지 않습니다.
-                {% else %}
-                    공개하면 이 문제를 맞힌 사용자가 코드를 볼 수 있습니다. 비공개여도 본인과 관리 권한자는 볼 수 있습니다.
-                    제출 후에는 관리자가 공개 여부를 변경할 수 있습니다. 대회 중에는 대회 열람 규칙이 적용됩니다.
-                {% endif %}
-            </p>
         </div>
 
         {% if no_judges %}
