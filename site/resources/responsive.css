@@ -1,0 +1,165 @@
+/* Shared sizing lives after the legacy theme and page styles. */
+:root { --site-nav-height: 48px; }
+html { scroll-padding-top: calc(var(--site-nav-height) + 16px); }
+#page-container { padding-top: var(--site-nav-height); box-sizing: border-box; }
+#content { margin-top: 0; padding-inline: 0; box-sizing: border-box; }
+#content-body, .title-area, .tabs-area > ul {
+    width: min(1040px, calc(100% - 32px));
+    box-sizing: border-box;
+}
+.title-area .title, .problem-title h2 { overflow-wrap: anywhere; min-width: 0; }
+.tabs-area > ul { flex-wrap: wrap; }
+.admin-tab { flex-wrap: wrap; }
+
+/* One full-width surface, with a centered, wrapping menu inside it. */
+#navigation {
+    height: auto;
+    background: var(--nav-bg);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+}
+#nav-container { position: relative; background: transparent; backdrop-filter: none; }
+#nav-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    width: min(1180px, calc(100% - 32px));
+    position: relative;
+    inset: auto;
+    margin: 0 auto;
+    background: transparent;
+}
+#nav-list > li { flex: 0 0 auto; }
+#nav-list > .home-nav-element { margin-right: 20px; }
+#nav-list > #user-links {
+    position: static;
+    display: flex !important;
+    margin-left: auto;
+    height: 47px;
+    min-width: 0;
+    max-width: 100%;
+}
+#user-links > ul > li > a > span > span {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#user-links > ul {
+    position: static;
+    min-width: 0;
+    padding: 0;
+    margin: 0 !important;
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+}
+#user-links > ul > li > a { border: 0; padding: 0 !important; }
+#user-links > ul > li:focus-within > ul { display: block !important; }
+#navigation a:focus-visible, #navigation button:focus-visible,
+summary:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+#navicon { float: none; position: absolute; left: 12px; top: 4px; margin: 0; padding: 8px; z-index: 1; }
+#navicon svg { display: block; }
+
+@media (max-width: 1100px) {
+    :root { --site-nav-height: 95px; }
+    #nav-list > .home-nav-element { margin-right: auto; }
+    #nav-list::after { content: ""; flex-basis: 100%; order: 1; height: 0; }
+    #nav-list > li:not(.home-nav-element):not(.user-nav-element) { order: 2; }
+    #nav-list > #user-links { order: 0; }
+}
+@media (max-width: 640px) {
+    :root { --site-nav-height: 48px; }
+    #navicon { display: block; }
+    #nav-list > .home-nav-element { margin-left: 40px; }
+    #nav-list .site-logo { font-size: 18px; letter-spacing: .16em; gap: 4px; }
+    #nav-list > li:not(.home-nav-element):not(.user-nav-element) { display: none; flex-basis: 50%; }
+    #nav-list.show > li:not(.home-nav-element):not(.user-nav-element) { display: block; }
+    #nav-list > li:not(.home-nav-element):not(.user-nav-element) > a { display: block; }
+    #user-links > ul > li > a > span > span { display: none; }
+    #user-links > ul > li > a > span { padding: 6px 2px; }
+    #user-links .anon { font-size: 12px; padding: 0; white-space: normal; flex-wrap: wrap; max-width: 94px; }
+    .nav-theme-switch { margin-right: 0; }
+}
+
+/* Keep the catalog a table at every width; wrap text instead of losing columns. */
+#content:has(.problem-catalog-layout) { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
+#content:has(.problem-catalog-layout) #content-body { width: 100%; }
+.problem-catalog-layout { margin-top: 24px; }
+.problem-admin-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 16px; padding-top: 20px; }
+.problem-group-card { display: block; padding: 0; }
+.problem-group-card-header { cursor: pointer; }
+.problem-group-label { font-size: 16px; font-weight: 650; color: var(--font-black); }
+.problem-group-selection { display: block; margin-top: 8px; color: var(--font-grey); overflow-wrap: anywhere; }
+.problem-group-card-list { max-height: calc(100dvh - var(--site-nav-height) - 140px); }
+.problem-group-card-list a { min-width: 0; overflow-wrap: anywhere; }
+.problem-catalog-heading > div { min-width: 0; }
+.problem-search { flex: 0 1 320px; min-width: 160px; }
+#problem-table td, #problem-table th { line-height: 1.5; }
+#problem-table .problem-title a { display: block; }
+#problem-table .problem-title { display: table-cell; margin: 0; }
+.bottom-pagination-bar .pagination { display: flex; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 1000px) {
+    .problem-catalog-layout { gap: 20px; }
+    .problem-group-card-list { max-height: min(320px, 45dvh); overflow-y: auto; }
+    .problem-catalog-heading h1 { font-size: 26px; }
+}
+@media (max-width: 640px) {
+    .problem-search { flex-basis: auto; }
+}
+@media (max-width: 600px) {
+    #problem-table th, #problem-table td { padding: 10px 6px; font-size: 12px; }
+    #problem-table col.problem-code-col { width: 16%; }
+    #problem-table col.problem-category-col { width: 21%; }
+    #problem-table col.problem-author-col { width: 16%; }
+}
+
+/* Statements use the available split-screen width. Wide code/tables scroll locally. */
+#common-content, #content-left, #content-right { min-width: 0; }
+#common-content { gap: 24px; }
+#common-content > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+#common-content #filter-form { min-width: 0; }
+#common-content #filter-form input { box-sizing: border-box; }
+#common-content .h-scrollable-table { width: 100%; min-width: 0; }
+#common-content #content-left { margin-right: 0; }
+#common-content #content-right { box-sizing: border-box; }
+#content-right .info-float { top: calc(var(--site-nav-height) + 16px); }
+.info-float-div, .info-float-div-admin { box-sizing: border-box; }
+.content-description { min-width: 0; overflow-wrap: anywhere; }
+#common-content .content-description pre { max-width: 100%; box-sizing: border-box; overflow-x: auto; }
+#common-content .content-description pre, #common-content .content-description pre code { white-space: pre; overflow-wrap: normal; word-break: normal; }
+.content-description table { display: block; max-width: 100%; overflow-x: auto; }
+.content-description mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.problem-info-details { border: 0; padding: 0; background: transparent; }
+.problem-info-details > summary { display: list-item; cursor: pointer; list-style-position: inside; background: transparent; padding: 6px 0; }
+@media (max-width: 960px) {
+    #common-content { display: flex; flex-direction: column; gap: 16px; }
+    #common-content #content-left, #common-content #content-right { width: 100%; max-width: none; flex: none; margin: 0; padding: 0; }
+    #common-content #content-right .info-float { position: static; }
+    .problem-info-details .inner-contents { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; }
+    .problem-info-details > summary { text-align: left; margin: 0 0 12px; }
+    .info-float-div { margin-bottom: 0; padding: 16px; }
+    .info-float-div > .button { margin-bottom: 0; }
+}
+
+/* Keep submission controls and the embedded editor within the same viewport. */
+.form-area, #content .title-div { max-width: 100%; box-sizing: border-box; }
+#problem_submit .flex-container { flex-wrap: wrap; }
+#problem_submit .flex-container #language { min-width: min(220px, 100%); }
+
+/* Informational and sign-in pages share the same fluid outer frame. */
+.skoj-info { width: 100%; min-width: 0; max-width: 100%; }
+.skoj-info .menu h3, .skoj-info .info2, .skoj-info .subinfo, .skoj-info .dev-team {
+    max-width: 100%; box-sizing: border-box;
+}
+.skoj-info .title h1 { font-size: clamp(28px, 5vw, 60px); line-height: 1.2; overflow-wrap: anywhere; }
+.skoj-info .dev-team, .skoj-info .project-info-container { flex-wrap: wrap; }
+.auth-flow-form, .content-body-box { min-width: 0; max-width: 100%; box-sizing: border-box; }
+@media (max-width: 640px) {
+    .skoj-info .dev-team { gap: 16px; }
+    .skoj-info .year, .skoj-info .team-members { padding-inline: 12px; }
+}

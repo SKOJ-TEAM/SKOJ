@@ -30,14 +30,6 @@
     .problem-title > .problem-group-navigation {
         flex-basis: 100%;
     }
-
-    @media (max-width: 830px) {
-        .problem-title > .problem-group-navigation {
-            /* Leave room for the existing two-row fixed mobile menu. */
-            margin-top: 36px;
-        }
-    }
-
     .title-state {
         font-size: 2em;
         float: left;
@@ -564,7 +556,8 @@
 <!-- 답안 제출 부분 -->
 <div class="info-float-div">
     <hr style="padding-top: 0.3em">
-    <div class="floating-menu-title">문제 정보</div>
+    <details class="problem-info-details" data-responsive-details="960" open>
+    <summary class="floating-menu-title">문제 정보</summary>
     <div class="inner-contents">
         <div class="problem-info-entry">
             <span class="material-symbols-outlined md-dark-grey md-18">check</span><span class="pi-name">{{ _('포인트 : ')
@@ -652,6 +645,7 @@
             -->
 
     </div>
+    </details>
     <!-- 해설 보기 버튼 -->
     {% if (editorial and editorial.is_accessible_by(request.user)) %}
     <a href="{{ url('problem_editorial', problem.code) }}" class="unselectable button full">

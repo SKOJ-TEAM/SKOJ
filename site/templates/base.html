@@ -1086,6 +1086,8 @@
             color: var(--font-grey);
         }
     </style>
+    <link rel="stylesheet" href="{{ static('responsive.css') }}">
+    <script src="{{ static('responsive.js') }}" defer></script>
 </head>
 <body>
 {% include "messages.html" %}
@@ -1096,7 +1098,11 @@
 </svg>
 <nav id="navigation" class="unselectable">
     <div id="nav-container">
-        <button id="navicon" type="button" aria-label="메뉴 열기/닫기" aria-controls="nav-list" aria-expanded="false"><i class="fa fa-bars" aria-hidden="true"></i></button>
+        <button id="navicon" type="button" aria-label="메뉴 열기/닫기" aria-controls="nav-list" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M3 6h18M3 12h18M3 18h18"/>
+            </svg>
+        </button>
         <ul id="nav-list">
             <li class="home-nav-element"><a href="{{ url('home') }}">{% include "site-logo-fragment.html" %}</a></li>
             {% if request.user.is_authenticated %}
@@ -1110,7 +1116,7 @@
             <li><a href="{{ url('user_list') }}">USERS</a></li>
             <li><a href="{{ url('status_all') }}">STATUS</a></li>
             <li><a href="{{ url('about') }}">ABOUT</a></li>
-            <div id="user-links" class="user-nav-element">
+            <li id="user-links" class="user-nav-element">
                 {% if request.user.is_authenticated %}
                     <ul>
                         <li>
@@ -1147,13 +1153,17 @@
                 {% endif %}
                 <button id="nav-theme-toggle" class="nav-theme-switch" type="button" role="switch"
                         aria-checked="false" aria-pressed="false" aria-label="다크 모드로 전환">
-                    <span class="material-symbols-outlined nav-theme-switch-icon nav-theme-switch-icon-light"
-                          aria-hidden="true">light_mode</span>
-                    <span class="material-symbols-outlined nav-theme-switch-icon nav-theme-switch-icon-dark"
-                          aria-hidden="true">dark_mode</span>
+                    <svg class="nav-theme-switch-icon nav-theme-switch-icon-light" width="15" height="15"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/>
+                    </svg>
+                    <svg class="nav-theme-switch-icon nav-theme-switch-icon-dark" width="15" height="15"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z"/>
+                    </svg>
                     <span class="nav-theme-switch-thumb" aria-hidden="true"></span>
                 </button>
-            </div>
+            </li>
         </ul>
             {#
             <!-- <li class="home-nav-element"><span class="nav-divider"></span></li> -->
@@ -1246,7 +1256,6 @@
     <noscript>
         <div id="noscript">{{ _('This site works best with JavaScript enabled.') }}</div>
     </noscript>
-    <br>
     <main id="content">
         <div class="title-box">
             <div class="title-div">
