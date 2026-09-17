@@ -23,7 +23,8 @@
     display: inline-flex;
     align-items: center;
     flex-wrap: nowrap;
-    min-width: 94px;
+    min-width: 130px;
+    white-space: nowrap;
     gap: 10px;
     position: relative;
     cursor: pointer;
@@ -79,12 +80,4 @@
 
 .source-visibility-toggle input:checked ~ .source-visibility-on {
     display: inline;
-}
-
-#source-visibility-help {
-    margin: 8px 0 0;
-    font-size: 13px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-    color: var(--font-grey);
 }

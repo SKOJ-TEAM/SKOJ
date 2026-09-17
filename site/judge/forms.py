@@ -160,7 +160,7 @@ class DownloadDataForm(Form):
 class ProblemSubmitForm(ModelForm):
     is_source_public = forms.BooleanField(
         label='코드 공개', required=False, initial=True,
-        widget=forms.CheckboxInput(attrs={'role': 'switch', 'aria-describedby': 'source-visibility-help'}),
+        widget=forms.CheckboxInput(attrs={'role': 'switch'}),
     )
     source = CharField(max_length=65536, widget=AceWidget(no_ace_media=True))
     judge = ChoiceField(choices=(), widget=forms.HiddenInput(), required=False)
