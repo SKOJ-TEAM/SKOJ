@@ -158,11 +158,18 @@ class DownloadDataForm(Form):
 
 
 class ProblemSubmitForm(ModelForm):
+    is_source_public = forms.BooleanField(
+        label='코드 공개', required=False, initial=True,
+        widget=forms.CheckboxInput(attrs={'role': 'switch', 'aria-describedby': 'source-visibility-help'}),
+    )
     source = CharField(max_length=65536, widget=AceWidget(no_ace_media=True))
     judge = ChoiceField(choices=(), widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, judge_choices=(), **kwargs):
         super(ProblemSubmitForm, self).__init__(*args, **kwargs)
+        if self.instance.user_id and self.instance.user.user.is_staff:
+            self.fields['is_source_public'].disabled = True
+            self.initial['is_source_public'] = False
         self.fields['language'].empty_label = None
         self.fields['language'].label_from_instance = attrgetter('display_name')
         self.fields['language'].queryset = Language.objects.filter(judges__online=True).distinct()
@@ -175,7 +182,7 @@ class ProblemSubmitForm(ModelForm):
 
     class Meta:
         model = Submission
-        fields = ['language']
+        fields = ['language', 'is_source_public']
 
 
 # class EditOrganizationForm(ModelForm):

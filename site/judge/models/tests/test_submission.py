@@ -1,8 +1,9 @@
 from django.test import TestCase
 from django.utils import timezone
+from django.utils.translation import gettext
 
-from judge.models import ContestSubmission, Language, Submission, SubmissionSource
-from judge.models.tests.util import CommonDataMixin, create_contest, create_contest_participation, \
+from judge.models import Contest, ContestSubmission, Language, Submission, SubmissionSource
+from judge.models.tests.util import CommonDataMixin, create_contest_participation, \
     create_contest_problem, create_problem, create_user
 
 
@@ -81,7 +82,10 @@ class SubmissionTestCase(CommonDataMixin, TestCase):
 
         # jump down the rabbit hole to attach a contest submission
         problem = create_problem(code='queued')
-        contest = create_contest(key='queued')
+        # Contest.save writes twice to assign its numeric key; do not force_insert twice.
+        now = timezone.now()
+        contest = Contest(name='Queued', start_time=now, end_time=now + timezone.timedelta(days=1))
+        contest.save()
         self.queued_submission = Submission.objects.create(
             user=self.users['superuser'].profile,
             problem=problem,
@@ -100,7 +104,7 @@ class SubmissionTestCase(CommonDataMixin, TestCase):
         self.assertEqual(self.basic_submission.result_class, '_AC')
         self.assertEqual(self.basic_submission.memory_bytes, 20 * 1024)
         self.assertEqual(self.basic_submission.short_status, 'AC')
-        self.assertEqual(self.basic_submission.long_status, 'Accepted')
+        self.assertEqual(self.basic_submission.long_status, gettext('Accepted'))
         self.assertTrue(self.basic_submission.is_graded)
         self.assertIsNone(self.basic_submission.contest_key)
         self.assertIsNone(self.basic_submission.contest_or_none)
@@ -131,10 +135,10 @@ class SubmissionTestCase(CommonDataMixin, TestCase):
         self.assertIsNone(self.queued_submission.result_class)
         self.assertEqual(self.queued_submission.memory_bytes, 0)
         self.assertEqual(self.queued_submission.short_status, 'QU')
-        self.assertEqual(self.queued_submission.long_status, 'Queued')
+        self.assertEqual(self.queued_submission.long_status, gettext('Queued'))
         self.assertFalse(self.queued_submission.is_graded)
 
-        self.assertEqual(self.queued_submission.contest_key, 'queued')
+        self.assertEqual(self.queued_submission.contest_key, str(self.queued_submission.contest_object_id))
         self.assertIsNotNone(self.queued_submission.contest_or_none)
         self.queued_contest_submission.points = -1000
         self.queued_submission.update_contest()
@@ -146,13 +150,13 @@ class SubmissionTestCase(CommonDataMixin, TestCase):
                 'can_see_detail': self.assertTrue,
             },
             'staff_problem_edit_own': {
-                'can_see_detail': self.assertFalse,
+                'can_see_detail': self.assertTrue,
             },
             'staff_problem_edit_all': {
                 'can_see_detail': self.assertTrue,
             },
             'staff_problem_edit_public': {
-                'can_see_detail': self.assertFalse,
+                'can_see_detail': self.assertTrue,
             },
             # 'staff_problem_see_organization': {
             #     'can_see_detail': self.assertFalse,
@@ -172,7 +176,7 @@ class SubmissionTestCase(CommonDataMixin, TestCase):
     def test_ie_submission_methods(self):
         data = {
             'staff_problem_edit_own': {
-                'can_see_detail': self.assertFalse,
+                'can_see_detail': self.assertTrue,
             },
             'staff_problem_edit_all': {
                 'can_see_detail': self.assertTrue,

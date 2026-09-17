@@ -219,14 +219,15 @@ class CustomActionForm(forms.Form):
         self.fields['action'].choices.insert(0, ("", "작업을 선택하세요."))
 
 class SubmissionAdmin(VersionAdmin):
-    readonly_fields = ('user', 'problem', 'date', 'judged_date')
-    fields = ('user', 'problem', 'date', 'judged_date', 'locked_after', 'time', 'memory', 'points', 'language',
-              'status', 'result', 'case_points', 'case_total', 'judged_on', 'error')
+    readonly_fields = ('user', 'problem', 'date', 'judged_date', 'source_visibility')
+    fields = ('user', 'problem', 'date', 'judged_date', 'is_source_public', 'source_visibility', 'locked_after',
+              'time', 'memory', 'points', 'language', 'status', 'result', 'case_points', 'case_total', 'judged_on', 'error')
     actions = ('judge', )
     list_display = ('id', 'problem_code', 'problem_name', 'user_column', 'execution_time', 'pretty_memory',
-                    'points', 'language_column', 'status', 'result', 'judge_column')
+                    'points', 'language_column', 'status', 'result', 'source_visibility', 'judge_column')
     list_filter = (
         ('id', CombinedSubmissionFilter),
+        'is_source_public',
     )
     search_fields = ('problem__code', 'problem__name', 'user__user__username')
     actions_on_top = True
@@ -239,13 +240,16 @@ class SubmissionAdmin(VersionAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         fields = self.readonly_fields
+        if obj and obj.user.user.is_staff:
+            fields += ('is_source_public',)
         if not request.user.has_perm('judge.lock_submission'):
             fields += ('locked_after',)
         return fields
 
     def get_queryset(self, request):
         queryset = Submission.objects.select_related('problem', 'user__user', 'language').only(
-            'problem__code', 'problem__name', 'user__user__username', 'language__name',
+            'problem__code', 'problem__name', 'user__user__username', 'user__user__is_staff',
+            'is_source_public', 'language__name',
             'time', 'memory', 'points', 'status', 'result',
         )
         use_straight_join(queryset)
@@ -253,6 +257,32 @@ class SubmissionAdmin(VersionAdmin):
             id = request.profile.id
             queryset = queryset.filter(Q(problem__authors__id=id) | Q(problem__curators__id=id)).distinct()
         return queryset
+
+    def source_visibility(self, obj):
+        if obj.user.user.is_staff:
+            return '관리자 제출 · 일반 사용자 열람 불가'
+        return '공개' if obj.is_source_public else '비공개'
+    source_visibility.short_description = '코드 공개 상태'
+    source_visibility.admin_order_field = 'is_source_public'
+
+    def save_model(self, request, obj, form, change):
+        if obj.user.user.is_staff:
+            obj.is_source_public = False
+        if change:
+            previous = Submission.objects.get(pk=obj.pk).is_source_public
+            if previous != obj.is_source_public:
+                request._source_visibility_change = '{} → {}'.format(
+                    '공개' if previous else '비공개', '공개' if obj.is_source_public else '비공개',
+                )
+        super().save_model(request, obj, form, change)
+
+    def construct_change_message(self, request, form, formsets, add=False):
+        message = super().construct_change_message(request, form, formsets, add)
+        if hasattr(request, '_source_visibility_change'):
+            message.append({'changed': {'fields': [
+                '코드 공개 여부 ({})'.format(request._source_visibility_change),
+            ]}})
+        return message
 
     def has_add_permission(self, request):
         return False

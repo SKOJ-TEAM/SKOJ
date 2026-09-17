@@ -1,0 +1,73 @@
+.source-visibility {
+    margin: 20px 0 16px;
+    color: var(--font-black);
+}
+
+.source-visibility-toggle {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    position: relative;
+    cursor: pointer;
+}
+
+.source-visibility-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.source-visibility-track {
+    width: 40px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--font-grey);
+    position: relative;
+}
+
+.source-visibility-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.source-visibility-toggle input:checked ~ .source-visibility-track {
+    background: var(--primary-color);
+}
+
+.source-visibility-toggle input:checked ~ .source-visibility-track::after {
+    left: 19px;
+}
+
+.source-visibility-toggle input:focus-visible ~ .source-visibility-track {
+    outline: 2px solid var(--font-black);
+    outline-offset: 3px;
+}
+
+.source-visibility-toggle input:disabled ~ .source-visibility-track {
+    opacity: .5;
+}
+
+.source-visibility-on,
+.source-visibility-toggle input:checked ~ .source-visibility-off {
+    display: none;
+}
+
+.source-visibility-toggle input:checked ~ .source-visibility-on {
+    display: inline;
+}
+
+#source-visibility-help {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    color: var(--font-grey);
+}
