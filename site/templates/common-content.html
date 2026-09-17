@@ -302,6 +302,7 @@
         z-index: -1;
     ">
     </div>
+    {% block content_layout %}
     <div id="common-content">
 
         <div id="content-right">
@@ -317,6 +318,7 @@
             {% block comments %}{% endblock %}
         </div>
     </div>
+    {% endblock %}
 {% endblock %}
 
 {% block bodyend %}

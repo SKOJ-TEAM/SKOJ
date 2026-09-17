@@ -38,33 +38,6 @@
         margin-top: 0.16em;
     }
 
-    .info-float a {
-        vertical-align: middle;
-    }
-
-    .info-float .fa {
-        color: rgb(159, 202, 242);
-        padding-right: 0.2em;
-    }
-
-    #content-right .info-float {
-        float: none;
-        padding: 0;
-        position: sticky;
-        top: 70px;
-        width: 100%;
-        border: none;
-    }
-
-    .info-float-div {
-        width: 100%;
-        padding: 8px 8px 8px 8px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        border: none;
-        box-shadow: var(--standard-box-shadow);
-    }
-
     .info-float-div-admin {
         width: 100%;
         padding: 8px 8px 8px 8px;
@@ -457,6 +430,26 @@
 
 {% endblock %}
 
+{% block content_layout %}
+<div id="common-content" class="problem-reading-layout">
+    <div id="content-left">
+        <div class="content-description screen">
+            {{ self.description() }}
+            {{ self.description_end() }}
+            {{ self.post_description_end() }}
+        </div>
+    </div>
+    <aside class="problem-tools-region" aria-label="문제 정보와 제출">
+        <div class="problem-tools">
+            {{ self.problem_tools() }}
+        </div>
+    </aside>
+    <div class="problem-comments">
+        {{ self.comments() }}
+    </div>
+</div>
+{% endblock %}
+
 {% block title_row %}
 <div class="problem-title">
     {% if problem_group_navigation %}
@@ -551,11 +544,10 @@
 </div>
 {% endblock %}
 
-{% block info_float %}
+{% block problem_tools %}
 
 <!-- 답안 제출 부분 -->
-<div class="info-float-div">
-    <hr style="padding-top: 0.3em">
+<div class="problem-actions">
     <details class="problem-info-details" data-responsive-details="960" open>
     <summary class="floating-menu-title">문제 정보</summary>
     <div class="inner-contents">

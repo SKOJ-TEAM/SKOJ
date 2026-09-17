@@ -128,7 +128,7 @@ summary:focus-visible {
 #common-content #content-left { margin-right: 0; }
 #common-content #content-right { box-sizing: border-box; }
 #content-right .info-float { top: calc(var(--site-nav-height) + 16px); }
-.info-float-div, .info-float-div-admin { box-sizing: border-box; }
+.info-float-div-admin { box-sizing: border-box; }
 .content-description { min-width: 0; overflow-wrap: anywhere; }
 #common-content .content-description pre { max-width: 100%; box-sizing: border-box; overflow-x: auto; }
 #common-content .content-description pre, #common-content .content-description pre code { white-space: pre; overflow-wrap: normal; word-break: normal; }
@@ -140,10 +140,34 @@ summary:focus-visible {
     #common-content { display: flex; flex-direction: column; gap: 16px; }
     #common-content #content-left, #common-content #content-right { width: 100%; max-width: none; flex: none; margin: 0; padding: 0; }
     #common-content #content-right .info-float { position: static; }
-    .problem-info-details .inner-contents { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; }
     .problem-info-details > summary { text-align: left; margin: 0 0 12px; }
-    .info-float-div { margin-bottom: 0; padding: 16px; }
-    .info-float-div > .button { margin-bottom: 0; }
+}
+
+/* Keep the card beside the statement on desktop, and after it on narrow screens. */
+#common-content.problem-reading-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-areas: "statement tools" "comments tools";
+    align-items: start;
+}
+#common-content.problem-reading-layout > #content-left { width: 100%; max-width: none; margin: 0; }
+.problem-reading-layout > #content-left { grid-area: statement; }
+.problem-tools-region { grid-area: tools; align-self: stretch; }
+.problem-tools { position: sticky; top: calc(var(--site-nav-height) + 16px); }
+.problem-comments { grid-area: comments; }
+.problem-tools .problem-actions {
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: var(--standard-box-shadow);
+    margin-bottom: 24px;
+}
+.problem-tools .problem-info-details { margin-bottom: 16px; }
+.problem-tools .problem-info-details .inner-contents { display: block; padding: 0; box-sizing: border-box; }
+.problem-tools .problem-actions > .button { width: auto; max-width: 360px; margin-inline: auto; }
+@media (max-width: 960px) {
+    #common-content.problem-reading-layout { display: flex; flex-direction: column; gap: 24px; }
+    .problem-reading-layout > .problem-tools-region, .problem-reading-layout > .problem-comments { width: 100%; }
+    .problem-tools { position: static; }
 }
 
 /* Keep submission controls and the embedded editor within the same viewport. */
