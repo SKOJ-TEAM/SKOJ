@@ -49,7 +49,8 @@ class RankingViewTestCase(TestCase):
         self.assertEqual([(row.profile_id, row.rank) for row in rows],
                          [(self.user.profile.pk, 3), (first.profile.pk, 1), (second.profile.pk, 2),
                           (self.user.profile.pk, 3), (fourth.profile.pk, 4)])
-        self.assertContains(response, 'class="current-user-row"', count=2)
+        self.assertContains(response, 'class="current-user-row"', count=1)
+        self.assertContains(response, 'class="current-user-badge"', count=1)
         self.assertContains(response, '<td class="ranking-rank">3</td>', count=2, html=True)
 
     def test_first_place_user_has_both_summary_and_ranked_row(self):
@@ -57,7 +58,8 @@ class RankingViewTestCase(TestCase):
         response = self.client.get(reverse('gamification_ranking'))
         self.assertEqual([(row.profile_id, row.rank) for row in response.context_data['rankings']],
                          [(self.user.profile.pk, 1), (self.user.profile.pk, 1)])
-        self.assertContains(response, 'class="current-user-row"', count=2)
+        self.assertContains(response, 'class="current-user-row"', count=1)
+        self.assertContains(response, 'class="current-user-badge"', count=1)
 
     def test_staff_viewer_is_not_added_to_ranking(self):
         self.user.is_staff = True

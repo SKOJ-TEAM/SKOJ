@@ -85,8 +85,14 @@ class UserListViewTestCase(TestCase):
             response = self.client.get(reverse('user_list'), {'page': page})
             rows = response.context_data['users']
             self.assertEqual((rows[0][0], rows[0][1].pk), (22, self.viewer.profile.pk))
-            self.assertEqual(sum(user.pk == self.viewer.profile.pk for _, user in rows), 1)
+            self.assertEqual(sum(user.pk == self.viewer.profile.pk for _, user in rows), page)
+            expected_ranks = list(range(1, 21)) if page == 1 else list(range(21, 26))
+            self.assertEqual([rank for rank, _ in rows[1:]], expected_ranks)
             self.assertContains(response, 'class="current-user-row"', count=1)
+            self.assertContains(response, 'class="current-user-badge"', count=1)
+            self.assertContains(response, 'id="current-user-summary"', count=1)
+            if page == 2:
+                self.assertContains(response, 'id="user-user-list-viewer"', count=1)
             self.assertEqual(response.context_data['paginator'].count, 25)
 
     def test_search_does_not_pin_nonmatching_viewer(self):
@@ -110,7 +116,7 @@ class UserListViewTestCase(TestCase):
         self.normal.profile.save(update_fields=('training_class',))
         self.client.force_login(self.normal)
         response = self.client.get(reverse('user_list'))
-        self.assertEqual([user.pk for _, user in response.context_data['users']], [self.normal.profile.pk])
+        self.assertEqual([user.pk for _, user in response.context_data['users']], [self.normal.profile.pk] * 2)
         self.assertContains(response, 'class="current-user-row"', count=1)
 
     def test_anonymous_viewer_still_requires_login(self):

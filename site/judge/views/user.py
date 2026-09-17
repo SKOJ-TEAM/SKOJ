@@ -594,8 +594,7 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
                     Q(performance_points__gt=own_profile.performance_points) |
                     Q(performance_points=own_profile.performance_points, pk__lt=own_profile.pk),
                 ).count() + 1
-                users = [(own_rank, own_profile)] + [(rank, user) for rank, user in users
-                                                    if user.pk != own_profile.pk]
+                users.insert(0, (own_rank, own_profile))
         context['users'] = users
         context['first_page_href'] = '.'
         context.update(self.get_sort_context())

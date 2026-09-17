@@ -2,9 +2,11 @@
 
 {% block additional_table_classes %}user-directory-table{% endblock %}
 
-{% block row_extra %}{% if request.user.is_authenticated and user.pk == request.profile.pk %}class="current-user-row"{% endif %}{% endblock %}
+{% block row_id %}{% if loop.first and request.user.is_authenticated and user.pk == request.profile.pk %}current-user-summary{% else %}{{ super() }}{% endif %}{% endblock %}
 
-{% block user_data %}{% if request.user.is_authenticated and user.pk == request.profile.pk %}<span class="current-user-badge">나</span>{% endif %}{% endblock %}
+{% block row_extra %}{% if loop.first and request.user.is_authenticated and user.pk == request.profile.pk %}class="current-user-row"{% endif %}{% endblock %}
+
+{% block user_data %}{% if loop.first and request.user.is_authenticated and user.pk == request.profile.pk %}<span class="current-user-badge">나</span>{% endif %}{% endblock %}
 
 {% block user_name %}<a class="profile-avatar-name" href="{{ url('user_page', user.user.username) }}" aria-label="{{ user.user.first_name or '사용자' }} 프로필 보기"><img class="profile-avatar" src="{{ gravatar(user, 32) }}" alt="" width="32" height="32" loading="lazy" decoding="async">{{ user.user.first_name }}</a>{% endblock %}
 
