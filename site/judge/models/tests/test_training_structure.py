@@ -118,7 +118,7 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
         form = CustomRegistrationForm(data=self.form_data(campus=self.pangyo.pk))
 
         self.assertFalse(form.is_valid())
-        self.assertIn('판교 캠퍼스는 아직 회원가입을 지원하지 않습니다. 관리자에게 문의해 주세요.',
+        self.assertIn('선택한 반을 등록할 수 없습니다. 관리자에게 문의해 주세요.',
                       form.non_field_errors())
 
     def test_registration_page_does_not_render_non_field_errors_method(self):
@@ -135,8 +135,25 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '판교 캠퍼스는 아직 회원가입을 지원하지 않습니다.')
+        self.assertContains(response, '선택한 반을 등록할 수 없습니다.')
         self.assertNotContains(response, 'bound method BaseForm.non_field_errors')
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_pangyo_and_ulsan_classes_allow_registration(self):
+        for code, number in (('pangyo', 6), ('ulsan', 4)):
+            campus = Campus.objects.get(code=code)
+            training_class = TrainingClass.objects.create(cohort=self.cohort, campus=campus, number=number)
+            data = self.form_data(campus=campus.pk, training_class=number,
+                                  username='new_' + code, email=code + '@example.com')
+            form = CustomRegistrationForm(data=data)
+            self.assertTrue(form.is_valid(), form.errors)
+            response = self.client.post(reverse('registration_register'), data, secure=True)
+            self.assertRedirects(response, reverse('registration_complete'), fetch_redirect_response=False)
+            user = User.objects.get(username=data['username'])
+            self.assertFalse(user.is_active)
+            self.assertEqual(user.profile.training_class, training_class)
+            self.assertTrue(RegistrationProfile.objects.filter(user=user).exists())
+        self.assertEqual(len(mail.outbox), 2)
 
     def test_inactive_class_is_not_selectable(self):
         self.training_class.is_active = False
@@ -153,12 +170,12 @@ class TrainingRegistrationFormTest(CommonDataMixin, TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('선택한 캠퍼스에서 운영하지 않는 반입니다.', form.non_field_errors())
 
-    def test_ulsan_registration_is_rejected_with_admin_guidance(self):
+    def test_missing_ulsan_class_is_rejected(self):
         ulsan = Campus.objects.get(code='ulsan')
         form = CustomRegistrationForm(data=self.form_data(campus=ulsan.pk, training_class=4))
 
         self.assertFalse(form.is_valid())
-        self.assertIn('울산 캠퍼스는 아직 회원가입을 지원하지 않습니다. 관리자에게 문의해 주세요.',
+        self.assertIn('선택한 반을 등록할 수 없습니다. 관리자에게 문의해 주세요.',
                       form.non_field_errors())
 
 

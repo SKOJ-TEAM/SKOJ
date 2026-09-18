@@ -74,10 +74,14 @@ def __nav_tab(path):
 
 
 def general_info(request):
+    from judge.models import Campus
+    from judge.utils.campus import is_campus_admin, selected_campus
     path = request.get_full_path()
     return {
         'nav_tab': FixedSimpleLazyObject(partial(__nav_tab, request.path)),
         'nav_bar': NavigationBar.objects.all(),
+        'campus_options': Campus.objects.all() if is_campus_admin(request.user) else (),
+        'selected_campus_id': selected_campus(request),
         'LOGIN_RETURN_PATH': '' if path.startswith('/accounts/') else path,
         'perms': PermWrapper(request.user),
         'HAS_WEBAUTHN': bool(settings.WEBAUTHN_RP_ID),

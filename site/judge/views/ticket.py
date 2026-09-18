@@ -17,6 +17,7 @@ from django.views.generic import ListView
 from django.views.generic.detail import SingleObjectMixin
 
 from judge import event_poster as event
+from judge.utils.campus import can_access_profile, scope_request
 from judge.models import Problem, Profile, Ticket, TicketMessage
 from judge.utils.diggpaginator import DiggPaginator
 from judge.utils.tickets import filter_visible_tickets, own_ticket_filter
@@ -110,6 +111,8 @@ class TicketMixin(LoginRequiredMixin):
 
     def get_object(self, queryset=None):
         ticket = super(TicketMixin, self).get_object(queryset)
+        if not can_access_profile(self.request.user, ticket.user):
+            raise Http404()
         profile_id = self.request.profile.id
         if self.request.user.has_perm('judge.change_ticket'):
             return ticket
@@ -235,7 +238,7 @@ class TicketList(LoginRequiredMixin, ListView):
         return Ticket.objects.select_related('user__user').prefetch_related('assignees__user').order_by('-id')
 
     def get_queryset(self):
-        queryset = self._get_queryset()
+        queryset = scope_request(self._get_queryset(), self.request, 'user')
         if self.GET_with_session('open'):
             queryset = queryset.filter(is_open=True)
         if self.GET_with_session('own'):
@@ -262,9 +265,9 @@ class TicketList(LoginRequiredMixin, ListView):
             'own': self.GET_with_session('own'),
             'user': self.filter_users,
             'assignee': self.filter_assignees,
-            'user_id': json.dumps(list(Profile.objects.filter(user__username__in=self.filter_users)
+            'user_id': json.dumps(list(scope_request(Profile.objects.all(), self.request).filter(user__username__in=self.filter_users)
                                        .values_list('id', flat=True))),
-            'assignee_id': json.dumps(list(Profile.objects.filter(user__username__in=self.filter_assignees)
+            'assignee_id': json.dumps(list(scope_request(Profile.objects.all(), self.request).filter(user__username__in=self.filter_assignees)
                                            .values_list('id', flat=True))),
             'own_id': self.profile.id if self.GET_with_session('own') else 'null',
         }

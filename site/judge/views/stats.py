@@ -8,13 +8,18 @@ from django.shortcuts import render
 from django.utils.translation import gettext as _
 
 from judge.models import Language, Submission
+from judge.utils.campus import scope_request
 from judge.utils.stats import chart_colors, get_bar_chart, get_pie_chart, highlight_colors
 
 
 ac_count = Count(Value(1), filter=Q(submission__result='AC'))
 
 
-def language_data(request, language_count=Language.objects.annotate(count=Count('submission'))):
+def language_data(request, language_count=None):
+    if language_count is None:
+        language_count = Language.objects.filter(
+            submission__in=scope_request(Submission.objects.all(), request, 'user'),
+        ).annotate(count=Count('submission'))
     languages = language_count.filter(count__gt=0).values('name', 'count').order_by('-count')
     num_languages = min(len(languages), settings.DMOJ_STATS_LANGUAGE_THRESHOLD)
     other_count = sum(map(itemgetter('count'), languages[num_languages:]))
@@ -32,12 +37,14 @@ def language_data(request, language_count=Language.objects.annotate(count=Count(
 
 
 def ac_language_data(request):
-    return language_data(request, Language.objects.annotate(count=ac_count))
+    return language_data(request, Language.objects.filter(
+        submission__in=scope_request(Submission.objects.all(), request, 'user'),
+    ).annotate(count=ac_count))
 
 
 def status_data(request, statuses=None):
-    if not statuses:
-        statuses = (Submission.objects.values('result').annotate(count=Count('result'))
+    if statuses is None:
+        statuses = (scope_request(Submission.objects.all(), request, 'user').values('result').annotate(count=Count('result'))
                     .values('result', 'count').order_by('-count'))
     data = []
     for status in statuses:
@@ -52,7 +59,9 @@ def status_data(request, statuses=None):
 
 def ac_rate(request):
     rate = CombinedExpression(ac_count / Count('submission'), '*', Value(100.0), output_field=FloatField())
-    data = Language.objects.annotate(total=Count('submission'), ac_rate=rate).filter(total__gt=0) \
+    data = Language.objects.filter(
+        submission__in=scope_request(Submission.objects.all(), request, 'user'),
+    ).annotate(total=Count('submission'), ac_rate=rate).filter(total__gt=0) \
         .order_by('total').values_list('name', 'ac_rate')
     return JsonResponse(get_bar_chart(list(data)))
 

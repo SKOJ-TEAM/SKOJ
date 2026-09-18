@@ -22,6 +22,7 @@ from django.views.generic import DetailView, ListView
 from django.views.decorators.cache import never_cache
 
 from judge import event_poster as event
+from judge.utils.campus import scope_request, can_access_profile
 from judge.highlight_code import highlight_code
 from judge.models import Contest, Language, Problem, ProblemTranslation, Profile, Submission, ContestParticipation
 from judge.utils.infinite_paginator import InfinitePaginationMixin
@@ -35,8 +36,8 @@ import logging
 
 
 def submission_related(queryset):
-    return queryset.select_related('user__user', 'problem', 'language', 'contest_object') \
-        .only('id', 'is_source_public', 'user__user__is_staff', 'problem__is_contest_problem',
+    return queryset.select_related('user__user', 'user__training_class', 'problem', 'language', 'contest_object') \
+        .only('id', 'is_source_public', 'user__user__is_staff', 'user__training_class__campus_id', 'problem__is_contest_problem',
               'user__user__username', 'user__display_rank', 'user__rating', 'problem__name',
               'problem__code', 'problem__is_public', 'language__short_name', 'language__key', 'date', 'time', 'memory',
               'points', 'result', 'status', 'case_points', 'case_total', 'current_testcase', 'contest_object',
@@ -61,6 +62,8 @@ class SubmissionMixin(object):
 class SubmissionDetailBase(LoginRequiredMixin, TitleMixin, SubmissionMixin, DetailView):
     def get_object(self, queryset=None):
         submission = super(SubmissionDetailBase, self).get_object(queryset)
+        if not can_access_profile(self.request.user, submission.user):
+            raise Http404()
         if not self.has_submission_access(submission):
             raise SubmissionPermissionDenied(submission)
         return submission
@@ -240,6 +243,8 @@ class SubmissionSourceRaw(SubmissionSource):
 @require_POST
 def abort_submission(request, submission):
     submission = get_object_or_404(Submission, id=int(submission))
+    if not can_access_profile(request.user, submission.user):
+        raise Http404()
     if (not request.user.has_perm('judge.abort_any_submission') and
        (submission.rejudged_date is not None or request.profile != submission.user)):
         raise PermissionDenied()
@@ -360,7 +365,7 @@ class SubmissionsListBase(DiggPaginatorMixin, TitleMixin, ListView):
         if self.selected_users:
             queryset = queryset.filter(user__in=Profile.objects.filter(user__in=self.selected_users))
 
-        return queryset
+        return scope_request(queryset, self.request, 'user')
 
     def get_queryset(self):
         queryset = self._get_queryset()
@@ -406,7 +411,7 @@ class SubmissionsListBase(DiggPaginatorMixin, TitleMixin, ListView):
             return Profile.objects.filter(user=self.request.user).values_list('user', 'user__username')
 
         # 교수는 모두 검색 가능
-        return Profile.objects.all().values_list('user', 'user__username')
+        return scope_request(Profile.objects.all(), self.request).values_list('user', 'user__username')
 
     def get_context_data(self, **kwargs):
         context = super(SubmissionsListBase, self).get_context_data(**kwargs)
@@ -473,6 +478,8 @@ class UserMixin(object):
         if 'user' not in kwargs:
             raise ImproperlyConfigured('Must pass a user')
         self.profile = get_object_or_404(Profile, user__username=kwargs['user'])
+        if not can_access_profile(request.user, self.profile):
+            raise Http404()
         self.username = kwargs['user']
         return super(UserMixin, self).get(request, *args, **kwargs)
 
@@ -606,7 +613,7 @@ class ProblemSubmissions(ProblemSubmissionsBase):
         return Problem.objects.filter(pk=self.problem.pk).values_list('code', 'name')
 
     def get_searchable_users(self):
-        submissions = Submission.objects.filter(problem=self.problem)
+        submissions = scope_request(Submission.objects.filter(problem=self.problem), self.request, 'user')
         if not submission_access(self.request).can_manage_problem(self.problem):
             submissions = submissions.filter(contest_object__isnull=True)
         return Profile.objects.filter(pk__in=submissions.values('user_id')).values_list('user', 'user__username')
@@ -666,7 +673,10 @@ def single_submission(request):
         return HttpResponseBadRequest()
 
     authenticated = request.user.is_authenticated
-    submission = get_object_or_404(submission_related(Submission.objects.all()), id=int(request.GET['id']))
+    submission = get_object_or_404(submission_related(scope_request(Submission.objects.all(), request, 'user')),
+                                   id=int(request.GET['id']))
+    if not can_access_profile(request.user, submission.user):
+        raise Http404()
     if not request.user.is_staff and not submission.problem.is_accessible_by(request.user):
         raise Http404()
 
@@ -736,15 +746,7 @@ class AllSubmissions(InfinitePaginationMixin, SubmissionsListBase):
         # if queryset is not None or self.in_contest or self.selected_languages or self.selected_statuses:
         #     return super(AllSubmissions, self)._get_result_data(queryset)
 
-        key = 'global_submission_result_data'
-        result = cache.get(key)
-        if result:
-            return result
-        # result = super(AllSubmissions, self)._get_result_data(Submission.objects.filter(contest_object_id = self.kwargs['contest']))
-        result = super(AllSubmissions, self)._get_result_data()
-
-        cache.set(key, result, self.stats_update_interval)
-        return result
+        return super()._get_result_data(queryset)
 
 
 class ForceContestMixin(object):

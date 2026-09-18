@@ -11,6 +11,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbid
 from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
 
+from judge.utils.campus import can_access_profile
 from judge.models import Submission
 
 __all__ = ['rejudge_submission']
@@ -27,6 +28,8 @@ def rejudge_submission(request):
     except Submission.DoesNotExist:
         return HttpResponseBadRequest()
 
+    if not can_access_profile(request.user, submission.user):
+        return HttpResponseForbidden()
     if not submission.problem.is_subs_manageable_by(request.user):
         return HttpResponseForbidden()
 

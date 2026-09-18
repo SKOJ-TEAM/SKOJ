@@ -13,6 +13,7 @@ from mptt.fields import TreeForeignKey
 from mptt.models import MPTTModel
 from reversion.models import Version
 
+from judge.utils.campus import scope_queryset, can_access_profile
 from judge.models.contest import Contest
 from judge.models.interface import BlogPost
 from judge.models.problem import Problem, Solution
@@ -57,10 +58,11 @@ class Comment(MPTTModel):
         order_insertion_by = ['-time']
 
     @classmethod
-    def most_recent(cls, user, n, batch=None):
+    def most_recent(cls, user, n, batch=None, campus_id=None):
         queryset = cls.objects.filter(hidden=False).select_related('author__user') \
             .defer('author__about', 'body').order_by('-id')
 
+        queryset = scope_queryset(queryset, user, 'author', campus_id)
         problem_cache = CacheDict(lambda code: Problem.objects.defer('description', 'summary').get(code=code))
         solution_cache = CacheDict(lambda code: Solution.objects.defer('content').get(problem__code=code))
         contest_cache = CacheDict(lambda key: Contest.objects.defer('description').get(key=key))
@@ -148,6 +150,8 @@ class Comment(MPTTModel):
         return self.get_page_title(self.page)
 
     def is_accessible_by(self, user):
+        if not can_access_profile(user, self.author):
+            return False
         try:
             if self.page.startswith('p:'):
                 return Problem.objects.get(code=self.page[2:]).is_accessible_by(user)

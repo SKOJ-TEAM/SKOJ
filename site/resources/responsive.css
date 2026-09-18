@@ -308,3 +308,22 @@ summary:focus-visible {
     vertical-align: middle;
     white-space: nowrap;
 }
+
+.campus-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(1040px, calc(100% - 32px));
+    margin: 16px auto;
+}
+.campus-selector select {
+    flex: 0 1 180px;
+    min-width: 0;
+    height: 34px;
+    padding: 4px 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    background: var(--background-second);
+    color: var(--font-black);
+}
+.campus-selector label { white-space: nowrap; margin: 0; }

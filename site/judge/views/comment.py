@@ -12,6 +12,7 @@ from django.views.generic import DetailView, UpdateView
 from reversion import revisions
 from reversion.models import Version
 
+from judge.utils.campus import scope_request
 from judge.dblock import LockModel
 from judge.models import Comment, CommentVote
 from judge.utils.views import TitleMixin
@@ -46,7 +47,7 @@ def vote_comment(request, delta):
 
     comment = Comment.objects.filter(id=comment_id, hidden=False).first()
 
-    if not comment:
+    if not comment or not comment.is_accessible_by(request.user):
         return HttpResponseNotFound(_('Comment not found.'), content_type='text/plain')
 
     if comment.author == request.profile:
@@ -165,7 +166,7 @@ class CommentVotesAjax(PermissionRequiredMixin, CommentMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(CommentVotesAjax, self).get_context_data(**kwargs)
-        context['votes'] = (self.object.votes.select_related('voter__user')
+        context['votes'] = (scope_request(self.object.votes.all(), self.request, 'voter').select_related('voter__user')
                             .only('id', 'voter__display_rank', 'voter__user__username', 'score'))
         return context
 
@@ -180,5 +181,7 @@ def comment_hide(request):
         return HttpResponseBadRequest()
 
     comment = get_object_or_404(Comment, id=comment_id)
-    comment.get_descendants(include_self=True).update(hidden=True)
+    if not comment.is_accessible_by(request.user):
+        raise Http404()
+    scope_request(comment.get_descendants(include_self=True), request, 'author').update(hidden=True)
     return HttpResponse('ok')

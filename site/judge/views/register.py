@@ -40,7 +40,7 @@ TRAINING_CLASS_RANGES = {
     'pangyo': range(1, 7),
     'ulsan': range(1, 5),
 }
-ENABLED_REGISTRATION_CAMPUSES = {'gwangju'}
+ENABLED_REGISTRATION_CAMPUSES = set(TRAINING_CLASS_RANGES)
 
 
 class CampusSelect2Widget(Select2Widget):
@@ -220,7 +220,7 @@ class CustomRegistrationForm(RegistrationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['cohort'].queryset = Cohort.objects.filter(is_active=True).order_by('-number')
-        self.fields['campus'].queryset = Campus.objects.filter(is_active=True).order_by('name')
+        self.fields['campus'].queryset = Campus.objects.filter(is_active=True, code__in=ENABLED_REGISTRATION_CAMPUSES).order_by('name')
         class_numbers = sorted({number for numbers in TRAINING_CLASS_RANGES.values() for number in numbers})
         self.fields['training_class'].choices = [('', _('캠퍼스를 먼저 선택해 주세요'))] + [
             (number, _('%(number)s반') % {'number': number}) for number in class_numbers

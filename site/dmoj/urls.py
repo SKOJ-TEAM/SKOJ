@@ -9,7 +9,7 @@ from django.urls import include, path, re_path, register_converter, reverse
 from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView
-from martor.views import markdown_search_user
+from judge.views.campus import select_campus, markdown_search_user
 
 from judge.feed import AtomBlogFeed, AtomCommentFeed, AtomProblemFeed, BlogFeed, CommentFeed, ProblemFeed
 from judge.sitemap import BlogPostSitemap, ContestSitemap, HomePageSitemap, ProblemSitemap, \
@@ -208,6 +208,7 @@ urlpatterns = [
         path('/abort', submission.abort_submission, name='submission_abort'),
     ])),
 
+    path('campus/select/', select_campus, name='campus_select'),
     path('users/', include([
         path('', user.users, name='user_list'),
         path('<int:page>', lambda request, page:

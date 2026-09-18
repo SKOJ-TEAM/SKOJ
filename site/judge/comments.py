@@ -18,6 +18,7 @@ from django.views.generic.detail import SingleObjectMixin
 from reversion import revisions
 from reversion.models import Revision, Version
 
+from judge.utils.campus import scope_request, can_access_profile
 from judge.dblock import LockModel
 from judge.models import Comment, CommentLock
 from judge.widgets import HeavyPreviewPageDownWidget
@@ -82,6 +83,8 @@ class CommentedDetailView(TemplateResponseMixin, SingleObjectMixin, View):
                 parent_comment = Comment.objects.get(hidden=False, id=parent, page=page)
             except Comment.DoesNotExist:
                 return HttpResponseNotFound()
+            if not can_access_profile(request.user, parent_comment.author):
+                return HttpResponseNotFound()
             if not (self.request.user.has_perm('judge.change_comment') or
                     parent_comment.time > timezone.now() - settings.DMOJ_COMMENT_REPLY_TIMEFRAME):
                 return HttpResponseForbidden()
@@ -109,7 +112,7 @@ class CommentedDetailView(TemplateResponseMixin, SingleObjectMixin, View):
 
     def get_context_data(self, **kwargs):
         context = super(CommentedDetailView, self).get_context_data(**kwargs)
-        queryset = Comment.objects.filter(hidden=False, page=self.get_comment_page())
+        queryset = scope_request(Comment.objects.filter(hidden=False, page=self.get_comment_page()), self.request, 'author')
         context['has_comments'] = queryset.exists()
         context['comment_lock'] = self.is_comment_locked()
         queryset = queryset.select_related('author__user').defer('author__about').annotate(revisions=Count('versions'))

@@ -35,6 +35,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.decorators.http import require_POST
 from reversion import revisions
 
+from judge.utils.campus import can_access_profile
 from judge.comments import CommentedDetailView
 from judge.forms import ProblemCloneForm, ProblemPointsVoteForm, ProblemSubmitForm
 from judge.models import ContestSubmission, Judge, Language, Problem, ProblemGroup, ProblemPointsVote, \
@@ -1234,6 +1235,8 @@ class ProblemSubmit(LoginRequiredMixin, ProblemMixin, TitleMixin, SingleObjectFo
                 Submission.objects.select_related('source', 'language'),
                 id=submission_id,
             )
+            if not can_access_profile(request.user, self.old_submission.user):
+                raise Http404()
             if not request.user.has_perm('judge.resubmit_other') and self.old_submission.user != request.profile:
                 raise PermissionDenied()
         else:

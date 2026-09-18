@@ -15,8 +15,17 @@ User = get_user_model()
 
 @override_settings(COMPRESS_ENABLED=False, SECURE_SSL_REDIRECT=False)
 class RankingViewTestCase(TestCase):
+    def create_ranked_user(self, **kwargs):
+        user = User.objects.create_user(**kwargs)
+        user.profile.training_class = self.training_class
+        user.profile.save(update_fields=('training_class',))
+        return user
+
     def setUp(self):
-        self.user = User.objects.create_user(username='ranking-user', password='test-password')
+        self.training_class = TrainingClass.objects.create(
+            cohort=Cohort.objects.create(number=98), campus=Campus.objects.get(code='gwangju'), number=1,
+        )
+        self.user = self.create_ranked_user(username='ranking-user', password='test-password')
 
     def test_anonymous_user_is_redirected(self):
         response = self.client.get(reverse('gamification_ranking'))
@@ -37,9 +46,9 @@ class RankingViewTestCase(TestCase):
         self.assertNotContains(response, '<h2>승급전</h2>', html=True)
 
     def test_own_summary_preserves_own_row_in_full_ranking(self):
-        first = User.objects.create_user(username='ranking-first')
-        second = User.objects.create_user(username='ranking-second')
-        fourth = User.objects.create_user(username='ranking-fourth')
+        first = self.create_ranked_user(username='ranking-first')
+        second = self.create_ranked_user(username='ranking-second')
+        fourth = self.create_ranked_user(username='ranking-fourth')
         ProfileGamification.objects.filter(profile=first.profile).update(current_tier=Tier.MASTER)
         ProfileGamification.objects.filter(profile=second.profile).update(current_tier=Tier.DIAMOND)
         ProfileGamification.objects.filter(profile=self.user.profile).update(current_tier=Tier.GOLD)
@@ -97,9 +106,9 @@ class RankingViewTestCase(TestCase):
         self.assertNotContains(response, '<th>Bronze</th>', html=True)
 
     def test_all_tiers_appear_in_global_ranking(self):
-        silver = User.objects.create_user(username='silver-user')
-        diamond = User.objects.create_user(username='diamond-user')
-        master = User.objects.create_user(username='master-user')
+        silver = self.create_ranked_user(username='silver-user')
+        diamond = self.create_ranked_user(username='diamond-user')
+        master = self.create_ranked_user(username='master-user')
         ProfileGamification.objects.filter(profile=silver.profile).update(current_tier=Tier.SILVER)
         ProfileGamification.objects.filter(profile=diamond.profile).update(
             current_tier=Tier.DIAMOND,
@@ -117,8 +126,8 @@ class RankingViewTestCase(TestCase):
         self.assertContains(response, '마스터')
 
     def test_ranking_uses_difficulty_tiebreak(self):
-        gold_heavy = User.objects.create_user(username='gold-heavy')
-        diamond_heavy = User.objects.create_user(username='diamond-heavy')
+        gold_heavy = self.create_ranked_user(username='gold-heavy')
+        diamond_heavy = self.create_ranked_user(username='diamond-heavy')
         ProfileGamification.objects.filter(profile=gold_heavy.profile).update(
             current_tier=Tier.DIAMOND, weighted_score=20, gold_solved=5, diamond_solved=1,
         )
@@ -138,8 +147,8 @@ class RankingViewTestCase(TestCase):
         )
 
     def test_ranking_orders_by_tier_before_weighted_score(self):
-        bronze = User.objects.create_user(username='high-score-bronze')
-        diamond = User.objects.create_user(username='low-score-diamond')
+        bronze = self.create_ranked_user(username='high-score-bronze')
+        diamond = self.create_ranked_user(username='low-score-diamond')
         ProfileGamification.objects.filter(profile=bronze.profile).update(
             current_tier=Tier.BRONZE, weighted_score=100,
         )

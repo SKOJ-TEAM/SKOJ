@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from judge.admin.submission import SubmissionAdmin
 from judge.forms import ProblemSubmitForm
-from judge.models import (ChallengeAttempt, ChallengeAttemptProblem, ChallengeExam, Contest, Judge, Language,
+from judge.models import (Campus, Cohort, TrainingClass, ChallengeAttempt, ChallengeAttemptProblem, ChallengeExam, Contest, Judge, Language,
                           Submission, SubmissionSource, SubmissionTestCase, Tier)
 from judge.models.tests.util import create_contest_participation, create_problem, create_user
 from judge.utils.submission_access import SubmissionAccess
@@ -23,6 +23,12 @@ class SubmissionSharingTest(TestCase):
         self.owner = create_user('sharing-owner')
         self.viewer = create_user('sharing-viewer')
         self.staff = create_user('sharing-staff', is_staff=True)
+        training_class = TrainingClass.objects.create(
+            cohort=Cohort.objects.create(number=98), campus=Campus.objects.get(code='gwangju'), number=1,
+        )
+        for user in (self.owner, self.viewer):
+            user.profile.training_class = training_class
+            user.profile.save(update_fields=('training_class',))
         self.problem = create_problem(code='sharing', is_public=True, points=10,
                                       allowed_languages=('PY3',), summary='sharing', og_image='/static/test.png')
         self.language = Language.get_python3()
@@ -128,6 +134,8 @@ class SubmissionSharingTest(TestCase):
         self.problem.authors.add(editor.profile)
         manager = create_user('sharing-manager', user_permissions=('view_all_submission',))
         for user in (editor, manager):
+            user.profile.training_class = self.owner.profile.training_class
+            user.profile.save(update_fields=('training_class',))
             self.assertTrue(self.submission.can_see_source(user))
 
     def test_old_problem_modes_do_not_override_solved_only_sharing(self):

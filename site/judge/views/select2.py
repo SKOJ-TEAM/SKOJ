@@ -4,13 +4,14 @@ from django.shortcuts import get_object_or_404
 from django.utils.encoding import smart_text
 from django.views.generic.list import BaseListView
 
+from judge.utils.campus import scope_request
 from judge.jinja2.gravatar import gravatar
 # from judge.models import Class, Comment, Contest, Organziation, Problem, Profile
 from judge.models import Comment, Contest, Problem, Profile
 
 
-def _get_user_queryset(term):
-    qs = Profile.objects
+def _get_user_queryset(term, request):
+    qs = scope_request(Profile.objects.all(), request)
     if term.endswith(' '):
         qs = qs.filter(user__username=term.strip())
     else:
@@ -42,7 +43,7 @@ class Select2View(BaseListView):
 
 class UserSelect2View(Select2View):
     def get_queryset(self):
-        return _get_user_queryset(self.term).annotate(username=F('user__username')).only('id')
+        return _get_user_queryset(self.term, self.request).annotate(username=F('user__username')).only('id')
 
     def get_name(self, obj):
         return obj.username
@@ -72,14 +73,14 @@ class ContestSelect2View(Select2View):
 
 class CommentSelect2View(Select2View):
     def get_queryset(self):
-        return Comment.objects.filter(page__icontains=self.term)
+        return scope_request(Comment.objects.all(), self.request, 'author').filter(page__icontains=self.term)
 
 
 class UserSearchSelect2View(BaseListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return _get_user_queryset(self.term)
+        return _get_user_queryset(self.term, self.request)
 
     def get(self, request, *args, **kwargs):
         self.request = request
@@ -114,17 +115,17 @@ class ContestUserSearchSelect2View(UserSearchSelect2View):
         if not contest.is_accessible_by(self.request.user) or not contest.can_see_full_scoreboard(self.request.user):
             raise Http404()
 
-        return Profile.objects.filter(contest_history__contest=contest,
+        return scope_request(Profile.objects.all(), self.request).filter(contest_history__contest=contest,
                                       user__username__icontains=self.term).distinct()
 
 
 class TicketUserSelect2View(UserSearchSelect2View):
     def get_queryset(self):
-        return Profile.objects.filter(tickets__isnull=False,
+        return scope_request(Profile.objects.all(), self.request).filter(tickets__isnull=False,
                                       user__username__icontains=self.term).distinct()
 
 
 class AssigneeSelect2View(UserSearchSelect2View):
     def get_queryset(self):
-        return Profile.objects.filter(assigned_tickets__isnull=False,
+        return scope_request(Profile.objects.all(), self.request).filter(assigned_tickets__isnull=False,
                                       user__username__icontains=self.term).distinct()
