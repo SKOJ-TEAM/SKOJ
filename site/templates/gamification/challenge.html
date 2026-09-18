@@ -14,11 +14,11 @@
             <h2 id="challenge-heading">{{ '최고 티어에 도달했어요!' if not challenge_target_tier else '다음 티어를 향한 도전' }}</h2>
             <p class="challenge-description">{{ '모든 승급 과정을 완료했습니다. 새로운 문제를 풀며 도전을 이어가세요.' if not challenge_target_tier else '승급 조건을 채우고, 승급전의 모든 문제를 해결하면 다음 티어로 올라갑니다.' }}</p>
         </div>
-        <div class="challenge-tier-path" aria-label="현재 티어와 목표 티어">
+        <div class="challenge-tier-path" aria-label="현재 티어와 다음 티어">
             <div><span class="challenge-caption">현재 티어</span><strong>{{ gamification.get_current_tier_display() }}</strong></div>
             {% if challenge_target_tier %}
                 <span class="challenge-tier-arrow" aria-hidden="true">→</span>
-                <div class="challenge-tier-target"><span class="challenge-caption">목표 티어</span><strong>{{ challenge_target_tier }}</strong></div>
+                <div class="challenge-tier-target"><span class="challenge-caption">다음 티어</span><strong>{{ challenge_target_tier }}</strong></div>
             {% endif %}
         </div>
     </section>
@@ -30,7 +30,6 @@
                 <h2 id="requirements-heading"><span class="challenge-step">01</span> 승급 조건</h2>
                 <span class="challenge-count">{{ challenge_completed_groups }} / {{ tier_progress|length }} 충족</span>
             </div>
-            <p class="challenge-description">아래 모든 그룹의 기준 풀이 수를 채워주세요. 공개된 일반 문제를 만점으로 맞히면 반영됩니다.</p>
             {% if tier_progress %}
                 <ul class="challenge-requirements">
                     {% for cluster in tier_progress %}
