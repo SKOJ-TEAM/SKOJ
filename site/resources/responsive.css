@@ -83,10 +83,14 @@ summary:focus-visible {
     #nav-list .site-logo { font-size: 18px; letter-spacing: .16em; gap: 4px; }
     #user-links > ul > li > a > span > span { display: none; }
     #user-links > ul > li > a > span { padding: 6px 2px; }
-    #user-links .anon { font-size: 12px; padding: 0; min-height: 0; flex-direction: column; gap: 0; }
-    #user-links .anon a { height: auto; line-height: 22px; padding: 0 6px; border: 0; }
+    #user-links .anon { font-size: 12px; padding: 0; min-height: 0; flex-direction: row; flex-wrap: nowrap; gap: 6px; }
+    #user-links .anon a { height: auto; line-height: 44px; padding: 0 2px; border: 0; }
     #user-links .anon-separator { display: none; }
     .nav-theme-switch { margin-right: 0; }
+}
+@media (max-width: 360px) {
+    #nav-list { width: calc(100% - 16px); }
+    #navicon { left: 4px; }
 }
 
 /* Keep the catalog a table at every width; wrap text instead of losing columns. */
