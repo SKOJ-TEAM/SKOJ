@@ -213,9 +213,10 @@
 
 {% block body %}
     <div class="problem-catalog-layout">
-        <details class="problem-group-card" data-responsive-details="1000" open>
+        <details class="problem-group-card" data-responsive-details="1000">
             <summary class="problem-group-card-header">
                 <span class="problem-group-label">문제 그룹 · 풀이 필터</span>
+                <span class="problem-group-toggle"><span class="problem-group-expand">목록 펼치기</span><span class="problem-group-collapse">목록 접기</span></span>
                 <span class="problem-group-selection">{{ selected_problem_group.display_name if selected_problem_group else ('내가 푼 문제' if problem_status == 'solved' else ('내가 안 푼 문제' if problem_status == 'unsolved' else '전체 문제')) }}</span>
             </summary>
             <div class="problem-group-card-list">

@@ -575,6 +575,7 @@ function confirm_rejudge() {
                                 {{ _('채점 중...') }}
                             </div>
                         {% else %}
+                            <div class="testcase-table-scroll" role="region" aria-label="테스트 케이스 결과" tabindex="0">
                             <table class="testcase-table">
                                 <thead>
                                     <tr>
@@ -670,6 +671,7 @@ function confirm_rejudge() {
                                     {% endfor %}
                                 </tbody>
                             </table>
+                            </div>
                         {% endif %}
                     {% endif %}
                 </div>

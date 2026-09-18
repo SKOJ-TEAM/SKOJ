@@ -130,31 +130,6 @@
                 $('img.unveil').unveil(200);
             });
         </script>
-         <!-- JavaScript for toggling menu -->
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                var navList = document.getElementById('nav-list');
-                var navToggle = document.getElementById('navicon');
-                navToggle.addEventListener('click', function (event) {
-                    event.stopPropagation();
-                    var expanded = navList.classList.toggle('show');
-                    navToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                });
-                function closeMenu() {
-                    navList.classList.remove('show');
-                    navToggle.setAttribute('aria-expanded', 'false');
-                }
-                document.addEventListener('click', function (event) {
-                    if (!navList.contains(event.target)) closeMenu();
-                });
-                document.addEventListener('keydown', function (event) {
-                    if (event.key === 'Escape' && navList.classList.contains('show')) {
-                        closeMenu();
-                        navToggle.focus();
-                    }
-                });
-            });
-        </script>
         <script>
             $(function() {
                 if (window.matchMedia) {
@@ -1147,7 +1122,7 @@
                 {% else %}
                     <span class="anon">
                         <a href="{{ url('auth_login') }}?next={{ LOGIN_RETURN_PATH|urlencode }}"><b>{{ _('Log in') }}</b></a>
-                        &nbsp;{{ _('or') }}&nbsp;
+                        <span class="anon-separator">{{ _('or') }}</span>
                         <a href="{{ url('registration_register') }}"><b>{{ _('Sign up') }}</b></a>
                     </span>
                 {% endif %}

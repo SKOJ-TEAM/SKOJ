@@ -8,6 +8,7 @@ html { scroll-padding-top: calc(var(--site-nav-height) + 16px); }
     box-sizing: border-box;
 }
 .title-area .title, .problem-title h2 { overflow-wrap: anywhere; min-width: 0; }
+.title-div h2 { max-width: 100%; overflow-wrap: anywhere; box-sizing: border-box; }
 .tabs-area > ul { flex-wrap: wrap; }
 .admin-tab { flex-wrap: wrap; }
 
@@ -64,25 +65,27 @@ summary:focus-visible {
 }
 #navicon { float: none; position: absolute; left: 12px; top: 4px; margin: 0; padding: 8px; z-index: 1; }
 #navicon svg { display: block; }
+#user-links .anon { gap: 8px; }
+#user-links .anon a { flex: none; white-space: nowrap; }
 
 @media (max-width: 1100px) {
-    :root { --site-nav-height: 95px; }
-    #nav-list > .home-nav-element { margin-right: auto; }
-    #nav-list::after { content: ""; flex-basis: 100%; order: 1; height: 0; }
-    #nav-list > li:not(.home-nav-element):not(.user-nav-element) { order: 2; }
-    #nav-list > #user-links { order: 0; }
-}
-@media (max-width: 640px) {
-    :root { --site-nav-height: 48px; }
     #navicon { display: block; }
+    #nav-list > .home-nav-element { margin-right: auto; }
     #nav-list > .home-nav-element { margin-left: 40px; }
-    #nav-list .site-logo { font-size: 18px; letter-spacing: .16em; gap: 4px; }
-    #nav-list > li:not(.home-nav-element):not(.user-nav-element) { display: none; flex-basis: 50%; }
+    #nav-list::after { content: ""; flex-basis: 100%; order: 1; height: 0; }
+    #nav-list > li:not(.home-nav-element):not(.user-nav-element) { display: none; flex-basis: 50%; order: 2; }
     #nav-list.show > li:not(.home-nav-element):not(.user-nav-element) { display: block; }
     #nav-list > li:not(.home-nav-element):not(.user-nav-element) > a { display: block; }
+    #nav-list > #user-links { order: 0; }
+    #navigation:has(#nav-list.show) { max-height: 100dvh; overflow-y: auto; }
+}
+@media (max-width: 640px) {
+    #nav-list .site-logo { font-size: 18px; letter-spacing: .16em; gap: 4px; }
     #user-links > ul > li > a > span > span { display: none; }
     #user-links > ul > li > a > span { padding: 6px 2px; }
-    #user-links .anon { font-size: 12px; padding: 0; white-space: normal; flex-wrap: wrap; max-width: 94px; }
+    #user-links .anon { font-size: 12px; padding: 0; min-height: 0; flex-direction: column; gap: 0; }
+    #user-links .anon a { height: auto; line-height: 22px; padding: 0 6px; border: 0; }
+    #user-links .anon-separator { display: none; }
     .nav-theme-switch { margin-right: 0; }
 }
 
@@ -92,7 +95,11 @@ summary:focus-visible {
 .problem-catalog-layout { margin-top: 24px; }
 .problem-admin-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 16px; padding-top: 20px; }
 .problem-group-card { display: block; padding: 0; }
+.problem-group-card:not([open]) > .problem-group-card-list { display: none; }
 .problem-group-card-header { cursor: pointer; }
+.problem-group-toggle { display: none; font-size: 12px; color: var(--font-grey); }
+.problem-group-card[open] .problem-group-expand,
+.problem-group-card:not([open]) .problem-group-collapse { display: none; }
 .problem-group-label { font-size: 16px; font-weight: 650; color: var(--font-black); }
 .problem-group-selection { display: block; margin-top: 8px; color: var(--font-grey); overflow-wrap: anywhere; }
 .problem-group-card-list { max-height: calc(100dvh - var(--site-nav-height) - 140px); }
@@ -105,6 +112,7 @@ summary:focus-visible {
 .bottom-pagination-bar .pagination { display: flex; flex-wrap: wrap; justify-content: center; }
 @media (max-width: 1000px) {
     .problem-catalog-layout { gap: 20px; }
+    .problem-group-toggle { display: inline; float: right; margin-top: 2px; }
     .problem-group-card-list { max-height: min(320px, 45dvh); overflow-y: auto; }
     .problem-catalog-heading h1 { font-size: 26px; }
 }
@@ -258,6 +266,16 @@ summary:focus-visible {
 }
 
 /* Keep submission controls and the embedded editor within the same viewport. */
+#content-body .status-card .card-header > div,
+#content-body .status-card .card-header > div > div { flex-wrap: wrap; gap: 12px; }
+#content-body .status-card .action-buttons { flex-wrap: wrap; justify-content: flex-start; }
+#content-body .status-card .action-btn { white-space: nowrap; }
+#content-body .status-card .summary-item { flex-wrap: wrap; }
+.testcase-table-scroll { max-width: 100%; overflow-x: auto; }
+.testcase-table-scroll .testcase-table { min-width: 560px; }
+@media (max-width: 600px) {
+    #content-body .status-card { padding: 16px; }
+}
 .form-area, #content .title-div { max-width: 100%; box-sizing: border-box; }
 #problem_submit .flex-container { flex-wrap: wrap; }
 #problem_submit .flex-container #language { min-width: min(220px, 100%); }
