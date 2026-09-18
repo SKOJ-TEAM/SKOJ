@@ -6,7 +6,6 @@ from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from dmoj import settings
-from judge.utils.campus import scope_request, scope_queryset
 from judge.models import Contest, ContestParticipation, ContestTag, Problem, Profile, Rating, Submission
 
 
@@ -48,7 +47,7 @@ def api_v1_contest_detail(request, contest):
     old_ratings_subquery = (Rating.objects.filter(user=OuterRef('user__pk'),
                                                   contest__end_time__lt=OuterRef('contest__end_time'))
                             .order_by('-contest__end_time'))
-    participations = (scope_request(contest.users.all(), request, 'user').filter(virtual=0)
+    participations = (contest.users.filter(virtual=0)
                       .annotate(new_rating=Subquery(new_ratings_subquery.values('rating')[:1]))
                       .annotate(old_rating=Subquery(old_ratings_subquery.values('rating')[:1]))
                     #   .prefetch_related('user__organizations')
@@ -128,7 +127,7 @@ def api_v1_problem_info(request, problem):
 
 
 def api_v1_user_list(request):
-    queryset = scope_request(Profile.objects.all(), request).filter(is_unlisted=False).values_list('user__username', 'points', 'performance_points',
+    queryset = Profile.objects.filter(is_unlisted=False).values_list('user__username', 'points', 'performance_points',
                                                                      'display_rank')
     return JsonResponse({username: {
         'points': points,
@@ -138,7 +137,7 @@ def api_v1_user_list(request):
 
 
 def api_v1_user_info(request, user):
-    profile = get_object_or_404(scope_queryset(Profile.objects.all(), request.user), user__username=user)
+    profile = get_object_or_404(Profile, user__username=user)
     # submissions = list(Submission.objects.filter(case_points=F('case_total'), user=profile, problem__is_public=True,
     #                                              problem__is_organization_private=False)
     submissions = list(Submission.objects.filter(case_points=F('case_total'), user=profile, problem__is_public=True)
@@ -177,7 +176,7 @@ def api_v1_user_info(request, user):
 
 
 def api_v1_user_submissions(request, user):
-    profile = get_object_or_404(scope_queryset(Profile.objects.all(), request.user), user__username=user)
+    profile = get_object_or_404(Profile, user__username=user)
     # subs = Submission.objects.filter(user=profile, problem__is_public=True, problem__is_organization_private=False)
     subs = Submission.objects.filter(user=profile, problem__is_public=True)
 
@@ -193,7 +192,7 @@ def api_v1_user_submissions(request, user):
 
 
 def api_v1_user_ratings(request, page):
-    queryset = scope_request(Profile.objects.all(), request).filter(is_unlisted=False, user__is_active=True).values_list('user__username', 'rating')
+    queryset = Profile.objects.filter(is_unlisted=False, user__is_active=True).values_list('user__username', 'rating')
     paginator = Paginator(queryset, settings.DMOJ_API_PAGE_SIZE)
 
     try:

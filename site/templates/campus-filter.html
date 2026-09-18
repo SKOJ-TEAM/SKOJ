@@ -1,0 +1,9 @@
+<div class="campus-filter" role="navigation" aria-label="캠퍼스 필터">
+    <span class="campus-filter-label">캠퍼스</span>
+    <div class="campus-filter-options">
+        {% for option in campus_filters %}
+            <a class="campus-filter-option{% if option.selected %} is-active{% endif %}"
+               href="{{ option.url }}"{% if option.selected %} aria-current="page"{% endif %}>{{ option.name }}</a>
+        {% endfor %}
+    </div>
+</div>

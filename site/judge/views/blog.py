@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.http import Http404
 from django.urls import reverse
 from django.utils import timezone
@@ -8,7 +8,6 @@ from django.views.generic import ListView
 from django.contrib.auth import logout as auth_logout
 from django.http import HttpResponseRedirect
 from judge.comments import CommentedDetailView
-from judge.utils.campus import scope_request, selected_campus
 from judge.models import BlogPost, Comment, Contest, Language, Problem, ProblemClarification, Profile, Submission, \
     Ticket
 from judge.utils.cachedict import CacheDict
@@ -38,7 +37,7 @@ class PostList(ListView):
         context['title'] = self.title or _('Page %d of Posts') % context['page_obj'].number
         context['first_page_href'] = reverse('home')
         context['page_prefix'] = reverse('blog_post_list')
-        context['comments'] = Comment.most_recent(self.request.user, 10, campus_id=selected_campus(self.request))
+        context['comments'] = Comment.most_recent(self.request.user, 10)
         context['new_problems'] = Problem.get_public_problems() \
                                          .order_by('-date', 'code')[:settings.DMOJ_BLOG_NEW_PROBLEM_COUNT]
         context['page_titles'] = CacheDict(lambda page: Comment.get_page_title(page))
@@ -51,14 +50,14 @@ class PostList(ListView):
                 context['has_clarifications'] = clarifications.count() > 0
                 context['clarifications'] = clarifications.order_by('-date')
 
-        context['user_count'] = scope_request(Profile.objects.all(), self.request).count()
+        context['user_count'] = Profile.objects.count()
         context['problem_count'] = Problem.objects.count()
-        context['submission_count'] = lambda: scope_request(Submission.objects.all(), self.request, 'user').count()
+        context['submission_count'] = lambda: Submission.objects.aggregate(max_id=Max('id'))['max_id'] or 0
         context['language_count'] = Language.objects.count
 
         context['post_comment_counts'] = {
             int(page[2:]): count for page, count in
-            scope_request(Comment.objects.all(), self.request, 'author')
+            Comment.objects
                    .filter(page__in=['b:%d' % post.id for post in context['posts']], hidden=False)
                    .values_list('page').annotate(count=Count('page')).order_by()
         }

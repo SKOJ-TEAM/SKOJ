@@ -24,7 +24,7 @@ class UserSitemap(Sitemap):
     priority = 0.5
 
     def items(self):
-        return User.objects.none().values_list('username')
+        return User.objects.values_list('username')
 
     def location(self, obj):
         return reverse('user_page', args=obj)

@@ -45,7 +45,6 @@ class UserProfilePagesTestCase(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_profile_navigation_does_not_show_contest_tab(self):
-        self.client.force_login(self.target)
         response = self.client.get(reverse('user_page', args=(self.target.username,)))
 
         self.assertEqual(response.status_code, 200)

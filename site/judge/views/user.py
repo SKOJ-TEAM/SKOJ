@@ -32,8 +32,8 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView, V
 from reversion import revisions
 
 from judge.forms import CustomAuthenticationForm, DownloadDataForm, ProfileForm, newsletter_id, IdFindForm, CustomPasswordResetForm, EmailChangeForm, ResendActivationEmailForm
-from judge.models import Profile, Submission, Campus
-from judge.utils.campus import scope_request, scope_queryset, can_access_profile, is_campus_admin, selected_campus
+from judge.models import Profile, Submission
+from judge.utils.campus import CampusFilterMixin
 from judge.performance_points import get_pp_breakdown
 from judge.ratings import rating_class, rating_progress
 from judge.tasks import prepare_user_data
@@ -104,10 +104,7 @@ class UserPage(TitleMixin, UserMixin, DetailView):
     def get_object(self, queryset=None):
         if self.kwargs.get(self.slug_url_kwarg, None) is None:
             return self.request.profile
-        obj = super(UserPage, self).get_object(queryset)
-        if not can_access_profile(self.request.user, obj):
-            raise Http404()
-        return obj
+        return super(UserPage, self).get_object(queryset)
 
     def dispatch(self, request, *args, **kwargs):
         if self.kwargs.get(self.slug_url_kwarg, None) is None:
@@ -117,7 +114,7 @@ class UserPage(TitleMixin, UserMixin, DetailView):
             return super(UserPage, self).dispatch(request, *args, **kwargs)
         except Http404:
             return generic_message(request, _('No such user'), _('No user handle "%s".') %
-                                   self.kwargs.get(self.slug_url_kwarg, None), status=404)
+                                   self.kwargs.get(self.slug_url_kwarg, None))
 
     def get_title(self):
         return (_('My account') if self.request.user == self.object.user else
@@ -153,12 +150,12 @@ class UserPage(TitleMixin, UserMixin, DetailView):
         rating = self.object.ratings.order_by('-contest__end_time')[:1]
         context['rating'] = rating[0] if rating else None
 
-        context['rank'] = scope_queryset(Profile.objects.all(), self.request.user).filter(
+        context['rank'] = Profile.objects.filter(
             is_unlisted=False, performance_points__gt=self.object.performance_points,
         ).exclude(id=self.object.id).count() + 1
 
         if rating:
-            context['rating_rank'] = scope_queryset(Profile.objects.all(), self.request.user).filter(
+            context['rating_rank'] = Profile.objects.filter(
                 is_unlisted=False, rating__gt=self.object.rating,
             ).count() + 1
         context.update(self.object.ratings.aggregate(min_rating=Min('rating'), max_rating=Max('rating'),
@@ -540,12 +537,13 @@ def generate_scratch_codes(request):
     return JsonResponse({'data': {'codes': profile.generate_scratch_codes()}})
 
 
-class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
+class UserList(CampusFilterMixin, QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
     model = Profile
     title = gettext_lazy('사용자')
     title_info = '모든 사용자의 정보'
     context_object_name = 'users'
     template_name = 'user/list.html'
+    campus_filter_url_name = 'user_list'
     paginate_by = 20 #페이징 기준 정하는 변수
     all_sorts = frozenset(('points', 'problem_count', 'rating', 'performance_points'))
     default_desc = all_sorts
@@ -560,19 +558,14 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
         return None
 
     def get_title(self):
-        campus_id = selected_campus(self.request) if is_campus_admin(self.request.user) else None
-        training_class = self.get_training_class()
-        if not is_campus_admin(self.request.user) and training_class:
-            campus_id = training_class.campus_id
-        campus = Campus.objects.filter(pk=campus_id).first() if campus_id else None
-        return str(campus) + ' 사용자' if campus else str(gettext_lazy('사용자'))
+        return str(gettext_lazy('사용자'))
 
     def get_queryset(self):
         queryset = Profile.objects.filter(is_unlisted=False).select_related(
             'user', 'training_class__cohort', 'training_class__campus', 'gamification',
         ).order_by('-performance_points', 'pk')
 
-        queryset = scope_request(queryset, self.request)
+        queryset = self.filter_campus(queryset)
 
         search = self.request.GET.get('search')
         if search:
@@ -587,6 +580,8 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(UserList, self).get_context_data(**kwargs)
+        context.update(self.get_campus_filter_context())
+        context['search_query'] = self.request.GET.get('search', '')
         context['title_info'] = self.title_info
         context['training_class'] = self.get_training_class()
         start = self.paginate_by * (context['page_obj'].number - 1)
@@ -631,9 +626,9 @@ def user_ranking_redirect(request):
         username = request.GET['handle']
     except KeyError:
         raise Http404()
-    user = get_object_or_404(scope_request(Profile.objects.all(), request), user__username=username)
-    rank = scope_request(Profile.objects.all(), request).filter(is_unlisted=False, performance_points__gt=user.performance_points).count()
-    rank += scope_request(Profile.objects.all(), request).filter(
+    user = get_object_or_404(Profile, user__username=username)
+    rank = Profile.objects.filter(is_unlisted=False, performance_points__gt=user.performance_points).count()
+    rank += Profile.objects.filter(
         is_unlisted=False, performance_points__exact=user.performance_points, id__lt=user.id,
     ).count()
     page = rank // UserList.paginate_by

@@ -2,6 +2,18 @@
 
 {% block additional_table_classes %}user-directory-table{% endblock %}
 
+{% block container %}
+    <div class="campus-toolbar">
+        {% include "campus-filter.html" %}
+        <form class="campus-user-search" action="{{ url('user_list') }}" method="get" role="search">
+            {% if selected_campus %}<input type="hidden" name="campus" value="{{ selected_campus.code }}">{% endif %}
+            {% if request.GET.get('order') %}<input type="hidden" name="order" value="{{ request.GET.get('order') }}">{% endif %}
+            <input type="search" name="search" value="{{ search_query or '' }}" placeholder="이름 검색" aria-label="이름 검색">
+            <button type="submit" aria-label="사용자 검색"><i class="fa fa-search" aria-hidden="true"></i></button>
+        </form>
+    </div>
+{% endblock %}
+
 {% block row_id %}{% if loop.first and request.user.is_authenticated and user.pk == request.profile.pk %}current-user-summary{% else %}{{ super() }}{% endif %}{% endblock %}
 
 {% block row_extra %}{% if loop.first and request.user.is_authenticated and user.pk == request.profile.pk %}class="current-user-row"{% endif %}{% endblock %}

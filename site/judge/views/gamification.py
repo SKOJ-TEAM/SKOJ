@@ -5,7 +5,7 @@ from django.views.generic import TemplateView
 from judge.gamification import get_challenge_context
 from judge.models import ProfileGamification, Tier
 from judge.utils.views import TitleMixin
-from judge.utils.campus import scope_request
+from judge.utils.campus import CampusFilterMixin
 
 
 class ChallengeView(LoginRequiredMixin, TitleMixin, TemplateView):
@@ -18,9 +18,10 @@ class ChallengeView(LoginRequiredMixin, TitleMixin, TemplateView):
         return context
 
 
-class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
+class RankingView(LoginRequiredMixin, CampusFilterMixin, TitleMixin, TemplateView):
     title = '랭킹'
     template_name = 'gamification/ranking.html'
+    campus_filter_url_name = 'gamification_ranking'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -39,7 +40,7 @@ class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
             default=Value(1),
             output_field=IntegerField(),
         ))
-        rankings = list(scope_request(rankings, self.request, 'profile').order_by(
+        rankings = list(self.filter_campus(rankings, 'profile').order_by(
             '-tier_order', '-weighted_score', '-master_solved', '-diamond_solved', '-gold_solved', '-silver_solved',
             '-bronze_solved', 'profile_id',
         ))
@@ -49,7 +50,9 @@ class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
         if own_ranking is not None:
             rankings.insert(0, own_ranking)
 
+        context.update(self.get_campus_filter_context())
         context.update({
             'rankings': rankings,
+            'ranking_count': len(rankings) - (own_ranking is not None),
         })
         return context

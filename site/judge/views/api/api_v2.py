@@ -9,7 +9,6 @@ from django.utils.functional import cached_property
 from django.views.generic.detail import BaseDetailView
 from django.views.generic.list import BaseListView
 
-from judge.utils.campus import scope_request, scope_queryset
 # from judge.models import (
 #     Contest, ContestParticipation, ContestTag, Judge, Language, Organization, Problem, Profile, Rating,
 #     Submission,
@@ -270,7 +269,7 @@ class APIContestDetail(APIDetailView):
             .order_by('-contest__end_time')
         )
         participations = (
-            scope_request(contest.users.all(), self.request, 'user')
+            contest.users
             .filter(virtual=ContestParticipation.LIVE)
             .annotate(
                 username=F('user__user__username'),
@@ -374,7 +373,7 @@ class APIContestParticipationList(APIListView):
             visible_contests = visible_contests.filter(q)
 
         return (
-            scope_request(ContestParticipation.objects.all(), self.request, 'user')
+            ContestParticipation.objects
             .filter(virtual__gte=0, contest__in=visible_contests)
             .select_related('user__user', 'contest')
             .order_by('id')
@@ -497,7 +496,7 @@ class APIUserList(APIListView):
     def get_unfiltered_queryset(self):
         latest_rating_subquery = Rating.objects.filter(user=OuterRef('pk')).order_by('-contest__end_time')
         return (
-            scope_request(Profile.objects.all(), self.request)
+            Profile.objects
             .filter(is_unlisted=False, user__is_active=True)
             .annotate(
                 username=F('user__username'),
@@ -523,9 +522,6 @@ class APIUserDetail(APIDetailView):
     model = Profile
     slug_field = 'user__username'
     slug_url_kwarg = 'user'
-
-    def get_queryset(self):
-        return scope_queryset(super().get_queryset(), self.request.user)
 
     def get_object_data(self, profile):
         solved_problems = list(
@@ -600,7 +596,7 @@ class APISubmissionList(APIListView):
         return not self.used_basic_filters
 
     def get_unfiltered_queryset(self):
-        queryset = scope_request(Submission.objects.all(), self.request, 'user')
+        queryset = Submission.objects.all()
         use_straight_join(queryset)
         join_sql_subquery(
             queryset,
@@ -645,9 +641,6 @@ class APISubmissionDetail(APILoginRequiredMixin, APIDetailView):
     model = Submission
     slug_field = 'id'
     slug_url_kwarg = 'submission'
-
-    def get_queryset(self):
-        return scope_queryset(super().get_queryset(), self.request.user, 'user')
 
     def get_object(self, queryset=None):
         submission = super().get_object(queryset)

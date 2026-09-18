@@ -1257,20 +1257,6 @@
         <div id="noscript">{{ _('This site works best with JavaScript enabled.') }}</div>
     </noscript>
     <main id="content">
-        {% if request.user.is_staff or request.user.is_superuser %}
-        <form class="campus-selector" method="post" action="{{ url('campus_select') }}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <label for="campus-scope">캠퍼스</label>
-            <select id="campus-scope" name="campus">
-                <option value="">전체 캠퍼스</option>
-                {% for campus in campus_options %}
-                <option value="{{ campus.pk }}"{% if campus.pk == selected_campus_id %} selected{% endif %}>{{ campus.name }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">적용</button>
-        </form>
-        {% endif %}
         <div class="title-box">
             <div class="title-div">
                 {% block title_row %}

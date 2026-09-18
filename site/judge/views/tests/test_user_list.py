@@ -107,7 +107,7 @@ class UserListViewTestCase(TestCase):
         self.assertNotContains(response, 'id="user-user-list-viewer"')
         self.assertNotContains(response, 'class="current-user-row"')
 
-    def test_pinned_row_preserves_training_class_scope(self):
+    def test_pinned_row_preserves_selected_campus(self):
         training_class = TrainingClass.objects.create(
             cohort=Cohort.objects.create(number=99),
             campus=Campus.objects.create(code='pinning-campus', name='테스트'), number=1,
@@ -115,7 +115,7 @@ class UserListViewTestCase(TestCase):
         self.normal.profile.training_class = training_class
         self.normal.profile.save(update_fields=('training_class',))
         self.client.force_login(self.normal)
-        response = self.client.get(reverse('user_list'))
+        response = self.client.get(reverse('user_list'), {'campus': training_class.campus.code})
         self.assertEqual([user.pk for _, user in response.context_data['users']], [self.normal.profile.pk] * 2)
         self.assertContains(response, 'class="current-user-row"', count=1)
 

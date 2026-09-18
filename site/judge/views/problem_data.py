@@ -21,7 +21,6 @@ from django.views import View
 from django.views.generic import DetailView
 
 from judge.highlight_code import highlight_code
-from judge.utils.campus import scope_request
 from judge.models import Problem, ProblemData, ProblemTestCase, Submission, problem_data_storage
 from judge.utils.problem_data import ProblemDataCompiler
 from judge.utils.unicode import utf8text
@@ -171,7 +170,7 @@ class ProblemSubmissionDiff(TitleMixin, ProblemMixin, DetailView):
         context = super(ProblemSubmissionDiff, self).get_context_data(**kwargs)
         try:
             ids = self.request.GET.getlist('id')
-            subs = scope_request(Submission.objects.filter(id__in=ids, problem=self.object), self.request, 'user')
+            subs = Submission.objects.filter(id__in=ids)
         except ValueError:
             raise Http404
         if not subs:

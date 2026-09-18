@@ -3,7 +3,6 @@ from django.db.models import F
 from django.utils.functional import cached_property
 
 from judge.models import Problem, Submission, SubmissionSourceAccess
-from judge.utils.campus import can_access_profile
 
 
 class SubmissionAccess:
@@ -56,8 +55,6 @@ class SubmissionAccess:
         return self.can_manage_problem(problem) or self.can_share_problem(problem)
 
     def is_privileged(self, submission):
-        if not can_access_profile(self.user, submission.user):
-            return False
         if not self.authenticated:
             return False
         if submission.user_id == self.profile.id or self.can_manage_problem(submission.problem):
@@ -80,8 +77,6 @@ class SubmissionAccess:
         return False
 
     def can_see_detail(self, submission):
-        if not can_access_profile(self.user, submission.user):
-            return False
         if self.is_privileged(submission):
             return True
         if not self.authenticated:

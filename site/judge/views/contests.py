@@ -33,7 +33,6 @@ from icalendar import Calendar as ICalendar, Event
 from reversion import revisions
 
 from judge import event_poster as event
-from judge.utils.campus import scope_request, can_access_profile, is_campus_admin
 from judge.comments import CommentedDetailView
 from judge.forms import ContestCloneForm
 from judge.models import Contest, ContestJplag, ContestParticipation, ContestProblem, ContestTag, ContestSubmission, \
@@ -898,7 +897,7 @@ class ContestDetail(ContestMixin, TitleMixin, ContestAutoJoinMixin, CommentedDet
             )
 
         problem_stats = (
-            scope_request(Submission.objects.all(), self.request, 'user').filter(contest_object_id=self.object.id)
+            Submission.objects.filter(contest_object_id=self.object.id)
             .values('problem_id')
             .annotate(
                 total_submissions=Count('id'),
@@ -1253,7 +1252,7 @@ class ContestStats(TitleMixin, ContestMixin, DetailView):
         if not (self.object.is_submission_closed() or self.can_edit):
             raise Http404()
 
-        queryset = scope_request(Submission.objects.filter(contest_object=self.object), self.request, 'user')
+        queryset = Submission.objects.filter(contest_object=self.object)
 
         ac_count = Count(Case(When(result='AC', then=Value(1)), output_field=IntegerField()))
         ac_rate = CombinedExpression(ac_count / Count('problem'), '*', Value(100.0), output_field=FloatField())
@@ -1386,8 +1385,6 @@ def get_contest_ranking_list(request, contest, participation=None, ranking_list=
 
     # 순위 번호를 연속적으로 부여 (같은 점수여도 각각 다른 번호)
     ranked_users = ranking_list(contest, problems)
-    visible_ids = set(scope_request(Profile.objects.all(), request).values_list('pk', flat=True))
-    ranked_users = [user for user in ranked_users if user.id in visible_ids]
     users = ((i + 1, user) for i, user in enumerate(ranked_users))
 
     if show_current_virtual:
@@ -1483,8 +1480,6 @@ class ContestParticipationList(LoginRequiredMixin, ContestRankingBase):
         if not self.object.can_see_full_scoreboard(self.request.user) and self.profile != self.request.profile:
             raise Http404()
 
-        if not can_access_profile(self.request.user, self.profile):
-            raise Http404()
         queryset = self.object.users.filter(user=self.profile, virtual__gte=0).order_by('-virtual')
         live_link = format_html('<a href="{2}#!{1}">{0}</a>', _('Live'), self.profile.username,
                                 reverse('contest_ranking', args=[self.object.key]))
@@ -1520,7 +1515,7 @@ class ContestParticipationDisqualify(ContestMixin, SingleObjectMixin, View):
         self.object = self.get_object()
 
         try:
-            participation = scope_request(self.object.users.all(), request, 'user').get(pk=request.POST.get('participation'))
+            participation = self.object.users.get(pk=request.POST.get('participation'))
         except ObjectDoesNotExist:
             pass
         else:
@@ -1534,7 +1529,7 @@ class ContestJplagMixin(ContestMixin, PermissionRequiredMixin):
     def has_permission(self):
         # Accept legacy permission to keep compatibility during migration.
         user = self.request.user
-        return is_campus_admin(user) and (user.has_perm('judge.jplag_contest') or user.has_perm('judge.moss_contest'))
+        return user.has_perm('judge.jplag_contest') or user.has_perm('judge.moss_contest')
 
     def get_object(self, queryset=None):
         contest = super().get_object(queryset)
@@ -1622,8 +1617,7 @@ class ContestDetailCodeDownload(View):
                     request.user.has_perm('judge.see_private_contest')):
                 raise PermissionDenied("You don't have permission to download contest submissions.")
 
-            submissions = scope_request(LatestSubmission.objects.filter(contest_object=contest), request, 'user__profile') \
-                .select_related('user', 'problem', 'user__profile', 'language')
+            submissions = LatestSubmission.objects.filter(contest_object=contest).select_related('user', 'problem', 'user__profile')
 
             buffer = io.BytesIO()
             with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
