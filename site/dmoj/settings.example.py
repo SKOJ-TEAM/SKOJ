@@ -98,6 +98,8 @@ DMOJ_PROBLEM_MAX_USER_POINTS_VOTE = 500  # when voting on problem, maximum point
 DMOJ_PROBLEM_HOT_PROBLEM_COUNT = 700
 DMOJ_PROBLEM_STATEMENT_DISALLOWED_CHARACTERS = {'“', '”', '‘', '’', '−', 'ﬀ', 'ﬁ', 'ﬂ', 'ﬃ', 'ﬄ'}
 DMOJ_RATING_COLORS = True
+# Keep learning records and pages available while hiding the home learning cards.
+DMOJ_HOME_LEARNING_CARDS_ENABLED = False
 DMOJ_EMAIL_THROTTLING = (10, 60)
 DMOJ_STATS_LANGUAGE_THRESHOLD = 100
 DMOJ_SUBMISSIONS_REJUDGE_LIMIT = 100

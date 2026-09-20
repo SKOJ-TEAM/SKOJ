@@ -575,6 +575,7 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
             queryset = queryset.filter(user__first_name__icontains=search)
 
         return queryset.only(
+            'avatar', 'mute', 'user__email',
             'display_rank', 'user__username', 'user__first_name', 'points', 'rating', 'performance_points',
             'problem_count', 'training_class', 'training_class__number', 'training_class__cohort__number',
             'training_class__campus__name', 'gamification__current_tier',

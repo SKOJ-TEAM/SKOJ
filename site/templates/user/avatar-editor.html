@@ -1,0 +1,31 @@
+<form id="avatar-form" class="avatar-editor" action="{{ url('user_edit_avatar') }}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <h2>프로필 사진</h2>
+    <div class="avatar-editor-current">
+        <img data-own-avatar src="{{ gravatar(request.profile, 135) }}" alt="현재 프로필 사진" width="80" height="80">
+        <div>
+            <label for="avatar-file">새 사진 선택</label>
+            <input id="avatar-file" type="file" name="image" accept="image/jpeg,image/png,image/webp" aria-describedby="avatar-help">
+        </div>
+    </div>
+    <p id="avatar-help">JPG·PNG·WebP, 최대 5MB. 움직이는 이미지는 지원하지 않습니다.<br>2,500만 화소 이하, 가로·세로 각각 10,000px 이하의 사진을 선택해주세요.</p>
+    <div id="avatar-crop" hidden>
+        <canvas id="avatar-preview" width="256" height="256" aria-label="저장될 프로필 사진 미리보기"></canvas>
+        <div class="avatar-editor-sliders">
+            <p>사진을 드래그하거나 아래 슬라이더로 조절해주세요.</p>
+            <label for="avatar-zoom">확대</label>
+            <input id="avatar-zoom" type="range" min="1" max="4" step="0.01" value="1">
+            <label for="avatar-x">가로 위치</label>
+            <input id="avatar-x" type="range" min="0" max="100" step="0.1" value="50">
+            <label for="avatar-y">세로 위치</label>
+            <input id="avatar-y" type="range" min="0" max="100" step="0.1" value="50">
+        </div>
+    </div>
+    <p class="avatar-editor-note">사진은 프로필과 사용자 목록에 표시됩니다. 원본은 보관하지 않고 선택한 영역만 512×512로 저장합니다.</p>
+    <div class="avatar-editor-actions">
+        <button id="avatar-save" type="submit" disabled>사진 저장</button>
+        <button id="avatar-remove" type="button" {% if not request.profile.avatar %}disabled{% endif %}>기본 이미지로 변경</button>
+    </div>
+    <p id="avatar-status" role="status" aria-live="polite"></p>
+    <noscript>프로필 사진을 조절하고 저장하려면 JavaScript를 켜주세요.</noscript>
+</form>

@@ -1,0 +1,52 @@
+.avatar-editor {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 28px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--page-bg);
+    color: var(--font-black);
+}
+.avatar-editor h2 { margin: 0 0 20px; font-size: 20px; }
+.avatar-editor-current { display: flex; align-items: center; gap: 20px; }
+.avatar-editor-current > div { min-width: 0; }
+.avatar-editor-current img { border-radius: 50%; object-fit: cover; flex: 0 0 80px; }
+.avatar-editor label { display: block; float: none; margin-bottom: 8px; font-weight: 600; }
+.avatar-editor input[type="file"] { max-width: 100%; }
+#avatar-file { font: inherit; color: var(--font-grey); }
+#avatar-file::file-selector-button {
+    margin-right: 12px;
+    padding: 10px 16px;
+    border: 1px solid var(--brand-red, #c62828);
+    border-radius: 6px;
+    background: var(--brand-red, #c62828);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+#avatar-file:not(:disabled):hover::file-selector-button { filter: brightness(0.9); }
+#avatar-file:focus-visible { outline: 2px solid var(--brand-red, #c62828); outline-offset: 3px; border-radius: 6px; }
+#avatar-file:disabled::file-selector-button { opacity: 0.5; cursor: not-allowed; }
+.avatar-editor input[type="range"] { width: 100%; margin: 0 0 14px; accent-color: var(--brand-red, #c62828); }
+#avatar-help, .avatar-editor-note, .avatar-editor-sliders p { color: var(--font-grey); font-size: 13px; line-height: 1.6; }
+#avatar-crop:not([hidden]) { display: flex; align-items: center; gap: 28px; margin: 24px 0; flex-wrap: wrap; }
+#avatar-preview { width: 256px; max-width: 100%; height: auto; border-radius: 50%; background: var(--background-second); cursor: grab; touch-action: none; }
+#avatar-preview:active { cursor: grabbing; }
+.avatar-editor-sliders { flex: 1 1 200px; }
+.avatar-editor-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+#avatar-form button { margin: 0; padding: 10px 16px; border-radius: 6px; cursor: pointer; }
+#avatar-save { color: #fff; background: var(--brand-red, #c62828); border: 1px solid var(--brand-red, #c62828); }
+#avatar-remove { color: var(--font-black); background: var(--page-bg); border: 1px solid var(--border-color); }
+#avatar-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+#avatar-status { min-height: 1.5em; margin-bottom: 0; }
+#avatar-status[data-error="true"] { color: var(--brand-red, #c62828); }
+@media (max-width: 600px) {
+    /* This stylesheet is loaded only by the profile editor, whose legacy wrapper is 1040px wide. */
+    #content-body, .title-area { max-width: calc(100vw - 32px); }
+    .avatar-editor { padding: 16px; }
+    .avatar-editor-current { align-items: flex-start; flex-direction: column; gap: 12px; }
+    #avatar-crop:not([hidden]) { justify-content: center; gap: 12px; }
+}

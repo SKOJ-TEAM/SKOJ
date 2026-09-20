@@ -170,9 +170,12 @@ def sync_profile_gamification(profile):
     return gamification
 
 
-def get_profile_dashboard_context(profile):
-    gamification = sync_profile_gamification(profile)
+def get_promotion_context(profile, gamification=None):
+    gamification = gamification or sync_profile_gamification(profile)
     progress = get_tier_progress(profile, gamification.current_tier)
+    for cluster in progress:
+        cluster.is_completed = cluster.solved_count >= cluster.required_solve_count
+        cluster.progress_percent = min(100, cluster.solved_count * 100 // cluster.required_solve_count)
     attempt = get_active_attempt(profile, gamification)
     attempt_problems = []
     if attempt is not None:
@@ -181,16 +184,30 @@ def get_profile_dashboard_context(profile):
             {'problem': item.problem, 'solved': item.problem_id in solved_ids}
             for item in attempt.snapshot_problems.select_related('problem').all()
         ]
-    context = {
+    next_tier = Tier.next(gamification.current_tier)
+    return {
         'gamification': gamification,
         'tier_progress': progress,
-        'promotion_eligible': is_eligible_for_promotion(profile, gamification),
+        'promotion_eligible': bool(next_tier and progress) and all(cluster.is_completed for cluster in progress),
         'promotion_attempt': attempt,
         'promotion_problems': attempt_problems,
+        'promotion_solved_count': sum(item['solved'] for item in attempt_problems),
+        'promotion_completed_groups': sum(cluster.is_completed for cluster in progress),
+        'promotion_target_tier': Tier(next_tier).label if next_tier else None,
+    }
+
+
+def get_profile_dashboard_context(profile, *, show_learning_cards=True):
+    # Keep the existing synchronization even when the home learning cards are hidden.
+    gamification = sync_profile_gamification(profile)
+    context = {
+        'home_learning_cards_enabled': show_learning_cards,
         'recommended_problem': get_random_unsolved_problem(profile),
         'recommendation_nonce': secrets.token_urlsafe(8),
     }
-    context.update(get_guide_progress_context(profile))
+    if show_learning_cards:
+        context.update(get_promotion_context(profile, gamification))
+        context.update(get_guide_progress_context(profile))
     return context
 
 

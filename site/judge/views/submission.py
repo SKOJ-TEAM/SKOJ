@@ -24,6 +24,7 @@ from judge.highlight_code import highlight_code
 from judge.models import Contest, Language, Problem, ProblemTranslation, Profile, Submission, ContestParticipation
 from judge.models.problem import SubmissionSourceAccess
 from judge.utils.infinite_paginator import InfinitePaginationMixin
+from judge.utils.problem_navigation import problem_group_navigation
 from judge.utils.problems import get_result_data, user_completed_ids, user_editable_ids, user_tester_ids
 from judge.utils.raw_sql import join_sql_subquery, use_straight_join
 from judge.utils.views import DiggPaginatorMixin, TitleMixin, generic_message
@@ -174,9 +175,16 @@ def group_test_cases(cases):
 class SubmissionStatus(SubmissionDetailBase):
     template_name = 'submission/status.html'
 
+    def get_queryset(self):
+        return super().get_queryset().select_related('problem__group')
+
     def get_context_data(self, **kwargs):
         context = super(SubmissionStatus, self).get_context_data(**kwargs)
         submission = self.object
+        context['problem_group_navigation'] = problem_group_navigation(
+            submission.problem, in_contest=self.request.in_contest,
+            contest_submission=submission.contest_object_id is not None,
+        )
         context['last_msg'] = event.last()
 
         context['batches'], statuses, context['max_execution_time'] = group_test_cases(submission.test_cases.all())
@@ -211,6 +219,7 @@ class SubmissionTestCaseQuery(SubmissionStatus):
                 test_case = submission.test_cases.filter(id=case['id']).first()
                 if test_case:
                     case['expected_output'] = test_case.expected_output
+        return context
 
 
 class SubmissionSourceRaw(SubmissionSource):

@@ -337,13 +337,40 @@ class ProblemCombinedInputFilter(FieldListFilter):
 
 
 class LanguageLimitInlineForm(ModelForm):
+    memory_unit = forms.ChoiceField(
+        label=_('단위'), choices=(('KB', 'KB'), ('MB', 'MB')), initial='MB',
+    )
+
     class Meta:
         widgets = {'language': AdminSelect2Widget}
+        labels = {'memory_limit': _('메모리 제한')}
+        help_texts = {
+            'memory_limit': _('오른쪽에서 KB 또는 MB를 선택하세요. 1MB = 1024KB입니다.'),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        memory_kb = self.initial.get('memory_limit')
+        if memory_kb is not None:
+            # Use whole MB where exact; otherwise retain KB without rounding.
+            if memory_kb and memory_kb % 1024 == 0:
+                self.initial['memory_limit'] = memory_kb // 1024
+                self.initial['memory_unit'] = 'MB'
+            else:
+                self.initial['memory_unit'] = 'KB'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        memory = cleaned_data.get('memory_limit')
+        if memory is not None and cleaned_data.get('memory_unit') == 'MB':
+            # Convert before ModelForm's model validation and save; DB stays in KB.
+            cleaned_data['memory_limit'] = memory * 1024
+        return cleaned_data
 
 
 class LanguageLimitInline(admin.TabularInline):
     model = LanguageLimit
-    fields = ('language', 'time_limit', 'memory_limit')
+    fields = ('language', 'time_limit', 'memory_limit', 'memory_unit')
     form = LanguageLimitInlineForm
     extra = 0
 

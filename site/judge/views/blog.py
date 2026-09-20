@@ -76,7 +76,10 @@ class PostList(ListView):
 
         if self.request.user.is_authenticated:
             from judge.gamification import get_profile_dashboard_context
-            context.update(get_profile_dashboard_context(self.request.profile))
+            context.update(get_profile_dashboard_context(
+                self.request.profile,
+                show_learning_cards=getattr(settings, 'DMOJ_HOME_LEARNING_CARDS_ENABLED', False),
+            ))
             context['own_open_tickets'] = (
                 Ticket.objects.filter(user=self.request.profile, is_open=True).order_by('-id')
                               .prefetch_related('linked_item').select_related('user__user')

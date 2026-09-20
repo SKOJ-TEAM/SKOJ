@@ -22,6 +22,7 @@ from judge.models.profile import Profile
 from judge.models.runtime import Language
 from judge.utils.encryption import encrypt_text, decrypt_text
 from judge.utils.problem_data import ProblemDataCompiler
+from judge.utils.resource_limits import execution_memory_limit, execution_time_limit
 
 from zipfile import ZipFile
 
@@ -493,10 +494,36 @@ class Problem(models.Model):
 
     update_stats.alters_data = True
 
+    @property
+    def effective_language_limits(self):
+        limits = list(self.language_limits.values(
+            'language_id', 'language__key', 'language__name', 'time_limit', 'memory_limit',
+        ))
+        for limit in limits:
+            limit['time_limit'] = execution_time_limit(limit['language__key'], limit['time_limit'])
+            limit['memory_limit'] = execution_memory_limit(
+                limit['language__key'], limit['memory_limit'],
+            )
+
+        # A Python ceiling can also apply when there is no language-specific row.
+        python_time = execution_time_limit('PY3', self.time_limit)
+        python_memory = execution_memory_limit('PY3', self.memory_limit)
+        if python_time != self.time_limit or python_memory != self.memory_limit:
+            for language in self.allowed_languages.filter(key='PY3').values('id', 'key', 'name'):
+                if not any(limit['language_id'] == language['id'] for limit in limits):
+                    limits.append({
+                        'language_id': language['id'],
+                        'language__key': language['key'],
+                        'language__name': language['name'],
+                        'time_limit': python_time,
+                        'memory_limit': python_memory,
+                    })
+        return limits
+
     def _get_limits(self, key):
         global_limit = getattr(self, key)
         limits = {limit['language_id']: (limit['language__name'], limit[key])
-                  for limit in self.language_limits.values('language_id', 'language__name', key)
+                  for limit in self.effective_language_limits
                   if limit[key] != global_limit}
         limit_ids = set(limits.keys())
         common = []
@@ -517,23 +544,12 @@ class Problem(models.Model):
 
     @property
     def language_time_limit(self):
-        key = 'problem_tls:%d' % self.id
-        result = cache.get(key)
-        if result is not None:
-            return result
-        result = self._get_limits('time_limit')
-        cache.set(key, result)
-        return result
+        # Compute effective limits so cached pre-ceiling values cannot be displayed.
+        return self._get_limits('time_limit')
 
     @property
     def language_memory_limit(self):
-        key = 'problem_mls:%d' % self.id
-        result = cache.get(key)
-        if result is not None:
-            return result
-        result = self._get_limits('memory_limit')
-        cache.set(key, result)
-        return result
+        return self._get_limits('memory_limit')
 
     @property
     def markdown_style(self):

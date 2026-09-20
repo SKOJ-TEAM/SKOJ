@@ -16,6 +16,7 @@ from judge import event_poster as event
 from judge.bridge.base_handler import ZlibPacketHandler, proxy_list
 from judge.caching import finished_submission
 from judge.models import Judge, Language, LanguageLimit, Problem, RuntimeVersion, Submission, SubmissionTestCase
+from judge.utils.resource_limits import execution_memory_limit, execution_time_limit
 from judge.utils.runtime_paths import judge_debug_log_path
 
 logger = logging.getLogger('judge.bridge')
@@ -186,10 +187,11 @@ class JudgeHandler(ZlibPacketHandler):
         _ensure_connection()
 
         try:
-            pid, time, memory, short_circuit, lid, is_pretested, sub_date, uid, part_virtual, part_id = (
+            pid, time, memory, short_circuit, lid, language_key, is_pretested, sub_date, uid, part_virtual, part_id = (
                 Submission.objects.filter(id=submission)
                           .values_list('problem__id', 'problem__time_limit', 'problem__memory_limit',
-                                       'problem__short_circuit', 'language__id', 'is_pretested', 'date', 'user__id',
+                                       'problem__short_circuit', 'language__id', 'language__key',
+                                       'is_pretested', 'date', 'user__id',
                                        'contest__participation__virtual', 'contest__participation__id')).get()
         except Submission.DoesNotExist:
             logger.error('Submission vanished: %s', submission)
@@ -209,8 +211,8 @@ class JudgeHandler(ZlibPacketHandler):
             pass
 
         return SubmissionData(
-            time=time,
-            memory=memory,
+            time=execution_time_limit(language_key, time),
+            memory=execution_memory_limit(language_key, memory),
             short_circuit=short_circuit,
             pretests_only=is_pretested,
             contest_no=part_virtual,

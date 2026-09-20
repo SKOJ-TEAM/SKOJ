@@ -51,7 +51,7 @@
 - Web Blue는 호스트 `127.0.0.1:8001`, Green은 `127.0.0.1:8002`를 사용합니다.
 - Nginx는 `/etc/nginx/skoj/active.conf`로 Blue, Green, Maintenance 중 하나를 선택합니다.
 - DB, Redis, media, problems는 두 색상이 공유합니다.
-- Bridge와 Judge는 일반 애플리케이션 배포에서 재시작하지 않습니다.
+- `deploy.sh`는 Bridge와 Judge를 재시작하지 않습니다. `restart.sh`는 기존 채점 완료 후 Bridge를 새 릴리스로 교체하고 실행 중인 Judge의 재연결을 확인합니다.
 - 운영 컨테이너는 `./site`를 mount하지 않고 `skoj-app:<Git SHA>` 이미지를 실행합니다.
 - `.deployment/state.env`는 활성 색상과 현재·직전 이미지를 기록하는 로컬 상태이며 Git에 포함하지 않습니다.
 
@@ -65,7 +65,7 @@ sudo ./setup-deployment.sh
 
 설치 프로그램은 기존 `/etc/nginx/conf.d/nginx.conf`를 `/etc/nginx/skoj-backup-<시각>/`에 보관합니다. 설치 직후에는 기존 `127.0.0.1:8000` Web을 가리키는 `legacy` route를 사용하므로 설정 설치만으로 Web이 중단되지 않습니다.
 
-최초 managed 배포는 중단 배포로 수행합니다. 이 과정에서 기존 Web·Celery를 중지하고 Bridge를 불변 이미지로 한 번 재생성합니다. Judge는 같은 Bridge에 다시 연결됩니다.
+최초 managed 배포는 중단 배포로 수행합니다. 기존 Web·Celery 종료 및 채점 완료 확인 후 Bridge를 불변 이미지로 재생성합니다. 최초 도입에서는 Judge 두 서비스를 시작하고 연결을 확인합니다.
 
 ```sh
 ./restart.sh
@@ -76,6 +76,22 @@ sudo ./setup-deployment.sh
 ```sh
 ./deploy.sh
 ```
+
+## Bridge 변경을 포함한 중단 배포
+
+변경을 검증·커밋한 뒤 `./restart.sh`를 실행합니다. 현재 HEAD를 새 이미지로 빌드한 후 다음 순서로 진행합니다.
+
+1. 점검 화면 전환 → Web의 진행 중 요청 종료 → Celery의 진행 중 작업 종료.
+2. 기존 Bridge를 유지한 채 대기·처리·채점 중 제출(`QU/P/G`)이 모두 완료될 때까지 대기.
+3. Bridge 정지 → 검증된 DB 백업 → 초기화·마이그레이션.
+4. 새 릴리스 이미지로 Bridge 교체 → 환경 설정의 Judge 2개가 이번 교체 이후 새로 연결됐는지 확인.
+5. 새 Web·Celery 검증 → 사이트 재개 → Bridge 이미지를 포함한 배포 상태 저장.
+
+`SKOJ_JUDGE_DRAIN_TIMEOUT`은 채점 완료 대기(기본600초), `SKOJ_JUDGE_READY_TIMEOUT`은 재연결 대기(기본120초)를 조절합니다. 완료 대기 실패 시 기존 Bridge를 정지하지 않습니다. 이후 단계 실패 시에도 점검 화면을 유지하며 자동 재채점이나 DB 복원은 하지 않습니다. 대기 중인 제출을 강제로 무시하지 마세요. Bridge 시작 시 미완료 제출은 IE로 처리됩니다.
+
+언어별 메모리는 관리자에서 숫자와 KB/MB를 함께 입력합니다. `1024 + MB`는 내부적으로1048576KB로 저장됩니다. 기존1024KB 설정은1MB로 표시·보존되므로 필요한 경우 직접 변경 후 재채점합니다.
+
+## 무중단 배포 상세
 
 인자를 생략하면 현재 `HEAD`를 배포하며, 필요한 경우에만 `./deploy.sh <git-sha>`로 명시할 수 있습니다. 스크립트는 dirty worktree와 현재 HEAD가 아닌 SHA를 거부합니다. 빌드 전 Compose 유효성, 최소 4GiB 여유 공간, MariaDB·Redis health를 검사하며 `SKOJ_MIN_FREE_KB`로 공간 기준을 높일 수 있습니다. 이미지를 만든 뒤 모델 누락 마이그레이션과 운영 DB의 미적용 마이그레이션을 검사합니다. 미적용 마이그레이션이 하나라도 있으면 DB, 실행 컨테이너, Nginx를 변경하지 않고 종료 코드 `20`으로 중단합니다.
 
@@ -107,7 +123,7 @@ Run: ./restart.sh
 ./restart.sh
 ```
 
-수행 순서는 Maintenance 전환, Web·Celery 정상 종료, DB dump, `initialize_docker`, Django 캐시 삭제, 새 Web·Celery 검사, Nginx 전환입니다. DB, Redis, Bridge, Judge는 계속 실행합니다. Redis DB 1의 Django 캐시만 비우며 DB 0의 Celery queue는 보존합니다.
+수행 순서는 위의 Bridge 변경 중단 배포와 같습니다. 기존 채점 완료 후 Bridge를 정지하고 DB dump와 `initialize_docker`를 실행한 뒤 새 Bridge의 Judge 재연결을 확인합니다. DB, Redis, 실행 중인 Judge는 보존합니다. Redis DB 1의 Django 캐시만 비우며 DB 0의 Celery queue는 보존합니다.
 
 백업은 기본적으로 `/home/songg9572/skoj-backups/skoj-pre-deploy-<시각>.sql.gz`에 권한 `0600`으로 생성됩니다. dump 생성이나 gzip 검증이 실패하면 migrate를 실행하지 않습니다. 실패 후에는 Maintenance 화면을 유지하므로 로그와 DB 상태를 확인한 뒤 복구합니다.
 

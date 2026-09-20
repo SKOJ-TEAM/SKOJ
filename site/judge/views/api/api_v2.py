@@ -469,12 +469,11 @@ class APIProblemDetail(APIDetailView):
             'memory_limit': problem.memory_limit,
             'language_resource_limits': [
                 {
-                    'language': key,
-                    'time_limit': time_limit,
-                    'memory_limit': memory_limit,
+                    'language': limit['language__key'],
+                    'time_limit': limit['time_limit'],
+                    'memory_limit': limit['memory_limit'],
                 }
-                for key, time_limit, memory_limit in
-                problem.language_limits.values_list('language__key', 'time_limit', 'memory_limit')
+                for limit in problem.effective_language_limits
             ],
             'points': problem.points,
             'partial': problem.partial,

@@ -1,5 +1,6 @@
 {% extends "common-content.html" %}
 {% block content_media %}
+<link rel="stylesheet" href="{{ static('problem-group-navigation.css') }}">
 {% include "comments/media-css.html" %}
 <style>
     #common-content {
@@ -18,10 +19,23 @@
     }
 
     .problem-title {
-        width: 1040px;
+        flex-wrap: wrap;
+        width: calc(100% - 32px);
+        max-width: 1040px;
         margin-left: auto;
         margin-right: auto;
         margin-top: 20px;
+    }
+
+    .problem-title > .problem-group-navigation {
+        flex-basis: 100%;
+    }
+
+    @media (max-width: 830px) {
+        .problem-title > .problem-group-navigation {
+            /* Leave room for the existing two-row fixed mobile menu. */
+            margin-top: 36px;
+        }
     }
 
     .title-state {
@@ -453,6 +467,14 @@
 
 {% block title_row %}
 <div class="problem-title">
+    {% if problem_group_navigation %}
+    <nav class="problem-group-navigation" aria-label="문제 분류 탐색">
+        <a href="{{ problem_group_navigation.url }}" aria-label="{{ problem_group_navigation.name }} 문제 목록으로">
+            <span class="navigation-arrow" aria-hidden="true">‹</span>
+            <span class="navigation-label">{{ problem_group_navigation.name }}</span>
+        </a>
+    </nav>
+    {% endif %}
     {% if request.user.is_authenticated %}
     {% if problem.id in completed_problem_ids %}
     <!-- <a href="{{ url('user_submissions', problem.code, request.user.username) }}"> -->
