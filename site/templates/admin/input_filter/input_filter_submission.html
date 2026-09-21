@@ -6,6 +6,7 @@
     crossorigin="anonymous"
   >
 </head>
+{% with request=spec.request %}
 <form method="get">
   {% for key, value in request.GET.items %}
     {% if key not in spec.filter_keys and key != 'p' %}
@@ -65,3 +66,4 @@
   <i class="fa-solid fa-filter"></i> 필터 적용
 </button>
 </form>
+{% endwith %}

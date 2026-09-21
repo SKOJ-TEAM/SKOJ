@@ -25,6 +25,7 @@ class GuideCombinedInputFilter(FieldListFilter):
 
     def __init__(self, field, request, params, model, model_admin, field_path):
         super().__init__(field, request, params, model, model_admin, field_path)
+        self.request = request
         self.group_lookups = tuple(
             (str(group_id), full_name)
             for group_id, full_name in ProblemGroup.objects.order_by('full_name').values_list('id', 'full_name')

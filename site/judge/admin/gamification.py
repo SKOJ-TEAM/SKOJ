@@ -192,6 +192,10 @@ class CurrentTierInputFilter(admin.SimpleListFilter):
     template = 'admin/input_filter/input_filter_ranking.html'
     filter_keys = (parameter_name,)
 
+    def __init__(self, request, params, model, model_admin):
+        super().__init__(request, params, model, model_admin)
+        self.request = request
+
     def lookups(self, request, model_admin):
         return Tier.choices
 

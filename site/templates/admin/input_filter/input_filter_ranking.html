@@ -1,3 +1,4 @@
+{% with request=spec.request %}
 <form method="get">
   {% for key, value in request.GET.items %}
     {% if key not in spec.filter_keys and key != 'p' %}
@@ -17,3 +18,4 @@
     <i class="fa fa-filter" aria-hidden="true"></i> 필터 적용
   </button>
 </form>
+{% endwith %}
