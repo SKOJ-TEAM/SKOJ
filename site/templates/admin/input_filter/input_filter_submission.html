@@ -6,9 +6,10 @@
     crossorigin="anonymous"
   >
 </head>
+{% with request=spec.request %}
 <form method="get">
   {% for key, value in request.GET.items %}
-    {% if key not in spec.filter_keys %}
+    {% if key not in spec.filter_keys and key != 'p' %}
         <input type="hidden" name="{{ key }}" value="{{ value }}">
     {% endif %}
     {% endfor %}
@@ -42,6 +43,14 @@
   </select>
 </label>
 <label>
+  코드 공개
+  <select name="is_source_public__exact">
+    <option value="">모두</option>
+    <option value="1" {% if request.GET.is_source_public__exact == '1' %}selected{% endif %}>예</option>
+    <option value="0" {% if request.GET.is_source_public__exact == '0' %}selected{% endif %}>아니오</option>
+  </select>
+</label>
+<label>
   문제 코드
   <input type="text" name="code" value="{{ request.GET.code }}" placeholder="문제 코드">
 </label>
@@ -57,3 +66,4 @@
   <i class="fa-solid fa-filter"></i> 필터 적용
 </button>
 </form>
+{% endwith %}

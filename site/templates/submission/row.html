@@ -1,4 +1,4 @@
-{% set can_view, can_edit = submission_layout(submission, profile_id, request.user, completed_problem_ids, editable_problem_ids, tester_problem_ids) %}
+{% set can_view, can_edit = submission_layout(submission, submission_access) %}
 <style>
     .problem-name {
         color: black;

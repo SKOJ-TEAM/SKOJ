@@ -17,7 +17,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
-from django.db.models import Count, Max, Min
+from django.db.models import Count, Max, Min, Q
 from django.db.models.functions import ExtractYear, TruncDate
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render, resolve_url, redirect
@@ -33,6 +33,7 @@ from reversion import revisions
 
 from judge.forms import CustomAuthenticationForm, DownloadDataForm, ProfileForm, newsletter_id, IdFindForm, CustomPasswordResetForm, EmailChangeForm, ResendActivationEmailForm
 from judge.models import Profile, Submission
+from judge.utils.campus import CampusFilterMixin
 from judge.performance_points import get_pp_breakdown
 from judge.ratings import rating_class, rating_progress
 from judge.tasks import prepare_user_data
@@ -536,12 +537,13 @@ def generate_scratch_codes(request):
     return JsonResponse({'data': {'codes': profile.generate_scratch_codes()}})
 
 
-class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
+class UserList(CampusFilterMixin, QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
     model = Profile
     title = gettext_lazy('사용자')
     title_info = '모든 사용자의 정보'
     context_object_name = 'users'
     template_name = 'user/list.html'
+    campus_filter_url_name = 'user_list'
     paginate_by = 20 #페이징 기준 정하는 변수
     all_sorts = frozenset(('points', 'problem_count', 'rating', 'performance_points'))
     default_desc = all_sorts
@@ -556,19 +558,14 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
         return None
 
     def get_title(self):
-        training_class = self.get_training_class()
-        if training_class:
-            return str(training_class) + ' 사용자'
         return str(gettext_lazy('사용자'))
 
     def get_queryset(self):
-        training_class = self.get_training_class()
         queryset = Profile.objects.filter(is_unlisted=False).select_related(
             'user', 'training_class__cohort', 'training_class__campus', 'gamification',
-        ).order_by('-performance_points')
+        ).order_by('-performance_points', 'pk')
 
-        if training_class is not None:
-            queryset = queryset.filter(training_class=training_class)
+        queryset = self.filter_campus(queryset)
 
         search = self.request.GET.get('search')
         if search:
@@ -583,10 +580,21 @@ class UserList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(UserList, self).get_context_data(**kwargs)
+        context.update(self.get_campus_filter_context())
+        context['search_query'] = self.request.GET.get('search', '')
         context['title_info'] = self.title_info
         context['training_class'] = self.get_training_class()
         start = self.paginate_by * (context['page_obj'].number - 1)
-        context['users'] = enumerate(context['users'], start=start + 1)
+        users = list(enumerate(context['users'], start=start + 1))
+        if self.request.user.is_authenticated:
+            own_profile = self.object_list.filter(pk=self.request.profile.pk).first()
+            if own_profile is not None:
+                own_rank = self.object_list.filter(
+                    Q(performance_points__gt=own_profile.performance_points) |
+                    Q(performance_points=own_profile.performance_points, pk__lt=own_profile.pk),
+                ).count() + 1
+                users.insert(0, (own_rank, own_profile))
+        context['users'] = users
         context['first_page_href'] = '.'
         context.update(self.get_sort_context())
         context.update(self.get_sort_paginate_context())

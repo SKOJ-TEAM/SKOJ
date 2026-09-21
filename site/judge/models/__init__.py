@@ -21,8 +21,8 @@ from judge.models.submission import SUBMISSION_RESULT, Submission, SubmissionSou
 from judge.models.ticket import Ticket, TicketMessage
 from judge.models.patch_note import PatchNote
 from judge.models.guide import AlgorithmGuide, GuideCompletion, GuideImage
-from judge.models.gamification import DifficultyCluster, ProfileGamification, PromotionAttempt, \
-    PromotionAttemptProblem, PromotionExam, Tier
+from judge.models.gamification import DifficultyCluster, ProfileGamification, ChallengeAttempt, \
+    ChallengeAttemptProblem, ChallengeExam, Tier
 
 revisions.register(Profile, exclude=['points', 'last_access', 'ip', 'rating'])
 revisions.register(Problem, follow=['language_limits'])

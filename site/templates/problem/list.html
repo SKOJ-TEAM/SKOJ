@@ -16,10 +16,10 @@
         }
         .problem-group-card {
             position: sticky;
-            top: 82px;
+            top: calc(var(--site-nav-height, 48px) + 16px);
             display: flex;
             flex-direction: column;
-            max-height: calc(100vh - 100px);
+            max-height: calc(100dvh - var(--site-nav-height, 48px) - 32px);
             overflow: hidden;
             border: 1px solid var(--border-color);
             border-radius: 14px;
@@ -136,20 +136,21 @@
         }
         #problem-table {
             width: 100%;
-            min-width: 720px;
+            min-width: 0;
             margin: 0;
             border-collapse: collapse;
             table-layout: fixed;
         }
-        #problem-table col.problem-code-col { width: 120px; }
-        #problem-table col.problem-category-col { width: 180px; }
-        #problem-table col.problem-author-col { width: 140px; }
+        #problem-table col.problem-code-col { width: 14%; }
+        #problem-table col.problem-category-col { width: 20%; }
+        #problem-table col.problem-author-col { width: 16%; }
         #problem-table th, #problem-table td {
             padding: 13px 14px;
             border: 0;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
-            white-space: nowrap;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
         #problem-table th {
             background: rgba(127, 127, 127, .08);
@@ -179,7 +180,7 @@
             justify-content: center;
             margin: 24px auto 0;
         }
-        @media (max-width: 820px) {
+        @media (max-width: 1000px) {
             .problem-catalog-layout { grid-template-columns: 1fr; }
             .problem-group-card { position: static; max-height: none; }
             .problem-group-card-list {
@@ -187,6 +188,8 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .problem-group-card a.problem-group-all { grid-column: 1 / -1; }
+        }
+        @media (max-width: 640px) {
             .problem-catalog-heading { align-items: stretch; flex-direction: column; }
             .problem-search { width: 100%; }
         }
@@ -200,17 +203,22 @@
 {% block title_ruler %}{% endblock %}
 
 {% block title_row %}
-    {% set tab = 'list' %}
-    {% include "problem/problem-list-tabs.html" %}
+    {% if perms.judge.view_all_problem or perms.judge.edit_all_problem or perms.judge.edit_public_problem or perms.judge.edit_own_problem %}
+        <div class="problem-admin-links">
+            <a href="{{ url('admin:judge_problem_changelist') }}">{{ _('Admin') }}</a>
+            <a href="{{ url('problem_export') }}">{{ _('문제 다운로드') }}</a>
+        </div>
+    {% endif %}
 {% endblock %}
 
 {% block body %}
     <div class="problem-catalog-layout">
-        <aside class="problem-group-card" aria-label="문제 그룹">
-            <div class="problem-group-card-header">
-                <h2>문제 그룹</h2>
-                <p>학습할 그룹을 선택하세요.</p>
-            </div>
+        <details class="problem-group-card" data-responsive-details="1000">
+            <summary class="problem-group-card-header">
+                <span class="problem-group-label">문제 그룹 · 풀이 필터</span>
+                <span class="problem-group-toggle"><span class="problem-group-expand">목록 펼치기</span><span class="problem-group-collapse">목록 접기</span></span>
+                <span class="problem-group-selection">{{ selected_problem_group.display_name if selected_problem_group else ('내가 푼 문제' if problem_status == 'solved' else ('내가 안 푼 문제' if problem_status == 'unsolved' else '전체 문제')) }}</span>
+            </summary>
             <div class="problem-group-card-list">
                 <a class="problem-group-all{% if not selected_problem_group and problem_status == 'all' %} active{% endif %}" href="{{ url('problem_list') }}"{% if not selected_problem_group and problem_status == 'all' %} aria-current="page"{% endif %}>
                     <span>전체 문제</span>
@@ -229,9 +237,9 @@
                     </a>
                 {% endfor %}
             </div>
-        </aside>
+        </details>
 
-        <main class="problem-catalog-main">
+        <section class="problem-catalog-main" aria-label="문제 목록">
             <header class="problem-catalog-heading">
                 <div>
                     <h1>{{ selected_problem_group.display_name if selected_problem_group else '전체 문제' }}</h1>
@@ -290,6 +298,6 @@
             {% if page_obj.has_other_pages() %}
                 <div class="bottom-pagination-bar">{% include "list-pages.html" %}</div>
             {% endif %}
-        </main>
+        </section>
     </div>
 {% endblock %}

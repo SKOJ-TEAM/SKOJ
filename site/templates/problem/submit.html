@@ -132,6 +132,7 @@
 {% endblock %}
 
 {% block media %}
+    <link rel="stylesheet" href="{{ static('submission-visibility.css') }}">
     {{ form.media.css }}
     {% compress css %}
         <style media="screen">
@@ -278,7 +279,7 @@
 
             color: var(--font-grey);
         }
-        .submit-bar input{
+        .submit-bar input[type="submit"]{
             background: none;
             background-color: var(--primary-color);
             border: 1px solid var(--primary-color);
@@ -367,7 +368,7 @@
     <form id="problem_submit" action="" method="post" class="form-area">
         {% csrf_token %}
         {{ form.non_field_errors() }}
-        <div class="flex-container">
+        <div class="flex-container submit-options">
             <div id="language">
                 {{ form.language.errors }}
                 <div id="language-select">
@@ -382,7 +383,15 @@
                     </select>
                 </div>
             </div>
-
+            <div class="source-visibility">
+                {{ form.is_source_public.errors }}
+                <label class="source-visibility-toggle" for="id_is_source_public">
+                    {{ form.is_source_public.as_widget(attrs={'aria-label': '코드 공개'}) }}
+                    <span class="source-visibility-track" aria-hidden="true"></span>
+                    <span class="source-visibility-on">코드 공개</span>
+                    <span class="source-visibility-off">코드 비공개</span>
+                </label>
+            </div>
         </div>
 
         <div id="submit-wrapper">

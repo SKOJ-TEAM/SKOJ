@@ -10,8 +10,8 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 
-from judge.models import DifficultyCluster, Problem, ProfileGamification, PromotionAttempt, \
-    PromotionAttemptProblem, PromotionExam, Tier
+from judge.models import DifficultyCluster, Problem, ProfileGamification, ChallengeAttempt, \
+    ChallengeAttemptProblem, ChallengeExam, Tier
 
 
 @admin.register(DifficultyCluster)
@@ -34,9 +34,9 @@ class DifficultyClusterAdmin(admin.ModelAdmin):
         transaction.on_commit(schedule_gamification_rebuild)
 
 
-@admin.register(PromotionExam)
-class PromotionExamAdmin(admin.ModelAdmin):
-    change_form_template = 'admin/judge/promotionexam/change_form.html'
+@admin.register(ChallengeExam)
+class ChallengeExamAdmin(admin.ModelAdmin):
+    change_form_template = 'admin/judge/challengeexam/change_form.html'
     fields = ('title', 'source_tier', 'is_active')
     list_display = ('title', 'source_tier', 'target_tier_display', 'problem_count', 'is_active')
     list_filter = ('source_tier', 'is_active')
@@ -46,12 +46,12 @@ class PromotionExamAdmin(admin.ModelAdmin):
             path(
                 '<int:exam_id>/problem-manager/',
                 self.admin_site.admin_view(self.problem_manager_view),
-                name='judge_promotionexam_problem_manager',
+                name='judge_challengeexam_problem_manager',
             ),
             path(
                 '<int:exam_id>/problem-manager/update/',
                 self.admin_site.admin_view(self.update_problems_view),
-                name='judge_promotionexam_problem_manager_update',
+                name='judge_challengeexam_problem_manager_update',
             ),
         ] + super().get_urls()
 
@@ -69,16 +69,16 @@ class PromotionExamAdmin(admin.ModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         if '_manage_problems' in request.POST:
-            return HttpResponseRedirect(reverse('admin:judge_promotionexam_problem_manager', args=(obj.pk,)))
+            return HttpResponseRedirect(reverse('admin:judge_challengeexam_problem_manager', args=(obj.pk,)))
         return super().response_add(request, obj, post_url_continue)
 
     def problem_manager_view(self, request, exam_id):
-        exam = get_object_or_404(PromotionExam, pk=exam_id)
+        exam = get_object_or_404(ChallengeExam, pk=exam_id)
         if not self.has_change_permission(request, exam):
             raise PermissionDenied
 
         problems = Problem.objects.filter(is_contest_problem=False).filter(
-            Q(promotion_exam__isnull=True) | Q(promotion_exam=exam),
+            Q(challenge_exam__isnull=True) | Q(challenge_exam=exam),
         ).select_related('group').order_by('group__full_name', 'code')
         selected_ids = set(exam.problems.values_list('id', flat=True))
         selected_lookup = defaultdict(bool, {problem_id: True for problem_id in selected_ids})
@@ -110,12 +110,12 @@ class PromotionExamAdmin(admin.ModelAdmin):
             'problems': json.dumps(problem_tree),
             'page_title': f'{exam.title} 문제 관리',
             'page_description': '승급전에 포함할 문제를 선택하세요',
-            'update_url': reverse('admin:judge_promotionexam_problem_manager_update', args=(exam.pk,)),
-            'return_url': reverse('admin:judge_promotionexam_change', args=(exam.pk,)),
+            'update_url': reverse('admin:judge_challengeexam_problem_manager_update', args=(exam.pk,)),
+            'return_url': reverse('admin:judge_challengeexam_change', args=(exam.pk,)),
         })
 
     def update_problems_view(self, request, exam_id):
-        exam = get_object_or_404(PromotionExam, pk=exam_id)
+        exam = get_object_or_404(ChallengeExam, pk=exam_id)
         if not self.has_change_permission(request, exam):
             raise PermissionDenied
         if request.method != 'POST':
@@ -130,22 +130,22 @@ class PromotionExamAdmin(admin.ModelAdmin):
             return JsonResponse({'message': '잘못된 문제 선택 데이터입니다.'}, status=400)
 
         eligible_ids = set(Problem.objects.filter(
-            Q(promotion_exam__isnull=True) | Q(promotion_exam=exam),
+            Q(challenge_exam__isnull=True) | Q(challenge_exam=exam),
             pk__in=requested_ids,
             is_contest_problem=False,
         ).values_list('pk', flat=True))
         ordered_ids = [problem_id for problem_id in requested_ids if problem_id in eligible_ids]
 
         with transaction.atomic():
-            exam.problems.exclude(pk__in=ordered_ids).update(promotion_exam=None, promotion_order=0)
+            exam.problems.exclude(pk__in=ordered_ids).update(challenge_exam=None, challenge_order=0)
             for order, problem_id in enumerate(ordered_ids):
                 Problem.objects.filter(pk=problem_id).update(
-                    promotion_exam=exam,
-                    promotion_order=order,
+                    challenge_exam=exam,
+                    challenge_order=order,
                 )
-            from judge.gamification import sync_promotion_attempt_problems
+            from judge.gamification import sync_challenge_attempt_problems
             for attempt in exam.attempts.filter(completed_at__isnull=True).select_related('exam'):
-                sync_promotion_attempt_problems(attempt)
+                sync_challenge_attempt_problems(attempt)
             transaction.on_commit(schedule_gamification_rebuild)
 
         return JsonResponse({'message': '승급전 문제를 저장했습니다.', 'selected_count': len(ordered_ids)})
@@ -164,8 +164,8 @@ def schedule_gamification_rebuild():
     rebuild_all_gamification.delay()
 
 
-class PromotionAttemptProblemInline(admin.TabularInline):
-    model = PromotionAttemptProblem
+class ChallengeAttemptProblemInline(admin.TabularInline):
+    model = ChallengeAttemptProblem
     extra = 0
     can_delete = False
     readonly_fields = ('problem', 'order')
@@ -174,23 +174,42 @@ class PromotionAttemptProblemInline(admin.TabularInline):
         return False
 
 
-@admin.register(PromotionAttempt)
-class PromotionAttemptAdmin(admin.ModelAdmin):
+@admin.register(ChallengeAttempt)
+class ChallengeAttemptAdmin(admin.ModelAdmin):
     list_display = ('profile', 'source_tier', 'target_tier', 'unlocked_at', 'completed_at')
     list_filter = ('source_tier', 'target_tier', 'completed_at')
     search_fields = ('profile__user__username',)
     readonly_fields = ('profile', 'exam', 'source_tier', 'target_tier', 'unlocked_at', 'completed_at')
-    inlines = (PromotionAttemptProblemInline,)
+    inlines = (ChallengeAttemptProblemInline,)
 
     def has_add_permission(self, request):
         return False
+
+
+class CurrentTierInputFilter(admin.SimpleListFilter):
+    title = '현재 티어'
+    parameter_name = 'current_tier__exact'
+    template = 'admin/input_filter/input_filter_ranking.html'
+    filter_keys = (parameter_name,)
+
+    def __init__(self, request, params, model, model_admin):
+        super().__init__(request, params, model, model_admin)
+        self.request = request
+
+    def lookups(self, request, model_admin):
+        return Tier.choices
+
+    def queryset(self, request, queryset):
+        if self.value() in Tier.values:
+            return queryset.filter(current_tier=self.value())
+        return queryset
 
 
 @admin.register(ProfileGamification)
 class ProfileGamificationAdmin(admin.ModelAdmin):
     list_display = ('profile', 'current_tier', 'weighted_score', 'master_solved', 'diamond_solved', 'gold_solved',
                     'silver_solved', 'bronze_solved', 'tier_updated_at')
-    list_filter = ('current_tier',)
+    list_filter = (CurrentTierInputFilter,)
     search_fields = ('profile__user__username',)
     readonly_fields = ('profile', 'current_tier', 'tier_updated_at', 'weighted_score', 'bronze_solved',
                        'silver_solved', 'gold_solved', 'diamond_solved', 'master_solved', 'score_updated_at')

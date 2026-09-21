@@ -43,6 +43,7 @@ from judge.pdf_problems import DefaultPdfMaker, HAS_PDF
 from judge.utils.diggpaginator import DiggPaginator
 from judge.utils.opengraph import generate_opengraph
 from judge.utils.problem_navigation import problem_group_navigation
+from judge.utils.submission_access import submission_access
 from judge.utils.problems import contest_attempted_ids, contest_completed_ids, hot_problems, user_attempted_ids, \
     user_completed_ids
 from judge.utils.strings import safe_float_or_none, safe_int_or_none
@@ -183,6 +184,7 @@ class ProblemDetail(ProblemMixin, SolvedProblemMixin, CommentedDetailView):
 
     def get_context_data(self, **kwargs):
         context = super(ProblemDetail, self).get_context_data(**kwargs)
+        context['can_list_submissions'] = submission_access(self.request).can_list_problem(self.object)
         user = self.request.user
         context['problem_group_navigation'] = problem_group_navigation(
             self.object, in_contest=self.request.in_contest,
@@ -560,7 +562,7 @@ def get_visible_problem_filter(user, profile=None):
         problem_filter |= Q(authors=profile)
         problem_filter |= Q(curators=profile)
         problem_filter |= Q(testers=profile)
-    return problem_filter & Q(promotion_exam__isnull=True)
+    return problem_filter & Q(challenge_exam__isnull=True)
 
 
 def get_visible_problem_groups(user, profile=None):
@@ -983,7 +985,8 @@ class ProblemExportView(LoginRequiredMixin, TitleMixin, TemplateView):
                 round(problem.ac_rate, 1),
                 _('허용') if problem.partial else _('비허용'),
                 languages,
-                problem.get_submission_source_visibility_mode_display(),
+                (problem.get_submission_source_visibility_mode_display() if problem.is_contest_problem else
+                 '정답자에게 공개 제출 코드만 공개'),
                 problem.total_submission_count,
                 problem.ac_submission_count,
             ])
@@ -1112,6 +1115,7 @@ class ProblemSubmit(LoginRequiredMixin, ProblemMixin, TitleMixin, SingleObjectFo
         initial = {'language': self.default_language}
         if self.old_submission is not None:
             initial['source'] = self.old_submission.source.source
+            initial['is_source_public'] = self.old_submission.is_source_public
         return initial
 
     def get_form_kwargs(self):

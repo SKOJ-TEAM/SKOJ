@@ -1,0 +1,99 @@
+{% extends "common-content.html" %}
+
+{% block title %}승급전 - SKOJ{% endblock %}
+{% block content_title %}승급전{% endblock %}
+{% block media %}
+    <link rel="stylesheet" href="{{ static('challenge.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="challenge-page">
+    <section class="challenge-hero" aria-labelledby="challenge-heading">
+        <div>
+            <p class="challenge-eyebrow">SKOJ · LEVEL UP</p>
+            <h2 id="challenge-heading">{{ '최고 티어에 도달했어요!' if not challenge_target_tier else '다음 티어를 향한 도전' }}</h2>
+            <p class="challenge-description">{{ '모든 승급 과정을 완료했습니다. 새로운 문제를 풀며 도전을 이어가세요.' if not challenge_target_tier else '승급 조건을 채우고, 승급전의 모든 문제를 해결하면 다음 티어로 올라갑니다.' }}</p>
+        </div>
+        <div class="challenge-tier-path" aria-label="현재 티어와 다음 티어">
+            <div><span class="challenge-caption">현재 티어</span><strong>{{ gamification.get_current_tier_display() }}</strong></div>
+            {% if challenge_target_tier %}
+                <span class="challenge-tier-arrow" aria-hidden="true">→</span>
+                <div class="challenge-tier-target"><span class="challenge-caption">다음 티어</span><strong>{{ challenge_target_tier }}</strong></div>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if challenge_target_tier %}
+    <div class="challenge-grid">
+        <section class="challenge-card" aria-labelledby="requirements-heading">
+            <div class="challenge-card-heading">
+                <h2 id="requirements-heading"><span class="challenge-step">01</span> 승급 조건</h2>
+                <span class="challenge-count">{{ challenge_completed_groups }} / {{ tier_progress|length }} 충족</span>
+            </div>
+            {% if tier_progress %}
+                <ul class="challenge-requirements">
+                    {% for cluster in tier_progress %}
+                    <li>
+                        <div class="challenge-requirement-heading">
+                            <a href="{{ url('problem_group_list', cluster.problem_group.name) }}">{{ cluster.problem_group.full_name }} <span aria-hidden="true">↗</span></a>
+                            <span class="challenge-state{{ ' is-complete' if cluster.is_completed else '' }}">{{ '충족' if cluster.is_completed else '진행 중' }}</span>
+                        </div>
+                        <div class="challenge-requirement-count"><strong>{{ cluster.solved_count }}</strong> / {{ cluster.required_solve_count }}문제 해결</div>
+                        <progress class="challenge-progress" value="{{ cluster.progress_percent }}" max="100" aria-label="{{ cluster.problem_group.full_name }} 승급 조건 진행률">{{ cluster.progress_percent }}%</progress>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="challenge-empty">현재 티어의 승급 조건을 준비 중입니다.</div>
+            {% endif %}
+        </section>
+
+        <section class="challenge-card challenge-exam-card" aria-labelledby="exam-heading">
+            <div class="challenge-card-heading">
+                <h2 id="exam-heading"><span class="challenge-step">02</span> 승급전 문제</h2>
+                {% if challenge_attempt %}<span class="challenge-count">{{ challenge_solved_count }} / {{ challenge_problems|length }} 완료</span>{% endif %}
+            </div>
+            {% if challenge_attempt %}
+                <p class="challenge-description"><strong>{{ challenge_attempt.exam.title }}</strong><br>승급전이 열렸습니다. 아래 문제를 모두 해결하면 {{ challenge_target_tier }}로 승급합니다.</p>
+                <p class="challenge-note">승급전이 열린 이후의 만점 정답만 인정됩니다.</p>
+                {% if challenge_problems %}
+                    <ol class="challenge-problems">
+                        {% for item in challenge_problems %}
+                        <li>
+                            <a class="challenge-problem-link" href="{{ url('problem_detail', item.problem.code) }}">
+                                <span class="challenge-problem-number" aria-hidden="true">{{ loop.index }}</span>
+                                <span class="challenge-problem-name">{{ item.problem.name }}</span>
+                                <span class="challenge-problem-action">{{ '완료' if item.solved else '도전하기' }} <span aria-hidden="true">→</span></span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <div class="challenge-empty">승급전 문제를 준비 중입니다. 잠시 후 다시 확인해 주세요.</div>
+                {% endif %}
+            {% elif challenge_eligible %}
+                <div class="challenge-empty">
+                    <span class="challenge-state is-complete">조건 충족</span>
+                    <h3>승급전을 준비 중입니다</h3>
+                    <p>승급 조건을 모두 채웠어요. 활성 승급전과 문제가 준비되면 이곳에 표시됩니다.</p>
+                </div>
+            {% else %}
+                <div class="challenge-empty">
+                    <span class="challenge-state">아직 잠겨 있어요</span>
+                    <h3>승급 조건을 먼저 채워주세요</h3>
+                    <p>모든 그룹의 조건을 충족하면 이곳에 승급전 문제 목록이 열립니다.</p>
+                    <a class="challenge-button" href="{{ url('problem_list') }}">문제 풀러 가기 <span aria-hidden="true">→</span></a>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+    {% else %}
+        <section class="challenge-card challenge-master" aria-label="승급 완료">
+            <h2>마스터, 모든 승급을 완료했어요</h2>
+            <p class="challenge-description">더 많은 문제를 해결하고 랭킹에 도전해 보세요.</p>
+            <a class="challenge-button" href="{{ url('problem_list') }}">문제 풀러 가기 →</a>
+            <a class="challenge-secondary-link" href="{{ url('gamification_ranking') }}">랭킹 보기 →</a>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -30,47 +30,12 @@
     .problem-title > .problem-group-navigation {
         flex-basis: 100%;
     }
-
-    @media (max-width: 830px) {
-        .problem-title > .problem-group-navigation {
-            /* Leave room for the existing two-row fixed mobile menu. */
-            margin-top: 36px;
-        }
-    }
-
     .title-state {
         font-size: 2em;
         float: left;
         width: 1.1em;
         display: block;
         margin-top: 0.16em;
-    }
-
-    .info-float a {
-        vertical-align: middle;
-    }
-
-    .info-float .fa {
-        color: rgb(159, 202, 242);
-        padding-right: 0.2em;
-    }
-
-    #content-right .info-float {
-        float: none;
-        padding: 0;
-        position: sticky;
-        top: 70px;
-        width: 100%;
-        border: none;
-    }
-
-    .info-float-div {
-        width: 100%;
-        padding: 8px 8px 8px 8px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        border: none;
-        box-shadow: var(--standard-box-shadow);
     }
 
     .info-float-div-admin {
@@ -465,6 +430,26 @@
 
 {% endblock %}
 
+{% block content_layout %}
+<div id="common-content" class="problem-reading-layout">
+    <div id="content-left">
+        <div class="content-description screen">
+            {{ self.description() }}
+            {{ self.description_end() }}
+            {{ self.post_description_end() }}
+        </div>
+    </div>
+    <aside class="problem-tools-region" aria-label="문제 정보와 제출">
+        <div class="problem-tools">
+            {{ self.problem_tools() }}
+        </div>
+    </aside>
+    <div class="problem-comments">
+        {{ self.comments() }}
+    </div>
+</div>
+{% endblock %}
+
 {% block title_row %}
 <div class="problem-title">
     {% if problem_group_navigation %}
@@ -559,12 +544,12 @@
 </div>
 {% endblock %}
 
-{% block info_float %}
+{% block problem_tools %}
 
 <!-- 답안 제출 부분 -->
-<div class="info-float-div">
-    <hr style="padding-top: 0.3em">
-    <div class="floating-menu-title">문제 정보</div>
+<div class="problem-actions">
+    <details class="problem-info-details" data-responsive-details="960" open>
+    <summary class="floating-menu-title">문제 정보</summary>
     <div class="inner-contents">
         <div class="problem-info-entry">
             <span class="material-symbols-outlined md-dark-grey md-18">check</span><span class="pi-name">{{ _('포인트 : ')
@@ -632,7 +617,7 @@
         </div>
         {% endif %}
 
-        {% if can_edit_problem %}
+        {% if can_list_submissions %}
         <div class="problem-info-entry">
             <span class="material-symbols-outlined md-dark-grey md-18">note_stack</span>
             <span class="pi-name">
@@ -652,6 +637,7 @@
             -->
 
     </div>
+    </details>
     <!-- 해설 보기 버튼 -->
     {% if (editorial and editorial.is_accessible_by(request.user)) %}
     <a href="{{ url('problem_editorial', problem.code) }}" class="unselectable button full">

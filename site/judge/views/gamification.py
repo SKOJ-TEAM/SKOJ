@@ -2,24 +2,26 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Case, IntegerField, Value, When
 from django.views.generic import TemplateView
 
-from judge.gamification import get_promotion_context
+from judge.gamification import get_challenge_context
 from judge.models import ProfileGamification, Tier
 from judge.utils.views import TitleMixin
+from judge.utils.campus import CampusFilterMixin
 
 
-class PromotionView(LoginRequiredMixin, TitleMixin, TemplateView):
+class ChallengeView(LoginRequiredMixin, TitleMixin, TemplateView):
     title = '승급전'
-    template_name = 'gamification/promotion.html'
+    template_name = 'gamification/challenge.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(get_promotion_context(self.request.profile))
+        context.update(get_challenge_context(self.request.profile))
         return context
 
 
-class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
+class RankingView(LoginRequiredMixin, CampusFilterMixin, TitleMixin, TemplateView):
     title = '랭킹'
     template_name = 'gamification/ranking.html'
+    campus_filter_url_name = 'gamification_ranking'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -38,14 +40,19 @@ class RankingView(LoginRequiredMixin, TitleMixin, TemplateView):
             default=Value(1),
             output_field=IntegerField(),
         ))
-        rankings = list(rankings.order_by(
+        rankings = list(self.filter_campus(rankings, 'profile').order_by(
             '-tier_order', '-weighted_score', '-master_solved', '-diamond_solved', '-gold_solved', '-silver_solved',
             '-bronze_solved', 'profile_id',
         ))
         for index, ranking in enumerate(rankings, start=1):
             ranking.rank = index
+        own_ranking = next((row for row in rankings if row.profile_id == self.request.profile.pk), None)
+        if own_ranking is not None:
+            rankings.insert(0, own_ranking)
 
+        context.update(self.get_campus_filter_context())
         context.update({
             'rankings': rankings,
+            'ranking_count': len(rankings) - (own_ranking is not None),
         })
         return context

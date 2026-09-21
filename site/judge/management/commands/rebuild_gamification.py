@@ -5,7 +5,7 @@ from judge.models import Profile
 
 
 class Command(BaseCommand):
-    help = 'Recalculate tier progress, promotion eligibility, and weighted scores from accepted submissions.'
+    help = 'Recalculate tier progress, challenge eligibility, and weighted scores from accepted submissions.'
 
     def add_arguments(self, parser):
         parser.add_argument('--profile', type=int, help='Rebuild only the specified profile ID.')

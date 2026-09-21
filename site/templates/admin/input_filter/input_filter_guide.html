@@ -1,0 +1,29 @@
+{% with request=spec.request %}
+<form method="get">
+  {% for key, value in request.GET.items %}
+    {% if key not in spec.filter_keys and key != 'p' %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endif %}
+  {% endfor %}
+  <label>
+    공개 여부
+    <select name="is_published__exact">
+      <option value="">모두</option>
+      <option value="1" {% if request.GET.is_published__exact == '1' %}selected{% endif %}>예</option>
+      <option value="0" {% if request.GET.is_published__exact == '0' %}selected{% endif %}>아니오</option>
+    </select>
+  </label>
+  <label>
+    문제 그룹
+    <select name="problem_group__id__exact">
+      <option value="">모두</option>
+      {% for value, label in spec.group_lookups %}
+        <option value="{{ value }}" {% if request.GET.problem_group__id__exact == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit" style="font-size: 14px;">
+    <i class="fa fa-filter" aria-hidden="true"></i> 필터 적용
+  </button>
+</form>
+{% endwith %}

@@ -110,15 +110,9 @@ window.fix_div = function (div, height) {
 };
 
 $(function () {
-    if (typeof window.orientation !== 'undefined') {
-        $(window).resize(function () {
-            var width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-            $('#viewport').attr('content', width > 480 ? 'initial-scale=1' : 'width=480');
-        });
-    }
-
     var $nav_list = $('#nav-list');
-    $('#navicon').click(function (event) {
+    // The main layout uses the accessible menu controller in responsive.js.
+    $('#navicon:not([aria-controls])').click(function (event) {
         event.stopPropagation();
         $nav_list.toggleClass('show-list');
         if ($nav_list.is(':hidden'))
