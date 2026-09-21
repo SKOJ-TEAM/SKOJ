@@ -75,7 +75,7 @@ class CombinedSubmissionFilter(FieldListFilter):
         self.__language_lookups = tuple(Language.objects.values_list('id', 'name'))
         self.__language_handles = set(str(lang_id) for lang_id, _ in self.__language_lookups)
         
-        self.filter_keys = ['language', 'status', 'result','code', 'problem_name', 'username']
+        self.filter_keys = self.expected_parameters()
     
     @property
     def language_lookups(self):
@@ -94,7 +94,7 @@ class CombinedSubmissionFilter(FieldListFilter):
     def expected_parameters(self):
         return [
             'language', 'status', 'result','code',
-            'problem_name', 'username',
+            'problem_name', 'username', 'is_source_public__exact',
         ]
 
     def choices(self, changelist):
@@ -108,6 +108,7 @@ class CombinedSubmissionFilter(FieldListFilter):
         language = request.GET.get('language')
         status = request.GET.get('status')
         result = request.GET.get('result')
+        is_source_public = request.GET.get('is_source_public__exact')
         code=request.GET.get('code')
         problem_name = request.GET.get('problem_name')
         username = request.GET.get('username')
@@ -139,6 +140,9 @@ class CombinedSubmissionFilter(FieldListFilter):
 
         if username:
             queryset = queryset.filter(user__user__username__icontains=username)
+
+        if is_source_public in ('0', '1'):
+            queryset = queryset.filter(is_source_public=(is_source_public == '1'))
 
         return queryset
 
@@ -227,7 +231,6 @@ class SubmissionAdmin(VersionAdmin):
                     'points', 'language_column', 'status', 'result', 'source_visibility', 'judge_column')
     list_filter = (
         ('id', CombinedSubmissionFilter),
-        'is_source_public',
     )
     search_fields = ('problem__code', 'problem__name', 'user__user__username')
     actions_on_top = True

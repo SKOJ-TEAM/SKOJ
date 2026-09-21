@@ -1,10 +1,11 @@
 from django.contrib import admin
+from django.contrib.admin.filters import FieldListFilter
 from django.forms import ModelForm
 from django.http import JsonResponse
 from django.urls import path, reverse_lazy
 from django.utils.html import format_html
 
-from judge.models import AlgorithmGuide, GuideImage
+from judge.models import AlgorithmGuide, GuideImage, ProblemGroup
 from judge.widgets import AdminMartorWidget
 
 
@@ -17,13 +18,42 @@ class AlgorithmGuideForm(ModelForm):
         }
 
 
+class GuideCombinedInputFilter(FieldListFilter):
+    title = ' '
+    template = 'admin/input_filter/input_filter_guide.html'
+    filter_keys = ('is_published__exact', 'problem_group__id__exact')
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        super().__init__(field, request, params, model, model_admin, field_path)
+        self.group_lookups = tuple(
+            (str(group_id), full_name)
+            for group_id, full_name in ProblemGroup.objects.order_by('full_name').values_list('id', 'full_name')
+        )
+        self.group_handles = {group_id for group_id, _ in self.group_lookups}
+
+    def expected_parameters(self):
+        return self.filter_keys
+
+    def choices(self, changelist):
+        return ()
+
+    def queryset(self, request, queryset):
+        is_published = request.GET.get('is_published__exact')
+        problem_group = request.GET.get('problem_group__id__exact')
+        if is_published in ('0', '1'):
+            queryset = queryset.filter(is_published=(is_published == '1'))
+        if problem_group in self.group_handles:
+            queryset = queryset.filter(problem_group_id=problem_group)
+        return queryset
+
+
 @admin.register(AlgorithmGuide)
 class AlgorithmGuideAdmin(admin.ModelAdmin):
     form = AlgorithmGuideForm
     fields = ('problem_group', 'title', 'summary', 'content', 'is_published', 'order', 'created_by')
     readonly_fields = ('created_by',)
     list_display = ('title', 'problem_group', 'is_published', 'order', 'updated_at')
-    list_filter = ('is_published', 'problem_group')
+    list_filter = (('id', GuideCombinedInputFilter),)
     list_editable = ('is_published', 'order')
     search_fields = ('title', 'summary', 'content', 'problem_group__full_name')
     ordering = ('order', 'title')

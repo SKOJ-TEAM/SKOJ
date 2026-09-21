@@ -186,11 +186,26 @@ class ChallengeAttemptAdmin(admin.ModelAdmin):
         return False
 
 
+class CurrentTierInputFilter(admin.SimpleListFilter):
+    title = '현재 티어'
+    parameter_name = 'current_tier__exact'
+    template = 'admin/input_filter/input_filter_ranking.html'
+    filter_keys = (parameter_name,)
+
+    def lookups(self, request, model_admin):
+        return Tier.choices
+
+    def queryset(self, request, queryset):
+        if self.value() in Tier.values:
+            return queryset.filter(current_tier=self.value())
+        return queryset
+
+
 @admin.register(ProfileGamification)
 class ProfileGamificationAdmin(admin.ModelAdmin):
     list_display = ('profile', 'current_tier', 'weighted_score', 'master_solved', 'diamond_solved', 'gold_solved',
                     'silver_solved', 'bronze_solved', 'tier_updated_at')
-    list_filter = ('current_tier',)
+    list_filter = (CurrentTierInputFilter,)
     search_fields = ('profile__user__username',)
     readonly_fields = ('profile', 'current_tier', 'tier_updated_at', 'weighted_score', 'bronze_solved',
                        'silver_solved', 'gold_solved', 'diamond_solved', 'master_solved', 'score_updated_at')

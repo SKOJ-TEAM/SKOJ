@@ -8,7 +8,7 @@
 </head>
 <form method="get">
   {% for key, value in request.GET.items %}
-    {% if key not in spec.filter_keys %}
+    {% if key not in spec.filter_keys and key != 'p' %}
         <input type="hidden" name="{{ key }}" value="{{ value }}">
     {% endif %}
     {% endfor %}
@@ -39,6 +39,14 @@
     {% for value, label in spec.result_lookups %}
       <option value="{{ value }}" {% if request.GET.result == value %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
+  </select>
+</label>
+<label>
+  코드 공개
+  <select name="is_source_public__exact">
+    <option value="">모두</option>
+    <option value="1" {% if request.GET.is_source_public__exact == '1' %}selected{% endif %}>예</option>
+    <option value="0" {% if request.GET.is_source_public__exact == '0' %}selected{% endif %}>아니오</option>
   </select>
 </label>
 <label>
