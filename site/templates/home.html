@@ -2,6 +2,35 @@
 {% block media %}
     {{ super() }}
     <style>
+        .home-service-notice {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 8px 14px;
+            padding: 14px 20px;
+            border-bottom: 1px solid #f5c2cc;
+            background: #fff0f3;
+            color: #8f1730;
+            text-align: center;
+            line-height: 1.6;
+            word-break: keep-all;
+        }
+        .home-service-notice-label {
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: var(--brand-red);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .home-service-notice p { margin: 0; }
+        [data-theme="dark"] .home-service-notice {
+            border-color: #69313e;
+            background: #3b1c24;
+            color: #ffd7df;
+        }
         .home-dashboard {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -190,6 +219,10 @@
     </style>
 {% endblock %}
 {% block before_posts %}
+    <aside class="home-service-notice" role="note" aria-label="서비스 종료 안내">
+        <span class="home-service-notice-label">서비스 종료 안내</span>
+        <p>SKOJ 서비스가 <strong>11월 16일</strong>에 종료됩니다.</p>
+    </aside>
     {% if i18n_config.home_page_top %}
         {{ render_django(i18n_config.home_page_top, request=request, user_count=user_count, problem_count=problem_count, submission_count=submission_count, language_count=language_count, perms=perms) }}
     {% endif %}
